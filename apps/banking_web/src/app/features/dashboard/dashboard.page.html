@@ -1,0 +1,87 @@
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ 'dashboard.title' | translate }}</h1>
+    <p>{{ 'dashboard.subtitle' | translate }}</p>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <app-kpi-card labelKey="dashboard.kpi.loansActive" value="18 420" trend="up" trendLabel="+3.2%" />
+  <app-kpi-card
+    labelKey="dashboard.kpi.loansValue"
+    value="512,4 mln PLN"
+    trend="up"
+    trendLabel="+2.1%"
+  />
+  <app-kpi-card labelKey="dashboard.kpi.cardsIssued" value="64 910" trend="up" trendLabel="+1.4%" />
+  <app-kpi-card labelKey="dashboard.kpi.npl" value="3,8%" trend="down" trendLabel="-0.3 p.p." />
+  <app-kpi-card labelKey="dashboard.kpi.lcr" value="142%" trend="flat" />
+  <app-kpi-card labelKey="dashboard.kpi.nsfr" value="118%" trend="flat" />
+  <app-kpi-card labelKey="dashboard.kpi.casesOpen" value="312" trend="down" trendLabel="-18" />
+  <app-kpi-card
+    labelKey="dashboard.kpi.collectionsOverdue"
+    value="24,6 mln PLN"
+    trend="up"
+    trendLabel="+1.1%"
+  />
+</div>
+
+<div class="panel-grid">
+  <div class="card-section">
+    <h2>{{ 'dashboard.portfolioTrend' | translate }}</h2>
+    <div style="height: 260px">
+      <p-chart type="line" [data]="trendData()" [options]="trendOptions()" [height]="'260px'" />
+    </div>
+  </div>
+  <div class="card-section">
+    <h2>{{ 'dashboard.portfolioByProduct' | translate }}</h2>
+    <div style="height: 260px">
+      <p-chart type="bar" [data]="productData()" [options]="productOptions()" [height]="'260px'" />
+    </div>
+  </div>
+</div>
+
+<div class="panel-grid">
+  <div class="card-section">
+    <h2>{{ 'dashboard.recentCases' | translate }}</h2>
+    <p-table [value]="recentCases" [rows]="5">
+      <ng-template #header>
+        <tr>
+          <th>{{ 'common.id' | translate }}</th>
+          <th>{{ 'common.customer' | translate }}</th>
+          <th>{{ 'common.owner' | translate }}</th>
+          <th>{{ 'common.status' | translate }}</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-item>
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>{{ item.customer }}</td>
+          <td>{{ item.owner }}</td>
+          <td><app-status-tag [labelKey]="item.statusKey" [severity]="item.severity" /></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+  <div class="card-section">
+    <h2>{{ 'dashboard.regulatoryAlerts' | translate }}</h2>
+    <p-table [value]="regulatoryAlerts" [rows]="5">
+      <ng-template #header>
+        <tr>
+          <th>{{ 'common.id' | translate }}</th>
+          <th>{{ 'reporting.recipient' | translate }}</th>
+          <th>{{ 'reporting.dueDate' | translate }}</th>
+          <th>{{ 'common.status' | translate }}</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-item>
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>{{ item.recipient }}</td>
+          <td>{{ item.dueDate }}</td>
+          <td><app-status-tag [labelKey]="item.descriptionKey" [severity]="item.severity" /></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>

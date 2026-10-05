@@ -1,0 +1,61 @@
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ 'collections.title' | translate }}</h1>
+    <p>{{ 'collections.subtitle' | translate }}</p>
+  </div>
+</div>
+
+<div class="card-section">
+  <p-table [value]="cases" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'common.id' | translate }}</th>
+        <th>{{ 'common.customer' | translate }}</th>
+        <th>{{ 'loans.applicant' | translate }}</th>
+        <th>{{ 'collections.daysPastDue' | translate }}</th>
+        <th>{{ 'collections.outstandingAmount' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+        <th>{{ 'common.actions' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-item>
+      <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.customer }}</td>
+        <td>{{ item.loanId }}</td>
+        <td [style.color]="item.daysPastDue > 60 ? 'var(--p-red-600)' : 'inherit'">
+          {{ item.daysPastDue }}
+        </td>
+        <td>{{ item.outstandingAmount | number: '1.0-0' }} PLN</td>
+        <td>
+          <app-status-tag
+            [labelKey]="'collections.stage.' + item.stage"
+            [severity]="severity[item.stage]"
+          />
+        </td>
+        <td>
+          <p-button
+            [label]="'collections.sendReminder' | translate"
+            [text]="true"
+            size="small"
+            (click)="sendReminder(item)"
+          />
+          <p-button
+            [label]="'collections.proposeSettlement' | translate"
+            [text]="true"
+            size="small"
+            severity="secondary"
+            (click)="proposeSettlement(item)"
+          />
+          <p-button
+            [label]="'collections.transferExternal' | translate"
+            [text]="true"
+            size="small"
+            severity="danger"
+            (click)="transferExternal(item)"
+          />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

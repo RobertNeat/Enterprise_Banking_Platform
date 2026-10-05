@@ -1,0 +1,72 @@
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ 'cases.title' | translate }}</h1>
+    <p>{{ 'cases.subtitle' | translate }}</p>
+  </div>
+  <div class="page-header__actions">
+    <p-button [label]="'common.newItem' | translate" icon="pi pi-plus" />
+  </div>
+</div>
+
+<div class="card-section">
+  <p-table [value]="cases" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'common.id' | translate }}</th>
+        <th>{{ 'cases.subject' | translate }}</th>
+        <th>{{ 'common.customer' | translate }}</th>
+        <th>{{ 'common.owner' | translate }}</th>
+        <th>{{ 'common.priority' | translate }}</th>
+        <th>{{ 'cases.statutoryDeadline' | translate }}</th>
+        <th>{{ 'cases.slaRemaining' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+        <th>{{ 'common.actions' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-item>
+      <tr>
+        <td>{{ item.id }}</td>
+        <td>{{ item.subject }}</td>
+        <td>{{ item.customer }}</td>
+        <td>{{ item.owner }}</td>
+        <td>
+          <p-tag
+            [value]="item.priority"
+            [severity]="
+              item.priority === 'high'
+                ? 'danger'
+                : item.priority === 'medium'
+                  ? 'warn'
+                  : 'secondary'
+            "
+          />
+        </td>
+        <td>{{ item.statutoryDeadline }}</td>
+        <td [class.text-muted]="item.slaRemainingHours === 0">
+          @if (item.slaRemainingHours > 0) {
+            <span [style.color]="item.slaRemainingHours <= 24 ? 'var(--p-red-600)' : 'inherit'">
+              {{ item.slaRemainingHours }} h
+            </span>
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          <app-status-tag
+            [labelKey]="'cases.status.' + item.status"
+            [severity]="severity[item.status]"
+          />
+        </td>
+        <td>
+          <p-button
+            [label]="'cases.escalate' | translate"
+            [text]="true"
+            size="small"
+            severity="danger"
+            (click)="escalate(item)"
+          />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

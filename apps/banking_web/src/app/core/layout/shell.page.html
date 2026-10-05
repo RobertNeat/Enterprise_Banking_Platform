@@ -1,0 +1,56 @@
+<p-toast />
+
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <img src="colloseum.png" alt="Colosseum Bank" class="topbar__logo" />
+      <div class="topbar__titles">
+        <span class="topbar__title">{{ 'app.title' | translate }}</span>
+      </div>
+    </div>
+
+    <div class="topbar__actions">
+      <button
+        type="button"
+        class="icon-toggle"
+        [pTooltip]="
+          (theme.mode() === 'dark' ? 'theme.toggleLight' : 'theme.toggleDark') | translate
+        "
+        tooltipPosition="bottom"
+        (click)="theme.toggle()"
+      >
+        <i
+          class="pi"
+          [class.pi-sun]="theme.mode() === 'dark'"
+          [class.pi-moon]="theme.mode() === 'light'"
+        ></i>
+      </button>
+      <button type="button" class="icon-toggle lang-toggle" (click)="i18n.toggle()">
+        {{ 'lang.toggle' | translate }}
+      </button>
+    </div>
+  </header>
+
+  <div class="shell__body">
+    <nav class="sidebar">
+      <ul class="sidebar__list">
+        @for (item of navItems; track item.route) {
+          <li>
+            <a
+              class="sidebar__link"
+              [routerLink]="item.route"
+              routerLinkActive="sidebar__link--active"
+            >
+              <i [class]="item.icon"></i>
+              <span>{{ item.labelKey | translate }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

@@ -1,0 +1,146 @@
+:host {
+  display: block;
+  height: 100dvh;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--p-content-background);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding-inline: 1.5rem;
+  background: linear-gradient(90deg, var(--brand-topbar-bg-start), var(--brand-topbar-bg-end));
+  color: var(--brand-topbar-fg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topbar__logo {
+  height: 34px;
+  width: 34px;
+  object-fit: contain;
+}
+
+.topbar__title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--brand-topbar-border);
+  background: var(--brand-topbar-overlay);
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.icon-toggle:hover {
+  background: var(--brand-topbar-overlay-hover);
+}
+
+.lang-toggle {
+  width: auto;
+  padding-inline: 0.75rem;
+}
+
+.shell__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  width: 248px;
+  flex-shrink: 0;
+  background: var(--brand-sidebar-bg);
+  color: var(--brand-sidebar-fg-strong);
+  overflow-y: auto;
+  padding-block: 0.75rem;
+}
+
+.sidebar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1.25rem;
+  color: var(--brand-sidebar-fg);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.sidebar__link i {
+  font-size: 1rem;
+  width: 1.1rem;
+  text-align: center;
+}
+
+.sidebar__link:hover {
+  background: var(--brand-sidebar-hover);
+}
+
+.sidebar__link--active {
+  background: var(--brand-sidebar-active);
+  border-left-color: var(--brand-sidebar-accent);
+  color: var(--brand-sidebar-fg-strong);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.75rem;
+  background: var(--p-content-background);
+}
+
+@media (max-width: 960px) {
+  .sidebar {
+    width: 72px;
+  }
+  .sidebar__link span {
+    display: none;
+  }
+  .topbar__title {
+    display: none;
+  }
+}

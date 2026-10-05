@@ -1,0 +1,101 @@
+<p-button
+  class="detail-back"
+  [label]="'common.back' | translate"
+  icon="pi pi-arrow-left"
+  [text]="true"
+  (click)="back()"
+/>
+
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ loan().id }} — {{ loan().applicant }}</h1>
+    <p>
+      {{ 'loans.product.' + loan().product | translate }} ·
+      {{ 'loans.segment.' + loan().segment | translate }}
+    </p>
+  </div>
+  <div class="page-header__actions">
+    <p-button
+      [label]="'loans.decisionMove' | translate"
+      icon="pi pi-check"
+      (click)="advanceStage()"
+    />
+  </div>
+</div>
+
+<div class="card-section" style="margin-bottom: 1.5rem">
+  <h2>{{ 'loans.lifecycle' | translate }}</h2>
+  <ol class="lifecycle">
+    @for (stage of stages; track stage; let i = $index) {
+      <li
+        class="lifecycle__step"
+        [class.lifecycle__step--done]="i < stageIndex()"
+        [class.lifecycle__step--current]="i === stageIndex()"
+      >
+        <span class="lifecycle__dot"></span>
+        <span class="lifecycle__label">{{ 'loans.stage.' + stage | translate }}</span>
+      </li>
+    }
+  </ol>
+</div>
+
+<div class="field-grid card-section" style="margin-bottom: 1.5rem">
+  <div class="field-grid__item">
+    <label>{{ 'loans.requestedAmount' | translate }}</label>
+    <div class="value">{{ loan().requestedAmount | number: '1.0-0' }} PLN</div>
+  </div>
+  <div class="field-grid__item">
+    <label>{{ 'loans.approvedAmount' | translate }}</label>
+    <div class="value">
+      {{ loan().approvedAmount ? (loan().approvedAmount! | number: '1.0-0') + ' PLN' : '—' }}
+    </div>
+  </div>
+  <div class="field-grid__item">
+    <label>{{ 'loans.scoreResult' | translate }}</label>
+    <div class="value">{{ loan().scoreResult || '—' }}</div>
+  </div>
+  <div class="field-grid__item">
+    <label>{{ 'loans.dsti' | translate }}</label>
+    <div class="value">{{ loan().dsti ? (loan().dsti * 100 | number: '1.0-1') + '%' : '—' }}</div>
+  </div>
+  <div class="field-grid__item">
+    <label>{{ 'common.status' | translate }}</label>
+    <div class="value">
+      <app-status-tag
+        [labelKey]="'loans.stage.' + loan().stage"
+        [severity]="stageSeverity[loan().stage]"
+      />
+    </div>
+  </div>
+</div>
+
+<div class="card-section">
+  <h2>{{ 'loans.scheduleTitle' | translate }}</h2>
+  <p-table [value]="schedule()" [rows]="12" [paginator]="schedule().length > 12">
+    <ng-template #header>
+      <tr>
+        <th>#</th>
+        <th>{{ 'loans.dueDate' | translate }}</th>
+        <th>{{ 'loans.principal' | translate }}</th>
+        <th>{{ 'loans.interest' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.no }}</td>
+        <td>{{ row.dueDate }}</td>
+        <td>{{ row.principal | number: '1.0-0' }} PLN</td>
+        <td>{{ row.interest | number: '1.0-0' }} PLN</td>
+        <td>
+          <app-status-tag
+            [labelKey]="'loans.' + row.status"
+            [severity]="
+              row.status === 'paid' ? 'success' : row.status === 'overdue' ? 'danger' : 'info'
+            "
+          />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

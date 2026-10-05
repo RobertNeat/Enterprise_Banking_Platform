@@ -1,0 +1,71 @@
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ 'loans.title' | translate }}</h1>
+    <p>{{ 'loans.subtitle' | translate }}</p>
+  </div>
+  <div class="page-header__actions">
+    <p-button [label]="'common.newItem' | translate" icon="pi pi-plus" />
+  </div>
+</div>
+
+<div class="card-section">
+  <div class="table-toolbar">
+    <div class="table-toolbar__filters">
+      <p-iconfield>
+        <p-inputicon class="pi pi-search" />
+        <input
+          pInputText
+          type="text"
+          [placeholder]="'common.search' | translate"
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)"
+        />
+      </p-iconfield>
+      <p-select
+        [options]="segmentOptions()"
+        [ngModel]="segmentFilter()"
+        (ngModelChange)="segmentFilter.set($event)"
+        optionLabel="label"
+        optionValue="value"
+        [style]="{ minWidth: '12rem' }"
+      />
+    </div>
+  </div>
+
+  <p-table [value]="filtered()" [rows]="10" [paginator]="filtered().length > 10" dataKey="id">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'common.id' | translate }}</th>
+        <th>{{ 'loans.applicant' | translate }}</th>
+        <th>{{ 'common.segment' | translate }}</th>
+        <th>{{ 'loans.product' | translate }}</th>
+        <th>{{ 'loans.requestedAmount' | translate }}</th>
+        <th>{{ 'loans.stage' | translate }}</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-item>
+      <tr class="clickable-row" (click)="openDetail(item.id)">
+        <td>{{ item.id }}</td>
+        <td>{{ item.applicant }}</td>
+        <td>{{ 'loans.segment.' + item.segment | translate }}</td>
+        <td>{{ 'loans.product.' + item.product | translate }}</td>
+        <td>{{ item.requestedAmount | number: '1.0-0' }} PLN</td>
+        <td>
+          <app-status-tag
+            [labelKey]="'loans.stage.' + item.stage"
+            [severity]="stageSeverity[item.stage]"
+          />
+        </td>
+        <td>
+          <p-button icon="pi pi-chevron-right" [text]="true" (click)="openDetail(item.id)" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="7">{{ 'common.noResults' | translate }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

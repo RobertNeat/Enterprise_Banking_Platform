@@ -1,0 +1,44 @@
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ 'risk.title' | translate }}</h1>
+    <p>{{ 'risk.subtitle' | translate }}</p>
+  </div>
+</div>
+
+<div class="card-section">
+  <p-table [value]="entries" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'common.id' | translate }}</th>
+        <th>{{ 'common.customer' | translate }}</th>
+        <th>{{ 'risk.collateralType' | translate }}</th>
+        <th>{{ 'risk.valuation' | translate }}</th>
+        <th>{{ 'risk.ltv' | translate }}</th>
+        <th>{{ 'risk.rating' | translate }}</th>
+        <th>{{ 'risk.stage' | translate }}</th>
+        <th>{{ 'risk.provision' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-row>
+      <tr>
+        <td>{{ row.id }}</td>
+        <td>{{ row.customer }}</td>
+        <td>{{ 'risk.collateral.' + row.type | translate }}</td>
+        <td>{{ row.valuation | number: '1.0-0' }} PLN</td>
+        <td style="min-width: 140px">
+          <p-progressbar
+            [value]="row.ltv * 100 > 100 ? 100 : row.ltv * 100"
+            [showValue]="false"
+            [style]="{ height: '6px' }"
+          />
+          <span class="text-muted">{{ row.ltv * 100 | number: '1.0-0' }}%</span>
+        </td>
+        <td>{{ row.rating }}</td>
+        <td>
+          <app-status-tag [labelKey]="'risk.' + row.stage" [severity]="stageSeverity[row.stage]" />
+        </td>
+        <td>{{ row.provision | number: '1.0-0' }} PLN</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

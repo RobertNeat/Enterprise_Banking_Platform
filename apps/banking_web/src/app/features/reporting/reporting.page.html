@@ -1,0 +1,70 @@
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ 'reporting.title' | translate }}</h1>
+    <p>{{ 'reporting.subtitle' | translate }}</p>
+  </div>
+  <div class="page-header__actions">
+    <p-button
+      [label]="'reporting.viewDashboard' | translate"
+      icon="pi pi-chart-bar"
+      severity="secondary"
+      (click)="viewDashboard()"
+    />
+    <p-button
+      [label]="'common.exportCsv' | translate"
+      icon="pi pi-download"
+      (click)="exportCsv()"
+    />
+  </div>
+</div>
+
+<div class="card-section">
+  <div class="table-toolbar">
+    <div class="table-toolbar__filters">
+      <p-select
+        [options]="recipientOptions"
+        [ngModel]="recipientFilter()"
+        (ngModelChange)="recipientFilter.set($event)"
+        optionLabel="label"
+        optionValue="value"
+        [style]="{ minWidth: '12rem' }"
+      />
+    </div>
+  </div>
+
+  <p-table
+    #dt
+    [value]="reports"
+    [rows]="10"
+    [globalFilterFields]="['recipient', 'name']"
+    [exportFilename]="'raporty-regulacyjne'"
+  >
+    <ng-template #header>
+      <tr>
+        <th>{{ 'common.id' | translate }}</th>
+        <th>{{ 'reporting.recipient' | translate }}</th>
+        <th>{{ 'common.type' | translate }}</th>
+        <th>{{ 'reporting.period' | translate }}</th>
+        <th>{{ 'reporting.dueDate' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-r>
+      @if (recipientFilter() === 'all' || recipientFilter() === r.recipient) {
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.recipient }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.period }}</td>
+          <td>{{ r.dueDate }}</td>
+          <td>
+            <app-status-tag
+              [labelKey]="'reporting.status.' + r.status"
+              [severity]="severity[r.status]"
+            />
+          </td>
+        </tr>
+      }
+    </ng-template>
+  </p-table>
+</div>

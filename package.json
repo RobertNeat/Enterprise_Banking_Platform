@@ -1,0 +1,21 @@
+{
+  "name": "Enterprise_Banking_Platform",
+  "private": true,
+  "packageManager": "pnpm@11.17.0",
+  "scripts": {
+    "start:frontend": "pnpm --filter banking-web start",
+    "lint:frontend": "echo \"banking_web: no linter configured, skipping\"",
+    "typecheck:frontend": "pnpm --filter banking-web typecheck",
+    "format:frontend": "pnpm --filter banking-web format",
+
+    "start:card_api": "pnpm --filter card_processor_api start:dev",
+    "lint:card_api": "pnpm --filter card_processor_api lint",
+    "typecheck:card_api": "pnpm --filter card_processor_api typecheck",
+    "format:card_api": "pnpm --filter card_processor_api format",
+
+    "start:backend": "cd apps/banking_backend && .\\mvnw.cmd spring-boot:run",
+    "lint:backend": "echo \"banking_backend: no linter configured, skipping\"",
+    "typecheck:backend": "cd apps/banking_backend && .\\mvnw.cmd -q -o compile",
+    "format:backend": "echo \"banking_backend: no formatter configured, skipping\""
+  }
+}

@@ -1,0 +1,113 @@
+<div class="page-header">
+  <div class="page-header__text">
+    <h1>{{ 'contact.title' | translate }}</h1>
+    <p>{{ 'contact.subtitle' | translate }}</p>
+  </div>
+</div>
+
+<div class="panel-grid">
+  <div class="card-section">
+    <h2>{{ 'contact.customer360' | translate }}</h2>
+    <div class="field-grid">
+      <div class="field-grid__item">
+        <label>{{ 'common.customer' | translate }}</label>
+        <div class="value">{{ profile.name }}</div>
+      </div>
+      <div class="field-grid__item">
+        <label>{{ 'common.segment' | translate }}</label>
+        <div class="value">{{ profile.segment }}</div>
+      </div>
+      <div class="field-grid__item">
+        <label>{{ 'nav.loans' | translate }}</label>
+        <div class="value">{{ profile.loansCount }}</div>
+      </div>
+      <div class="field-grid__item">
+        <label>{{ 'nav.cards' | translate }}</label>
+        <div class="value">{{ profile.cardsCount }}</div>
+      </div>
+      <div class="field-grid__item">
+        <label>{{ 'risk.rating' | translate }}</label>
+        <div class="value">{{ profile.riskRating }}</div>
+      </div>
+      <div class="field-grid__item">
+        <label>{{ 'dashboard.kpi.casesOpen' | translate }}</label>
+        <div class="value">{{ profile.openCases }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-section">
+    <h2>{{ 'contact.openChat' | translate }}</h2>
+    <div class="chat-window">
+      <div class="chat-window__messages">
+        @for (msg of messages(); track $index) {
+          <div
+            class="chat-bubble"
+            [class.chat-bubble--agent]="msg.from === 'agent'"
+            [class.chat-bubble--customer]="msg.from === 'customer'"
+          >
+            {{ msg.text }}
+            <div class="text-muted" style="font-size: 0.7rem; margin-top: 0.2rem">
+              {{ msg.time }}
+            </div>
+          </div>
+        }
+      </div>
+      <div class="chat-window__composer">
+        <input
+          pInputText
+          type="text"
+          [placeholder]="'contact.chatPlaceholder' | translate"
+          [ngModel]="draft()"
+          (ngModelChange)="draft.set($event)"
+          (keyup.enter)="sendMessage()"
+        />
+        <p-button icon="pi pi-send" (click)="sendMessage()" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel-grid">
+  <div class="card-section">
+    <h2>{{ 'contact.dispositions' | translate }}</h2>
+    <p-table [value]="dispositions" [rows]="10">
+      <ng-template #header>
+        <tr>
+          <th>{{ 'common.id' | translate }}</th>
+          <th>{{ 'contact.disposition.type' | translate }}</th>
+          <th>{{ 'contact.linkedCase' | translate }}</th>
+          <th>{{ 'contact.disposition.status' | translate }}</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-item>
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>{{ item.typeKey | translate }}</td>
+          <td>{{ item.linkedCase }}</td>
+          <td><app-status-tag [labelKey]="item.statusKey" [severity]="item.severity" /></td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <div class="card-section">
+    <h2>{{ 'contact.contactHistory' | translate }}</h2>
+    <p-table [value]="history" [rows]="10">
+      <ng-template #header>
+        <tr>
+          <th>{{ 'common.channel' | translate }}</th>
+          <th>{{ 'common.date' | translate }}</th>
+          <th></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-item>
+        <tr>
+          <td>{{ item.channelKey | translate }}</td>
+          <td>{{ item.date }}</td>
+          <td>{{ item.summary }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</div>
