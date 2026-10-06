@@ -116,6 +116,13 @@ Sekcja `pt` do użycia zależy od komponentu — sprawdzaną wartość
   `MenuItem.id` — trafia jako atrybut `id` na renderowany `<li>`.
 - `p-datepicker` → `inputId` (jak `p-password`) na realnym `<input>`, ale
   przycisk-kalendarz to osobny realny `<button>` wymagający `pt.dropdown`.
+- `p-dialog` → przycisk zamykania (X) to wewnętrzny `p-button` (komponent,
+  nie directywa `pButton`), więc wzorem `p-splitbutton` wymaga
+  zagnieżdżonego `pt.pcCloseButton.root.id` (nie `pt.closeButton` wprost —
+  sekcja w `DialogClasses` nazywa się `pcCloseButton`).
+- `p-confirmdialog` → przyciski accept/reject to też wewnętrzne `p-button`,
+  ten sam wzorzec: `pt.pcAcceptButton.root.id` / `pt.pcRejectButton.root.id`
+  (sekcje `ConfirmDialogClasses.pcAcceptButton`/`pcRejectButton`).
 
 Komponenty z dedykowanym wejściem `inputId` (`p-password`, `p-datepicker`,
 `p-checkbox` z `[binary]="true"`) NIE wymagają `pt` dla samego inputu —
@@ -152,6 +159,121 @@ był tylko wizualnym wskaźnikiem, nie nawigacją) zamiast ręcznie rysowanej
 listy `<ol>` — unika to efektu nakładającej się linii łączącej na etykietach
 kroków. Dla zwykłych długich formularzy (np. rejestracja pracownika) wybrano
 inne podejście — patrz niżej.
+
+### Proces z wieloma nawigowalnymi krokami (wizard) — `app-wizard-dialog`
+
+Do procesów tworzenia nowego rekordu wymagających kilku logicznych kroków
+(np. nowy wniosek kredytowy, nowe zajęcie komornicze, nowa sprawa klienta)
+używany jest współdzielony komponent `shared/components/wizard-dialog.component.ts`
+(`app-wizard-dialog`) — `p-dialog` + `p-stepper` z krokami **nawigowalnymi**
+(Next/Back), w przeciwieństwie do read-only steppera lifecycle opisanego
+wyżej (tam krok jest dokładnie jeden, bez nawigacji, `[disabled]="true"` na
+każdym `p-step`). Komponent odpowiada tylko za layout, nawigację i
+blokowanie Next/Submit przez `[stepValid]` — logika formularza i danych
+zostaje całkowicie w stronie wywołującej.
+
+**Kontrakt komponentu** (inputs/outputs): `dialogId` (prefiks id dla
+wszystkich elementów wewnętrznych — step-list, przyciski, close button),
+`titleKey` (klucz i18n nagłówka dialogu), `steps: WizardStep[]` (każdy z
+`labelKey`), `visible`, `stepValid` (bool — wynik walidacji aktualnego
+kroku, liczony przez stronę), `(visibleChange)`, `(stepChange)` (numer
+nowego aktywnego kroku), `(cancel)`, `(submit)`.
+
+**Wzorzec strony korzystającej z wizarda** (patrz `enforcement.page.ts`,
+`cases.page.ts`, `loans.page.ts`):
+- Reactive Forms (`FormBuilder`/`Validators` z `@angular/forms`) — NIE
+  signal forms. Formularz dzielony na zagnieżdżone `FormGroup` per krok
+  (np. `details`, `amounts`), żeby łatwo sprawdzić walidność jednego kroku
+  (`this.form.controls.details.valid`) bez walidowania całości. Projected
+  content owinięty w `<div [formGroup]="form">` (NIE `<form>`, żeby natywny
+  event `submit`/Enter nie wyemitował fałszywie output `(submit)` wizarda
+  przez bubbling), a grupa danego kroku podłączona przez
+  `formGroupName="details"` na elemencie wewnątrz — **nigdy**
+  `[formGroup]="form.controls.details"` zagnieżdżone w drugim elemencie z
+  `[formGroup]`: Angular dopuszcza taki zapis składniowo, ale zagnieżdżona
+  druga directywa `formGroup` tworzy osobny kontekst, przez co pola nadal
+  działają wizualnie, lecz walidacja/wartości nie zawsze propagują się
+  przewidywalnie do rodzica — źródło trudnych do zdiagnozowania błędów typu
+  "pola wypełnione, ale Next nieaktywny".
+- Strona trzyma własny sygnał `wizardStep` (numer aktywnego kroku),
+  synchronizowany z wizardem przez `(stepChange)="wizardStep.set($event)"`
+  — **nie** czyta kroku bezpośrednio z wewnętrznego stanu komponentu przy
+  każdym renderze, bo treść kroków jest projektowana przez jedyny
+  `<ng-content />` wizarda i strona musi sama decydować, co pokazać
+  (`@switch (wizardStep())`), pokazując TYLKO treść aktywnego kroku. Ten
+  sam sygnał (nie wywołanie metody na komponencie wizarda) jest jedynym
+  źródłem prawdy o aktywnym kroku na stronie.
+- `stepValid` liczone jako `computed()` na podstawie `wizardStep()` i
+  walidności odpowiedniej grupy (`switch` po numerze kroku); na ostatnim
+  kroku (podsumowanie) zwraca `form.valid`. **Pułapka:** trigger
+  re-ewaluacji musi być `toSignal(this.form.valueChanges, ...)`, NIE
+  `toSignal(this.form.statusChanges, ...)` — status formularza
+  (`VALID`/`INVALID`) nie zmienia się przy każdej zmianie wartości pola
+  (np. wypełnienie kroku 1 gdy krok 2 jest jeszcze pusty: root form
+  zostaje `INVALID` przed i po), więc `toSignal` z domyślną dedupikacją
+  `Object.is` nigdy nie wykryje zmiany i `computed()` się nie przeliczy —
+  Next/Submit zostaje trwale wyszarzony mimo poprawnie wypełnionych pól
+  aktywnego kroku, bez żadnego komunikatu błędu. `valueChanges` emituje
+  nowy obiekt wartości przy każdej zmianie, więc problem nie występuje.
+  Ten sam sygnał napędza `summary` (podsumowanie musi odświeżać się po
+  Back → edycja → Next).
+- Pola formularza w krokach grupowane w `<div class="wizard-field-group">`
+  (per krok) z każdym polem w `<div class="field">` — te klasy są
+  zdefiniowane GLOBALNIE w `styles.css` (nie per-strona, nie w
+  `wizard-dialog.component.ts`, bo style komponentu nie dotykają contentu
+  projektowanego z `<ng-content>` pod Emulated encapsulation), żeby odstępy
+  między polami były identyczne na wszystkich stronach z wizardem. Etykieta
+  pola wymaganego ma klasę `label.required`, która dokleja gwiazdkę przez
+  `::after { content: ' *' }` **bez ustawionego koloru** (gwiazdka
+  dziedziczy kolor tekstu etykiety — to standardowe oznaczenie
+  wymagalności, nie błąd, więc nie czerwona). Błąd walidacji pola to
+  `<small class="error">` pod inputem, widoczny gdy `control.invalid &&
+  control.touched` (ten sam wzorzec co `register.page.html`), z treścią z
+  kluczy `wizard.validation.required` / `.min` / `.max` / `.minLength`
+  (wspólne klucze, parametryzowane przez pipe: `'wizard.validation.min' |
+  translate: { min: 0 }`).
+- `[fluid]="true"` na każdym polu formularza (input/p-select/p-inputnumber/
+  p-datepicker) w kroku wizarda, żeby pole wypełniało szerokość kolumny
+  niezależnie od długości treści — bez tego pola o różnej długości
+  domyślnej szerokości component'u wyglądają nierówno w jednej kolumnie.
+- Otwieranie wizarda (`openWizard()`) resetuje formularz do wartości
+  domyślnych, `wizardStep.set(0)`, oraz `viewChild(WizardDialogComponent)`
+  → `wizard().reset()` (resetuje wewnętrzny `activeIndex` komponentu) —
+  inaczej po wcześniejszym submit/cancel wizard otworzyłby się z
+  niezsynchronizowanym krokiem. To samo resetowanie powtórzone w
+  `cancelWizard()`/`submitWizard()`, żeby kolejne otwarcie nigdy nie
+  pokazało danych z poprzedniej sesji wizarda.
+- Ostatni krok to zawsze read-only podsumowanie wprowadzonych danych
+  (`dl/dt/dd` lub `.field-grid`) przed zatwierdzeniem; statusy/priorytety w
+  podsumowaniu renderowane przez `app-status-tag`, nigdy surowym tekstem z
+  kolorem inline.
+- Dane nowego rekordu: jeśli lista jest czytana w więcej niż jednym miejscu
+  (np. `loans.page.ts` i `loan-detail.page.ts` oba czytają wnioski
+  kredytowe), źródło danych żyje w dedykowanym store
+  (`@Injectable({ providedIn: 'root' })`, signal + `add()`/`findById()`,
+  patrz `loans.store.ts`), nie w lokalnym sygnale jednej strony. Jeśli
+  lista ma tylko jednego konsumenta (enforcement, cases), wystarczy lokalny
+  `signal<T[]>` w komponencie stronicowym, aktualizowany przez
+  `update(list => [newItem, ...list])`.
+- `id` nowego rekordu generowany lokalnie (`<PREFIX>-<losowe cyfry>`,
+  sprawdzana unikalność względem istniejących `id`), bo nie ma prawdziwego
+  backendu.
+
+**Potwierdzenie przerwania procesu.** Każde zamknięcie wizarda bez
+zatwierdzenia — przycisk Cancel, X w headerze dialogu, klawisz Escape —
+przechodzi przez jedno potwierdzenie (`p-confirmdialog`, `key` unikalny per
+wizard: `dialogId() + '-cancel-confirm'`), zaimplementowane WEWNĄTRZ
+`wizard-dialog.component.ts` (nie per-strona), żeby zachowanie było
+identyczne we wszystkich wizardach. Mechanizm: `[visible]` na `p-dialog` w
+komponencie jest bindowane JEDNOSTRONNIE z sygnału strony (`visible()`), a
+nie `[(visible)]` dwustronnie — dzięki temu, gdy PrimeNG próbuje zamknąć
+dialog samo (X, Escape) i emituje `(visibleChange)` z `false`, handler
+komponentu (`onVisibleChange`) może po prostu NIE przepuścić tej wartości
+do strony i wywołać `requestCancel()` zamiast — w kolejnym cyklu detekcji
+zmian Angular ponownie wymusza `[visible]="true"` z sygnału strony, więc
+dialog wraca widoczny, a realne zamknięcie następuje tylko po
+`accept()` potwierdzenia (który emituje `(cancel)` do strony). Dzięki temu
+jest jedna ścieżka zamykania, nie trzy.
 
 ### Routing: trasy auth (bez shella) vs. trasy w shellu
 

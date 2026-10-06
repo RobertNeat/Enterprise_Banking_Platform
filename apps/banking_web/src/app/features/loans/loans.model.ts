@@ -2,6 +2,14 @@ import { StatusSeverity } from '../../shared/components/status-tag.component';
 
 export type LoanSegment = 'retail' | 'business';
 export type LoanProduct = 'cash' | 'mortgage' | 'overdraft' | 'investment' | 'creditLine';
+
+export const LOAN_PRODUCTS: LoanProduct[] = [
+  'cash',
+  'mortgage',
+  'overdraft',
+  'investment',
+  'creditLine',
+];
 export type LoanStage =
   | 'application'
   | 'scoring'

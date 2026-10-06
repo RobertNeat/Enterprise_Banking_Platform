@@ -9,6 +9,7 @@
       [pt]="{ root: { id: 'loans-new-item-btn-root' } }"
       [label]="'common.newItem' | translate"
       icon="pi pi-plus"
+      (click)="openWizard()"
     />
   </div>
 </div>
@@ -90,3 +91,205 @@
     </ng-template>
   </p-table>
 </div>
+
+<app-wizard-dialog
+  dialogId="loans-wizard"
+  titleKey="loans.wizard.title"
+  [steps]="wizardSteps"
+  [visible]="wizardOpen()"
+  [stepValid]="stepValid()"
+  (visibleChange)="wizardOpen.set($event)"
+  (stepChange)="onWizardStepChange($event)"
+  (cancel)="closeWizard()"
+  (submit)="submitWizard()"
+>
+  <div [formGroup]="form">
+    @switch (wizardStep()) {
+      @case (0) {
+        <div class="wizard-field-group">
+          <div class="field">
+            <label for="loans-wizard-applicant-input" class="required">{{
+              'loans.wizard.applicant' | translate
+            }}</label>
+            <input
+              id="loans-wizard-applicant-input"
+              pInputText
+              type="text"
+              formControlName="applicant"
+              [fluid]="true"
+            />
+            @if (form.controls.applicant.invalid && form.controls.applicant.touched) {
+              <small id="loans-wizard-applicant-error" class="error">
+                @if (form.controls.applicant.errors?.['required']) {
+                  {{ 'wizard.validation.required' | translate }}
+                } @else {
+                  {{ 'wizard.validation.minLength' | translate: { min: 3 } }}
+                }
+              </small>
+            }
+          </div>
+          <div class="field">
+            <label for="loans-wizard-segment-select" class="required">{{
+              'loans.wizard.segment' | translate
+            }}</label>
+            <p-select
+              id="loans-wizard-segment-select"
+              [pt]="{ dropdown: { id: 'loans-wizard-segment-select-dropdown-btn' } }"
+              [options]="wizardSegmentOptions()"
+              formControlName="segment"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              [fluid]="true"
+            />
+            @if (form.controls.segment.invalid && form.controls.segment.touched) {
+              <small id="loans-wizard-segment-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+        </div>
+      }
+      @case (1) {
+        <div class="wizard-field-group">
+          <div class="field">
+            <label for="loans-wizard-product-select" class="required">{{
+              'loans.wizard.product' | translate
+            }}</label>
+            <p-select
+              id="loans-wizard-product-select"
+              [pt]="{ dropdown: { id: 'loans-wizard-product-select-dropdown-btn' } }"
+              [options]="productOptions()"
+              formControlName="product"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              [fluid]="true"
+            />
+            @if (form.controls.product.invalid && form.controls.product.touched) {
+              <small id="loans-wizard-product-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+          <div class="field">
+            <label for="loans-wizard-amount-input" class="required">{{
+              'loans.wizard.amount' | translate
+            }}</label>
+            <input
+              id="loans-wizard-amount-input"
+              pInputText
+              type="number"
+              min="0.01"
+              formControlName="requestedAmount"
+              [fluid]="true"
+            />
+            @if (form.controls.requestedAmount.invalid && form.controls.requestedAmount.touched) {
+              <small id="loans-wizard-amount-error" class="error">
+                @if (form.controls.requestedAmount.errors?.['required']) {
+                  {{ 'wizard.validation.required' | translate }}
+                } @else {
+                  {{ 'wizard.validation.min' | translate: { min: 0.01 } }}
+                }
+              </small>
+            }
+          </div>
+        </div>
+      }
+      @case (2) {
+        <div class="wizard-field-group">
+          <div class="field">
+            <label for="loans-wizard-score-input" class="required">{{
+              'loans.wizard.scoreResult' | translate
+            }}</label>
+            <input
+              id="loans-wizard-score-input"
+              pInputText
+              type="number"
+              min="0"
+              max="1000"
+              formControlName="scoreResult"
+              [fluid]="true"
+            />
+            @if (form.controls.scoreResult.invalid && form.controls.scoreResult.touched) {
+              <small id="loans-wizard-score-error" class="error">
+                @if (form.controls.scoreResult.errors?.['required']) {
+                  {{ 'wizard.validation.required' | translate }}
+                } @else if (form.controls.scoreResult.errors?.['min']) {
+                  {{ 'wizard.validation.min' | translate: { min: 0 } }}
+                } @else {
+                  {{ 'wizard.validation.max' | translate: { max: 1000 } }}
+                }
+              </small>
+            }
+          </div>
+          <div class="field">
+            <label for="loans-wizard-dsti-input" class="required">{{
+              'loans.wizard.dsti' | translate
+            }}</label>
+            <input
+              id="loans-wizard-dsti-input"
+              pInputText
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              formControlName="dsti"
+              [fluid]="true"
+            />
+            @if (form.controls.dsti.invalid && form.controls.dsti.touched) {
+              <small id="loans-wizard-dsti-error" class="error">
+                @if (form.controls.dsti.errors?.['required']) {
+                  {{ 'wizard.validation.required' | translate }}
+                } @else if (form.controls.dsti.errors?.['min']) {
+                  {{ 'wizard.validation.min' | translate: { min: 0 } }}
+                } @else {
+                  {{ 'wizard.validation.max' | translate: { max: 1 } }}
+                }
+              </small>
+            }
+          </div>
+        </div>
+      }
+      @case (3) {
+        <p id="loans-wizard-summary-hint">{{ 'loans.wizard.summary' | translate }}</p>
+        <div class="wizard-summary" id="loans-wizard-summary">
+          <div>
+            <span>{{ 'loans.wizard.applicant' | translate }}:</span>
+            <strong id="loans-wizard-summary-applicant">{{ form.controls.applicant.value }}</strong>
+          </div>
+          <div>
+            <span>{{ 'loans.wizard.segment' | translate }}:</span>
+            <strong id="loans-wizard-summary-segment">{{
+              form.controls.segment.value
+                ? ('loans.segment.' + form.controls.segment.value | translate)
+                : ''
+            }}</strong>
+          </div>
+          <div>
+            <span>{{ 'loans.wizard.product' | translate }}:</span>
+            <strong id="loans-wizard-summary-product">{{
+              form.controls.product.value
+                ? ('loans.product.' + form.controls.product.value | translate)
+                : ''
+            }}</strong>
+          </div>
+          <div>
+            <span>{{ 'loans.wizard.amount' | translate }}:</span>
+            <strong id="loans-wizard-summary-amount">{{
+              form.controls.requestedAmount.value | number: '1.0-0'
+            }}</strong>
+          </div>
+          <div>
+            <span>{{ 'loans.wizard.scoreResult' | translate }}:</span>
+            <strong id="loans-wizard-summary-score">{{ form.controls.scoreResult.value }}</strong>
+          </div>
+          <div>
+            <span>{{ 'loans.wizard.dsti' | translate }}:</span>
+            <strong id="loans-wizard-summary-dsti">{{ form.controls.dsti.value }}</strong>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</app-wizard-dialog>

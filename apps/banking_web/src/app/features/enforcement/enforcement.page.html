@@ -9,12 +9,13 @@
       [pt]="{ root: { id: 'enforcement-new-item-btn-root' } }"
       [label]="'common.newItem' | translate"
       icon="pi pi-plus"
+      (click)="openWizard()"
     />
   </div>
 </div>
 
 <div class="card-section" id="enforcement-list-section">
-  <p-table id="enforcement-table" [value]="cases" [rows]="10">
+  <p-table id="enforcement-table" [value]="cases()" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -58,3 +59,199 @@
     </ng-template>
   </p-table>
 </div>
+
+<app-wizard-dialog
+  dialogId="enforcement-wizard"
+  titleKey="enforcement.wizard.title"
+  [steps]="wizardSteps"
+  [visible]="wizardVisible()"
+  [stepValid]="isStepValid()"
+  (visibleChange)="onWizardVisibleChange($event)"
+  (stepChange)="onWizardStepChange($event)"
+  (cancel)="cancelWizard()"
+  (submit)="submitWizard()"
+>
+  <div [formGroup]="form">
+    @switch (wizardStep()) {
+      @case (0) {
+        <div
+          formGroupName="details"
+          id="enforcement-wizard-details-step"
+          class="wizard-field-group"
+        >
+          <div class="field" id="enforcement-wizard-customer-field">
+            <label for="enforcement-wizard-customer-input" class="required">
+              {{ 'enforcement.wizard.customer' | translate }}
+            </label>
+            <input
+              pInputText
+              id="enforcement-wizard-customer-input"
+              formControlName="customer"
+              [fluid]="true"
+            />
+            @if (detailsGroup.controls.customer.invalid && detailsGroup.controls.customer.touched) {
+              <small id="enforcement-wizard-customer-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+
+          <div class="field" id="enforcement-wizard-bailiff-field">
+            <label for="enforcement-wizard-bailiff-input" class="required">
+              {{ 'enforcement.wizard.bailiff' | translate }}
+            </label>
+            <input
+              pInputText
+              id="enforcement-wizard-bailiff-input"
+              formControlName="bailiff"
+              [fluid]="true"
+            />
+            @if (detailsGroup.controls.bailiff.invalid && detailsGroup.controls.bailiff.touched) {
+              <small id="enforcement-wizard-bailiff-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+
+          <div class="field" id="enforcement-wizard-case-number-field">
+            <label for="enforcement-wizard-case-number-input" class="required">
+              {{ 'enforcement.wizard.caseNumber' | translate }}
+            </label>
+            <input
+              pInputText
+              id="enforcement-wizard-case-number-input"
+              formControlName="caseNumber"
+              placeholder="KM 1234/26"
+              [fluid]="true"
+            />
+            @if (
+              detailsGroup.controls.caseNumber.invalid && detailsGroup.controls.caseNumber.touched
+            ) {
+              <small id="enforcement-wizard-case-number-error" class="error">
+                @if (detailsGroup.controls.caseNumber.errors?.['required']) {
+                  {{ 'wizard.validation.required' | translate }}
+                } @else {
+                  {{ 'wizard.validation.minLength' | translate: { min: 5 } }}
+                }
+              </small>
+            }
+          </div>
+        </div>
+      }
+      @case (1) {
+        <div
+          formGroupName="amounts"
+          id="enforcement-wizard-amounts-step"
+          class="wizard-field-group"
+        >
+          <div class="field" id="enforcement-wizard-blocked-amount-field">
+            <label for="enforcement-wizard-blocked-amount-input" class="required">
+              {{ 'enforcement.wizard.blockedAmount' | translate }}
+            </label>
+            <p-inputnumber
+              inputId="enforcement-wizard-blocked-amount-input"
+              formControlName="blockedAmount"
+              mode="decimal"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              suffix=" PLN"
+              [fluid]="true"
+            />
+            @if (
+              amountsGroup.controls.blockedAmount.invalid &&
+              amountsGroup.controls.blockedAmount.touched
+            ) {
+              <small id="enforcement-wizard-blocked-amount-error" class="error">
+                {{ 'wizard.validation.min' | translate: { min: 0 } }}
+              </small>
+            }
+          </div>
+
+          <div class="field" id="enforcement-wizard-transferred-amount-field">
+            <label for="enforcement-wizard-transferred-amount-input" class="required">
+              {{ 'enforcement.wizard.transferredAmount' | translate }}
+            </label>
+            <p-inputnumber
+              inputId="enforcement-wizard-transferred-amount-input"
+              formControlName="transferredAmount"
+              mode="decimal"
+              [minFractionDigits]="0"
+              [maxFractionDigits]="2"
+              suffix=" PLN"
+              [fluid]="true"
+            />
+            @if (
+              amountsGroup.controls.transferredAmount.invalid &&
+              amountsGroup.controls.transferredAmount.touched
+            ) {
+              <small id="enforcement-wizard-transferred-amount-error" class="error">
+                {{ 'wizard.validation.min' | translate: { min: 0 } }}
+              </small>
+            }
+          </div>
+
+          <div class="field" id="enforcement-wizard-protected-amount-field">
+            <label for="enforcement-wizard-protected-amount-input" class="required">
+              {{ 'enforcement.wizard.protectedAmount' | translate }}
+            </label>
+            <p-inputnumber
+              inputId="enforcement-wizard-protected-amount-input"
+              formControlName="protectedAmount"
+              mode="decimal"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              suffix=" PLN"
+              [fluid]="true"
+            />
+            @if (
+              amountsGroup.controls.protectedAmount.invalid &&
+              amountsGroup.controls.protectedAmount.touched
+            ) {
+              <small id="enforcement-wizard-protected-amount-error" class="error">
+                {{ 'wizard.validation.min' | translate: { min: 0 } }}
+              </small>
+            }
+          </div>
+        </div>
+      }
+      @case (2) {
+        <div id="enforcement-wizard-summary">
+          <p id="enforcement-wizard-summary-hint">
+            {{ 'enforcement.wizard.summary' | translate }}
+          </p>
+          <dl>
+            <dt>{{ 'enforcement.wizard.customer' | translate }}</dt>
+            <dd id="enforcement-wizard-summary-customer">
+              {{ detailsGroup.controls.customer.value }}
+            </dd>
+
+            <dt>{{ 'enforcement.wizard.bailiff' | translate }}</dt>
+            <dd id="enforcement-wizard-summary-bailiff">
+              {{ detailsGroup.controls.bailiff.value }}
+            </dd>
+
+            <dt>{{ 'enforcement.wizard.caseNumber' | translate }}</dt>
+            <dd id="enforcement-wizard-summary-case-number">
+              {{ detailsGroup.controls.caseNumber.value }}
+            </dd>
+
+            <dt>{{ 'enforcement.wizard.blockedAmount' | translate }}</dt>
+            <dd id="enforcement-wizard-summary-blocked-amount">
+              {{ amountsGroup.controls.blockedAmount.value | number: '1.0-2' }} PLN
+            </dd>
+
+            <dt>{{ 'enforcement.wizard.transferredAmount' | translate }}</dt>
+            <dd id="enforcement-wizard-summary-transferred-amount">
+              {{ amountsGroup.controls.transferredAmount.value | number: '1.0-2' }} PLN
+            </dd>
+
+            <dt>{{ 'enforcement.wizard.protectedAmount' | translate }}</dt>
+            <dd id="enforcement-wizard-summary-protected-amount">
+              {{ amountsGroup.controls.protectedAmount.value | number: '1.2-2' }} PLN
+            </dd>
+          </dl>
+        </div>
+      }
+    }
+  </div>
+</app-wizard-dialog>

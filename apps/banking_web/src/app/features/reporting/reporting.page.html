@@ -39,12 +39,10 @@
   </div>
 
   <p-table
-    #dt
     id="reporting-table"
     [value]="reports"
     [rows]="10"
     [globalFilterFields]="['recipient', 'name']"
-    [exportFilename]="'raporty-regulacyjne'"
   >
     <ng-template #header>
       <tr>

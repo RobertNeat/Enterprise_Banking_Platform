@@ -58,6 +58,13 @@ export const routes: Routes = [
           import('./features/reporting/reporting.page').then((m) => m.ReportingPage),
       },
       {
+        path: 'reporting/dashboard',
+        loadComponent: () =>
+          import('./features/reporting/reporting-dashboard.page').then(
+            (m) => m.ReportingDashboardPage,
+          ),
+      },
+      {
         path: 'cases',
         loadComponent: () => import('./features/cases/cases.page').then((m) => m.CasesPage),
       },

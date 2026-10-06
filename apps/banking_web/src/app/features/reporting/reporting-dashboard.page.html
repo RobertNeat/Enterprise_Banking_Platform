@@ -1,0 +1,70 @@
+<p-button
+  id="reporting-dashboard-back-btn"
+  [pt]="{ root: { id: 'reporting-dashboard-back-btn-root' } }"
+  class="detail-back"
+  [label]="'common.back' | translate"
+  icon="pi pi-arrow-left"
+  [text]="true"
+  (click)="back()"
+/>
+
+<div class="page-header" id="reporting-dashboard-page-header">
+  <div class="page-header__text">
+    <h1 id="reporting-dashboard-title">{{ 'reporting.dashboard.title' | translate }}</h1>
+    <p id="reporting-dashboard-subtitle">{{ 'reporting.dashboard.subtitle' | translate }}</p>
+  </div>
+</div>
+
+<div class="kpi-grid" id="reporting-dashboard-kpi-grid">
+  <app-kpi-card
+    cardId="reporting-dashboard-kpi-total"
+    labelKey="reporting.dashboard.kpi.total"
+    [value]="totalCount().toString()"
+  />
+  <app-kpi-card
+    cardId="reporting-dashboard-kpi-overdue"
+    labelKey="reporting.dashboard.kpi.overdue"
+    [value]="overdueCount().toString()"
+  />
+  <app-kpi-card
+    cardId="reporting-dashboard-kpi-next-due"
+    labelKey="reporting.dashboard.kpi.nextDue"
+    [value]="nextDueDate()"
+  />
+  <app-kpi-card
+    cardId="reporting-dashboard-kpi-accepted"
+    labelKey="reporting.dashboard.kpi.accepted"
+    [value]="acceptedCount().toString()"
+  />
+</div>
+
+<div class="panel-grid" id="reporting-dashboard-panel-grid">
+  <div class="card-section" id="reporting-dashboard-by-recipient-section">
+    <h2 id="reporting-dashboard-by-recipient-title">
+      {{ 'reporting.dashboard.byRecipient' | translate }}
+    </h2>
+    <div style="height: 260px">
+      <p-chart
+        id="reporting-dashboard-recipient-chart"
+        type="bar"
+        [data]="recipientData()"
+        [options]="recipientOptions()"
+        [height]="'260px'"
+      />
+    </div>
+  </div>
+  <div class="card-section" id="reporting-dashboard-by-status-section">
+    <h2 id="reporting-dashboard-by-status-title">
+      {{ 'reporting.dashboard.byStatus' | translate }}
+    </h2>
+    <div style="height: 260px">
+      <p-chart
+        id="reporting-dashboard-status-chart"
+        type="doughnut"
+        [data]="statusData()"
+        [options]="statusOptions()"
+        [height]="'260px'"
+      />
+    </div>
+  </div>
+</div>

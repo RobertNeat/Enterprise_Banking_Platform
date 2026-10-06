@@ -9,6 +9,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { LOAN_APPLICATIONS, buildSchedule } from './loans.data';
 import { INSTALLMENT_SEVERITY, LOAN_STAGES, LOAN_STAGE_SEVERITY } from './loans.model';
+import { LoansStore } from './loans.store';
 
 @Component({
   selector: 'app-loan-detail-page',
@@ -27,6 +28,7 @@ export class LoanDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notify = inject(NotificationService);
+  private readonly store = inject(LoansStore);
 
   protected readonly stages = LOAN_STAGES;
   protected readonly stageSeverity = LOAN_STAGE_SEVERITY;
@@ -34,7 +36,7 @@ export class LoanDetailPage {
 
   protected readonly loan = computed(() => {
     const id = this.route.snapshot.paramMap.get('id');
-    return LOAN_APPLICATIONS.find((l) => l.id === id) ?? LOAN_APPLICATIONS[0];
+    return this.store.findById(id ?? '') ?? LOAN_APPLICATIONS[0];
   });
 
   protected readonly stageIndex = computed(() => this.stages.indexOf(this.loan().stage));

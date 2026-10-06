@@ -1,0 +1,9 @@
+/* .wizard-field-group / .field / .error są teraz globalne (styles.css),
+   współdzielone przez wszystkie strony z app-wizard-dialog — nie duplikować
+   tutaj, żeby odstępy między polami nie rozjeżdżały się między stronami. */
+#cases-wizard-summary-title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}

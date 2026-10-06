@@ -1,7 +1,8 @@
-import { Component, ViewChild, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
-import { Table, TableModule } from 'primeng/table';
+import { TableModule } from 'primeng/table';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { TranslationService } from '../../core/services/translation.service';
@@ -9,6 +10,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { REGULATORY_REPORTS } from './reporting.data';
 import { REPORT_SEVERITY } from './reporting.model';
+import { buildReportsCsv } from './reporting.csv';
 
 @Component({
   selector: 'app-reporting-page',
@@ -25,9 +27,8 @@ import { REPORT_SEVERITY } from './reporting.model';
 })
 export class ReportingPage {
   private readonly notify = inject(NotificationService);
+  private readonly router = inject(Router);
   protected readonly i18n = inject(TranslationService);
-
-  @ViewChild('dt') table?: Table;
 
   protected readonly reports = REGULATORY_REPORTS;
   protected readonly severity = REPORT_SEVERITY;
@@ -42,11 +43,20 @@ export class ReportingPage {
   ];
 
   exportCsv(): void {
-    this.table?.exportCSV();
+    const csv = buildReportsCsv(this.reports, this.recipientFilter(), (status) =>
+      this.i18n.translate(`reporting.status.${status}`),
+    );
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'raporty-regulacyjne.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
     this.notify.success('toast.exported');
   }
 
   viewDashboard(): void {
-    this.notify.info('reporting.viewDashboard');
+    this.router.navigate(['/reporting/dashboard']);
   }
 }

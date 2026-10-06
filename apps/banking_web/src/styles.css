@@ -215,6 +215,56 @@ app-status-tag {
   color: var(--p-text-color);
 }
 
+/* Układ pól formularza w krokach wizarda (app-wizard-dialog) — jedna
+   kolumna, stały odstęp między polami. Współdzielone przez wszystkie
+   procesy typu wizard (loans/enforcement/cases), żeby odstępy były
+   identyczne niezależnie od strony. */
+.wizard-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.wizard-field-group .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.1rem;
+  min-width: 0;
+}
+
+.wizard-field-group .field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--p-text-color);
+}
+
+/* Gwiazdka przy nazwie pola wymaganego — tym samym kolorem co tekst
+   etykiety (gwiazdka to standardowe oznaczenie wymagalności, nie błędu,
+   więc nie używa koloru danger). */
+.wizard-field-group .field label.required::after {
+  content: ' *';
+}
+
+.wizard-field-group .field .error {
+  color: var(--p-red-600);
+  font-size: 0.78rem;
+}
+
+/* Podsumowanie (ostatni krok wizarda) jako lista etykieta/wartość — patrz
+   loans-wizard-summary. */
+.wizard-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.wizard-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .lifecycle {
   display: flex;
   list-style: none;

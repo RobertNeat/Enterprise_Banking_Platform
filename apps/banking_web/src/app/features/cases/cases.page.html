@@ -9,12 +9,13 @@
       [pt]="{ root: { id: 'cases-new-item-btn-root' } }"
       [label]="'common.newItem' | translate"
       icon="pi pi-plus"
+      (click)="openWizard()"
     />
   </div>
 </div>
 
 <div class="card-section" id="cases-list-section">
-  <p-table id="cases-table" [value]="cases" [rows]="10">
+  <p-table id="cases-table" [value]="cases()" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -73,3 +74,188 @@
     </ng-template>
   </p-table>
 </div>
+
+<app-wizard-dialog
+  dialogId="cases-wizard"
+  titleKey="cases.wizard.title"
+  [steps]="wizardSteps"
+  [visible]="wizardVisible()"
+  [stepValid]="stepValid()"
+  (visibleChange)="onWizardVisibleChange($event)"
+  (stepChange)="onWizardStepChange($event)"
+  (cancel)="cancelWizard()"
+  (submit)="submitWizard()"
+>
+  <div [formGroup]="form">
+    @switch (wizardStep()) {
+      @case (0) {
+        <div formGroupName="details" id="cases-wizard-step1" class="wizard-field-group">
+          <div class="field" id="cases-wizard-subject-field">
+            <label for="cases-wizard-subject-input" class="required">{{
+              'cases.subject' | translate
+            }}</label>
+            <input
+              pInputText
+              id="cases-wizard-subject-input"
+              formControlName="subject"
+              [fluid]="true"
+            />
+            @if (
+              form.controls.details.controls.subject.invalid &&
+              form.controls.details.controls.subject.touched
+            ) {
+              <small id="cases-wizard-subject-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+          <div class="field" id="cases-wizard-customer-field">
+            <label for="cases-wizard-customer-input" class="required">{{
+              'common.customer' | translate
+            }}</label>
+            <input
+              pInputText
+              id="cases-wizard-customer-input"
+              formControlName="customer"
+              [fluid]="true"
+            />
+            @if (
+              form.controls.details.controls.customer.invalid &&
+              form.controls.details.controls.customer.touched
+            ) {
+              <small id="cases-wizard-customer-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+          <div class="field" id="cases-wizard-owner-field">
+            <label for="cases-wizard-owner-input" class="required">{{
+              'common.owner' | translate
+            }}</label>
+            <input
+              pInputText
+              id="cases-wizard-owner-input"
+              formControlName="owner"
+              [fluid]="true"
+            />
+            @if (
+              form.controls.details.controls.owner.invalid &&
+              form.controls.details.controls.owner.touched
+            ) {
+              <small id="cases-wizard-owner-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+        </div>
+      }
+      @case (1) {
+        <div formGroupName="schedule" id="cases-wizard-step2" class="wizard-field-group">
+          <div class="field" id="cases-wizard-priority-field">
+            <label for="cases-wizard-priority-select" class="required">{{
+              'common.priority' | translate
+            }}</label>
+            <p-select
+              id="cases-wizard-priority-select"
+              [pt]="{ dropdown: { id: 'cases-wizard-priority-select-dropdown-btn' } }"
+              formControlName="priority"
+              [options]="priorityOptions"
+              appendTo="body"
+              [fluid]="true"
+            />
+            @if (
+              form.controls.schedule.controls.priority.invalid &&
+              form.controls.schedule.controls.priority.touched
+            ) {
+              <small id="cases-wizard-priority-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+          <div class="field" id="cases-wizard-deadline-field">
+            <label for="cases-wizard-deadline-input" class="required">{{
+              'cases.statutoryDeadline' | translate
+            }}</label>
+            <p-datepicker
+              inputId="cases-wizard-deadline-input"
+              [pt]="{ dropdown: { id: 'cases-wizard-deadline-input-dropdown-btn' } }"
+              formControlName="statutoryDeadline"
+              [showIcon]="true"
+              dateFormat="yy-mm-dd"
+              appendTo="body"
+              [fluid]="true"
+            />
+            @if (
+              form.controls.schedule.controls.statutoryDeadline.invalid &&
+              form.controls.schedule.controls.statutoryDeadline.touched
+            ) {
+              <small id="cases-wizard-deadline-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
+              </small>
+            }
+          </div>
+          <div class="field" id="cases-wizard-sla-field">
+            <label for="cases-wizard-sla-input" class="required">{{
+              'cases.slaRemaining' | translate
+            }}</label>
+            <p-inputnumber
+              inputId="cases-wizard-sla-input"
+              formControlName="slaRemainingHours"
+              [min]="0"
+              [fluid]="true"
+            />
+            @if (
+              form.controls.schedule.controls.slaRemainingHours.invalid &&
+              form.controls.schedule.controls.slaRemainingHours.touched
+            ) {
+              <small id="cases-wizard-sla-error" class="error">
+                @if (form.controls.schedule.controls.slaRemainingHours.errors?.['required']) {
+                  {{ 'wizard.validation.required' | translate }}
+                } @else {
+                  {{ 'wizard.validation.min' | translate: { min: 0 } }}
+                }
+              </small>
+            }
+          </div>
+        </div>
+      }
+      @case (2) {
+        <div id="cases-wizard-step3" class="wizard-field-group">
+          <h3 id="cases-wizard-summary-title">{{ 'cases.wizard.summary' | translate }}</h3>
+          <div class="field-grid" id="cases-wizard-summary-grid">
+            <div class="field-grid__item" id="cases-wizard-summary-subject">
+              <label>{{ 'cases.subject' | translate }}</label>
+              <div class="value">{{ summary().subject }}</div>
+            </div>
+            <div class="field-grid__item" id="cases-wizard-summary-customer">
+              <label>{{ 'common.customer' | translate }}</label>
+              <div class="value">{{ summary().customer }}</div>
+            </div>
+            <div class="field-grid__item" id="cases-wizard-summary-owner">
+              <label>{{ 'common.owner' | translate }}</label>
+              <div class="value">{{ summary().owner }}</div>
+            </div>
+            <div class="field-grid__item" id="cases-wizard-summary-priority">
+              <label>{{ 'common.priority' | translate }}</label>
+              @if (summary().priority) {
+                <app-status-tag
+                  tagId="cases-wizard-summary-priority-tag"
+                  [label]="summary().priority!"
+                  [severity]="prioritySeverity[summary().priority!]"
+                />
+              }
+            </div>
+            <div class="field-grid__item" id="cases-wizard-summary-deadline">
+              <label>{{ 'cases.statutoryDeadline' | translate }}</label>
+              <div class="value">{{ summary().statutoryDeadline }}</div>
+            </div>
+            <div class="field-grid__item" id="cases-wizard-summary-sla">
+              <label>{{ 'cases.slaRemaining' | translate }}</label>
+              <div class="value">{{ summary().slaRemainingHours }} h</div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  </div>
+</app-wizard-dialog>
