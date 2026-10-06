@@ -106,8 +106,8 @@
           <td>
             <app-status-tag
               [tagId]="'dashboard-recent-cases-row-' + item.id + '-status'"
-              [labelKey]="item.statusKey"
-              [severity]="item.severity"
+              [labelKey]="'cases.status.' + item.status"
+              [severity]="caseSeverity[item.status]"
             />
           </td>
         </tr>
@@ -133,8 +133,8 @@
           <td>
             <app-status-tag
               [tagId]="'dashboard-regulatory-alerts-row-' + item.id + '-status'"
-              [labelKey]="item.descriptionKey"
-              [severity]="item.severity"
+              [labelKey]="'reporting.status.' + item.status"
+              [severity]="reportSeverity[item.status]"
             />
           </td>
         </tr>

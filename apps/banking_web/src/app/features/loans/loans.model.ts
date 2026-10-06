@@ -47,10 +47,18 @@ export interface LoanApplication {
   createdAt: string;
 }
 
+export type InstallmentStatus = 'paid' | 'upcoming' | 'overdue';
+
+export const INSTALLMENT_SEVERITY: Record<InstallmentStatus, StatusSeverity> = {
+  paid: 'success',
+  upcoming: 'info',
+  overdue: 'danger',
+};
+
 export interface Installment {
   no: number;
   dueDate: string;
   principal: number;
   interest: number;
-  status: 'paid' | 'upcoming' | 'overdue';
+  status: InstallmentStatus;
 }

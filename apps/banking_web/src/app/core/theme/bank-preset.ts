@@ -1,8 +1,8 @@
 import { definePreset } from '@primeuix/themes';
-import Aura from '@primeuix/themes/aura';
+import Nora from '@primeuix/themes/nora';
 
 /**
- * Bank brand preset built on PrimeNG's Aura theme.
+ * Bank brand preset built on PrimeNG's Nora theme.
  * Primary = Colosseum orange, neutral = cool slate.
  *
  * NOTE: the topbar and sidebar do NOT use these tokens — they use fixed
@@ -12,11 +12,12 @@ import Aura from '@primeuix/themes/aura';
  * white surface and dark mode is a dark slate surface.
  *
  * Both surface ramps run 0 (lightest) -> 950 (darkest), which is the
- * convention Aura expects; the engine itself decides which step maps to
- * content background / border / hover for each mode. Getting this
- * direction wrong silently inverts dark mode (light text on light bg).
+ * convention Nora expects too (same direction as every PrimeUIX theme);
+ * the engine itself decides which step maps to content background /
+ * border / hover for each mode. Getting this direction wrong silently
+ * inverts dark mode (light text on light bg).
  */
-export const BankPreset = definePreset(Aura, {
+export const BankPreset = definePreset(Nora, {
   semantic: {
     primary: {
       50: '#fef6ee',
@@ -48,10 +49,15 @@ export const BankPreset = definePreset(Aura, {
           950: '#121418',
         },
         primary: {
-          color: '#b85c16',
+          // Brand color (#d9731f = primary.500), shared with the topbar.
+          // White text by design, for visual consistency with the topbar
+          // chrome (intentionally below WCAG AA on the base color, ~3.3:1 —
+          // accepted trade-off, do not "fix" by reverting to dark text).
+          // Hover/active darken (600/700) to stay legible with white text.
+          color: '#d9731f',
           contrastColor: '#ffffff',
-          hoverColor: '#954815',
-          activeColor: '#783a16',
+          hoverColor: '#b85c16',
+          activeColor: '#954815',
         },
         highlight: {
           background: '#fce8d4',

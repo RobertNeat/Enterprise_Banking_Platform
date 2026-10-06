@@ -3,15 +3,15 @@
 /*
  * Brand chrome tokens — the topbar and sidebar are the bank's fixed identity
  * and must NOT repaint between light/dark mode. These are plain custom
- * properties with a single value each (no .app-dark override), consumed only
- * by shell.page.css. Everything else (page content, cards, tables) uses
+ * properties with a single value each (no .app-dark override), consumed
+ * mainly by shell.page.css (login.page.css also reuses --brand-topbar-bg for
+ * a link color). Everything else (page content, cards, tables) uses
  * PrimeNG's own --p-* semantic tokens, which DO adapt to .app-dark.
  */
 :root {
   color-scheme: light;
 
-  --brand-topbar-bg-start: #d9731f;
-  --brand-topbar-bg-end: #ef8f3c;
+  --brand-topbar-bg: #d9731f;
   --brand-topbar-fg: #ffffff;
   --brand-topbar-border: rgba(255, 255, 255, 0.4);
   --brand-topbar-overlay: rgba(255, 255, 255, 0.12);
@@ -23,6 +23,18 @@
   --brand-sidebar-hover: rgba(0, 0, 0, 0.14);
   --brand-sidebar-active: rgba(0, 0, 0, 0.22);
   --brand-sidebar-accent: #f4a862;
+
+  /* Parametry wszystkich tagów/chipów statusowych (app-status-tag) w appce.
+     Zmiana wartości tutaj przestylowuje globalnie wszystkie wystąpienia —
+     kolory success/info/warn/danger/secondary/contrast nadal pochodzą z
+     domyślnych tokenów komponentu Tag (theme Nora) i adaptują się do
+     .app-dark automatycznie, te zmienne celują wyłącznie w kształt/rozmiar
+     (radius, padding, typografia). */
+  --tag-font-size: 0.75rem;
+  --tag-padding-y: 0.25rem;
+  --tag-padding-x: 0.65rem;
+  --tag-radius: 6px;
+  --tag-font-weight: 600;
 }
 
 html.app-dark {
@@ -111,6 +123,19 @@ a {
 .card-section h2,
 .card-section h3 {
   margin-top: 0;
+}
+
+/* Spójny kształt wszystkich tagów statusowych (app-status-tag -> p-tag).
+   Zwykłe custom properties, bez ::ng-deep: --p-tag-* dziedziczy się przez
+   drzewo DOM niezależnie od Angular Emulated encapsulation, a reguła tutaj
+   jest poza @layer primeng (PrimeNG renderuje swoje tokeny w @layer
+   primeng — patrz app.config.ts cssLayer), więc nadpisuje je niezależnie
+   od kolejności <style> w dokumencie. */
+app-status-tag {
+  --p-tag-font-size: var(--tag-font-size);
+  --p-tag-font-weight: var(--tag-font-weight);
+  --p-tag-padding: var(--tag-padding-y) var(--tag-padding-x);
+  --p-tag-border-radius: var(--tag-radius);
 }
 
 /* Semantic status chips reused where p-tag severity mapping isn't enough */
@@ -290,6 +315,13 @@ a {
   align-self: flex-end;
   background: var(--p-primary-color);
   color: var(--p-primary-contrast-color);
+}
+
+/* Timestamp inherits bubble contrast color instead of muted slate, which is
+   unreadable on the orange brand background. */
+.chat-bubble--customer .text-muted {
+  color: inherit;
+  opacity: 0.75;
 }
 
 .chat-window__composer {

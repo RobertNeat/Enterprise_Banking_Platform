@@ -35,16 +35,10 @@
         <td>{{ item.customer }}</td>
         <td>{{ item.owner }}</td>
         <td>
-          <p-tag
-            [id]="'cases-row-' + item.id + '-priority'"
-            [value]="item.priority"
-            [severity]="
-              item.priority === 'high'
-                ? 'danger'
-                : item.priority === 'medium'
-                  ? 'warn'
-                  : 'secondary'
-            "
+          <app-status-tag
+            [tagId]="'cases-row-' + item.id + '-priority'"
+            [label]="item.priority"
+            [severity]="prioritySeverity[item.priority]"
           />
         </td>
         <td>{{ item.statutoryDeadline }}</td>

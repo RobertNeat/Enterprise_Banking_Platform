@@ -32,6 +32,51 @@ to samo id z sufiksem (np. `-card`, `-tag`) — dzięki temu komponent da się
 znaleźć zarówno po selektorze hosta, jak i po widocznym elemencie, bez
 duplikatu id w DOM.
 
+### Tagi/chipy statusowe — `app-status-tag` jako jedyny sposób renderowania
+
+Każda etykieta statusowa lub kategoryzująca (status sprawy, etap procesu,
+priorytet, kanał, processor/sieć karty, uprawnienie e-bankowości) renderuje
+się przez `app-status-tag` (`shared/components/status-tag.component.ts`) —
+nigdy przez surowy `p-tag` czy `p-chip` wprost w szablonie strony. Dzięki
+temu jeden komponent kontroluje wygląd (radius, padding, typografia) i jedno
+miejsce odpowiada za mapowanie znaczenia biznesowego na `severity`.
+
+- `labelKey` — klucz i18n (większość przypadków, np. `'cases.status.' + status`).
+- `label` — surowy tekst, gdy wartość NIE jest kluczem i18n (nazwa sieci
+  karty/processora, nazwa uprawnienia e-bankowości, priorytet). Ma priorytet
+  nad `labelKey`, jeśli oba są podane.
+- `severity` — zawsze pochodzi z mapy `Record<Status, StatusSeverity>`,
+  nigdy z inline ternary w szablonie.
+
+**Gdzie żyją mapy severity.** Każda domena biznesowa trzyma swoją mapę przy
+własnym modelu (konwencja ustalona zanim ten dokument powstał, zachowana
+dla nowych map): `CASE_SEVERITY` (`cases.model.ts`), `CARD_STATUS_SEVERITY`
+(`cards.model.ts`), `LOAN_STAGE_SEVERITY` / `INSTALLMENT_SEVERITY`
+(`loans.model.ts`), `IFRS9_SEVERITY` (`risk.model.ts`), `ACCESS_SEVERITY`
+(`ebanking.model.ts`), `REPORT_SEVERITY` (`reporting.model.ts`). Strony, które
+odnoszą się do statusu innej domeny (np. dashboard pokazuje sprawy i raporty
+regulacyjne, contact-center pokazuje dyspozycje powiązane ze sprawami),
+importują i reużywają tę samą mapę — nie definiują własnej kopii z inną
+semantyką dla tego samego stringa statusu.
+
+`shared/utils/status-severity.ts` jest punktem odniesienia dla wartości
+współdzielonych między wiele domen, a nie przypisanych do jednej: re-export
+typu `StatusSeverity`, `NEUTRAL_TAG_SEVERITY` (etykiety kategoryzujące, które
+nie są statusem — kanał, processor/sieć karty, uprawnienie) i
+`PRIORITY_SEVERITY` (priorytet sprawy, skala low/medium/high używana w kilku
+modułach).
+
+**Parametryzacja wyglądu.** Kształt wszystkich tagów (radius, padding,
+font-size, font-weight) sterowany jest zmiennymi `--tag-*` w `:root`
+(`styles.css`), zmapowanymi na tokeny designu PrimeNG Tag (`--p-tag-*`) przez
+selektor hosta `app-status-tag` — bez `::ng-deep`, bo custom properties
+dziedziczą się przez encapsulation. Zmiana jednej zmiennej w `:root`
+przestylowuje globalnie wszystkie tagi. Kolory per `severity` (success/
+info/warn/danger/secondary/contrast) pochodzą z domyślnych tokenów
+komponentu Tag theme Nora, poza `primary`/`secondary`/`contrast`, które
+pochodzą z `semantic.primary` i `semantic.colorScheme` w `bank-preset.ts`;
+wszystkie adaptują się do `.app-dark` automatycznie — nie są hardkodowane.
+
 ### PrimeNG: host vs. realny widoczny/interaktywny element
 
 Część komponentów PrimeNG renderuje swój Angularowy host jako sekcję `root`

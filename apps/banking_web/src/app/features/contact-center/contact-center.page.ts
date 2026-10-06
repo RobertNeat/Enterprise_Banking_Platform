@@ -7,6 +7,7 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
+import { CASE_SEVERITY } from '../cases/cases.model';
 import {
   CONTACT_HISTORY,
   CUSTOMER_PROFILE,
@@ -35,6 +36,7 @@ export class ContactCenterPage {
   protected readonly profile = CUSTOMER_PROFILE;
   protected readonly dispositions = DISPOSITIONS;
   protected readonly history = CONTACT_HISTORY;
+  protected readonly caseSeverity = CASE_SEVERITY;
 
   protected readonly messages = signal<ChatMessage[]>(INITIAL_CHAT);
   protected readonly draft = signal('');

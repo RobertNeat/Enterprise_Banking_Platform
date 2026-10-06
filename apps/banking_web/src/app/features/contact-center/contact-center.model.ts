@@ -1,4 +1,4 @@
-import { StatusSeverity } from '../../shared/components/status-tag.component';
+import { CaseStatus } from '../cases/cases.model';
 
 export interface ChatMessage {
   from: 'agent' | 'customer';
@@ -6,11 +6,12 @@ export interface ChatMessage {
   time: string;
 }
 
+// Dyspozycja jest zawsze powiązana z konkretną sprawą (linkedCase), więc jej
+// status żyje w tej samej domenie co CaseStatus/CASE_SEVERITY.
 export interface ServiceDisposition {
   id: string;
   typeKey: string;
-  statusKey: string;
-  severity: StatusSeverity;
+  status: CaseStatus;
   linkedCase: string;
   date: string;
 }

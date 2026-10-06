@@ -6,7 +6,11 @@ import { ToastModule } from 'primeng/toast';
   selector: 'app-root',
   imports: [RouterOutlet, ToastModule],
   template: `
-    <p-toast id="app-toast" [pt]="{ closeButton: { id: 'app-toast-close-btn' } }" />
+    <p-toast
+      id="app-toast"
+      position="bottom-right"
+      [pt]="{ closeButton: { id: 'app-toast-close-btn' } }"
+    />
     <router-outlet />
   `,
 })

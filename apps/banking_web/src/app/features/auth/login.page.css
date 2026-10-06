@@ -166,7 +166,7 @@
 }
 
 .login__register a {
-  color: var(--brand-topbar-bg-start, var(--p-primary-color));
+  color: var(--brand-topbar-bg, var(--p-primary-color));
   font-weight: 600;
   text-decoration: none;
   margin-left: 0.25rem;

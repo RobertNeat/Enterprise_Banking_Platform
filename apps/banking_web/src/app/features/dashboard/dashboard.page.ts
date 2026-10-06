@@ -6,6 +6,8 @@ import { TranslationService } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { KpiCardComponent } from '../../shared/components/kpi-card.component';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
+import { CASE_SEVERITY } from '../cases/cases.model';
+import { REPORT_SEVERITY } from '../reporting/reporting.model';
 import { RECENT_CASES, REGULATORY_ALERTS } from './dashboard.data';
 
 @Component({
@@ -20,6 +22,8 @@ export class DashboardPage {
 
   protected readonly recentCases = RECENT_CASES;
   protected readonly regulatoryAlerts = REGULATORY_ALERTS;
+  protected readonly caseSeverity = CASE_SEVERITY;
+  protected readonly reportSeverity = REPORT_SEVERITY;
 
   private readonly textColor = computed(() =>
     this.theme.mode() === 'dark' ? '#c3c8d1' : '#4c5666',

@@ -1,20 +1,19 @@
-import { StatusSeverity } from '../../shared/components/status-tag.component';
+import { CaseStatus } from '../cases/cases.model';
+import { ReportStatus } from '../reporting/reporting.model';
 
 export interface RecentCase {
   id: string;
   subjectKey: string;
   customer: string;
-  statusKey: string;
-  severity: StatusSeverity;
+  status: CaseStatus;
   owner: string;
 }
 
 export interface RegulatoryAlert {
   id: string;
   recipient: string;
-  descriptionKey: string;
+  status: ReportStatus;
   dueDate: string;
-  severity: StatusSeverity;
 }
 
 export const RECENT_CASES: RecentCase[] = [
@@ -22,56 +21,52 @@ export const RECENT_CASES: RecentCase[] = [
     id: 'CS-10231',
     subjectKey: 'cases.subject',
     customer: 'Nowak Sp. z o.o.',
-    statusKey: 'cases.status.escalated',
-    severity: 'danger',
+    status: 'escalated',
     owner: 'A. Kowalska',
   },
   {
     id: 'CS-10229',
     subjectKey: 'cases.subject',
     customer: 'Jan Wiśniewski',
-    statusKey: 'cases.status.inProgress',
-    severity: 'warn',
+    status: 'inProgress',
     owner: 'P. Zieliński',
   },
   {
     id: 'CS-10225',
     subjectKey: 'cases.subject',
     customer: 'Agro-Bud S.A.',
-    statusKey: 'cases.status.new',
-    severity: 'info',
+    status: 'new',
     owner: 'M. Lis',
   },
   {
     id: 'CS-10219',
     subjectKey: 'cases.subject',
     customer: 'Katarzyna Zając',
-    statusKey: 'cases.status.resolved',
-    severity: 'success',
+    status: 'resolved',
     owner: 'A. Kowalska',
   },
 ];
 
+// Te same rekordy (po recipient + dueDate) co RPT-KNF-001 / RPT-BFG-003 w
+// reporting.data.ts — status pochodzi z tej samej domeny raportowej, żeby
+// kolor zawsze zgadzał się z widokiem Reporting (REPORT_SEVERITY).
 export const REGULATORY_ALERTS: RegulatoryAlert[] = [
   {
     id: 'REG-KNF-Q3',
     recipient: 'KNF',
-    descriptionKey: 'reporting.status.draft',
+    status: 'draft',
     dueDate: '2026-10-15',
-    severity: 'warn',
   },
   {
     id: 'REG-NBP-09',
     recipient: 'NBP',
-    descriptionKey: 'reporting.status.submitted',
+    status: 'submitted',
     dueDate: '2026-10-08',
-    severity: 'info',
   },
   {
     id: 'REG-BFG-Q3',
     recipient: 'BFG',
-    descriptionKey: 'reporting.status.draft',
+    status: 'draft',
     dueDate: '2026-10-20',
-    severity: 'danger',
   },
 ];

@@ -25,10 +25,10 @@
           <code>{{ card.maskedNumber }}</code>
         </td>
         <td>
-          <p-tag
-            [id]="'cards-row-' + card.id + '-network'"
-            [value]="card.network"
-            severity="secondary"
+          <app-status-tag
+            [tagId]="'cards-row-' + card.id + '-network'"
+            [label]="card.network"
+            [severity]="neutralSeverity"
           />
         </td>
         <td>{{ card.product }}</td>
@@ -84,17 +84,17 @@
         <td>{{ auth.amount | number: '1.2-2' }} PLN</td>
         <td>{{ auth.date }}</td>
         <td>
-          <p-tag
-            [id]="'cards-authorizations-row-' + auth.id + '-processor'"
-            [value]="auth.processor"
-            severity="secondary"
+          <app-status-tag
+            [tagId]="'cards-authorizations-row-' + auth.id + '-processor'"
+            [label]="auth.processor"
+            [severity]="neutralSeverity"
           />
         </td>
         <td>
           <app-status-tag
             [tagId]="'cards-authorizations-row-' + auth.id + '-status'"
             [labelKey]="auth.approved ? 'cards.status.active' : 'cards.status.blocked'"
-            [severity]="auth.approved ? 'success' : 'danger'"
+            [severity]="statusSeverity[auth.approved ? 'active' : 'blocked']"
           />
         </td>
       </tr>

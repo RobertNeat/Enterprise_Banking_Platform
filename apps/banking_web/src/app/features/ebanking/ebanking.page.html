@@ -24,10 +24,10 @@
         <td>{{ user.username }}</td>
         <td>{{ user.customer }}</td>
         <td>
-          <p-tag
-            [id]="'ebanking-row-' + user.id + '-channel'"
-            [value]="'ebanking.channel.' + user.channel | translate"
-            severity="secondary"
+          <app-status-tag
+            [tagId]="'ebanking-row-' + user.id + '-channel'"
+            [labelKey]="'ebanking.channel.' + user.channel"
+            [severity]="neutralSeverity"
           />
         </td>
         <td>{{ user.dailyLimit | number: '1.0-0' }} PLN</td>
@@ -35,7 +35,11 @@
         <td>
           <div style="display: flex; gap: 0.25rem; flex-wrap: wrap">
             @for (perm of user.permissions; track perm; let i = $index) {
-              <p-chip [id]="'ebanking-row-' + user.id + '-permission-' + i" [label]="perm" />
+              <app-status-tag
+                [tagId]="'ebanking-row-' + user.id + '-permission-' + i"
+                [label]="perm"
+                [severity]="neutralSeverity"
+              />
             }
           </div>
         </td>

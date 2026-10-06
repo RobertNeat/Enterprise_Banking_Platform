@@ -103,9 +103,7 @@
           <app-status-tag
             [tagId]="'loan-detail-schedule-row-' + row.no + '-status'"
             [labelKey]="'loans.' + row.status"
-            [severity]="
-              row.status === 'paid' ? 'success' : row.status === 'overdue' ? 'danger' : 'info'
-            "
+            [severity]="installmentSeverity[row.status]"
           />
         </td>
       </tr>

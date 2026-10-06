@@ -95,8 +95,8 @@
           <td>
             <app-status-tag
               [tagId]="'contact-dispositions-row-' + item.id + '-status'"
-              [labelKey]="item.statusKey"
-              [severity]="item.severity"
+              [labelKey]="'cases.status.' + item.status"
+              [severity]="caseSeverity[item.status]"
             />
           </td>
         </tr>
