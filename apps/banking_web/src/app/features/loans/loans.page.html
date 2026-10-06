@@ -1,19 +1,25 @@
-<div class="page-header">
+<div class="page-header" id="loans-page-header">
   <div class="page-header__text">
-    <h1>{{ 'loans.title' | translate }}</h1>
-    <p>{{ 'loans.subtitle' | translate }}</p>
+    <h1 id="loans-title">{{ 'loans.title' | translate }}</h1>
+    <p id="loans-subtitle">{{ 'loans.subtitle' | translate }}</p>
   </div>
   <div class="page-header__actions">
-    <p-button [label]="'common.newItem' | translate" icon="pi pi-plus" />
+    <p-button
+      id="loans-new-item-btn"
+      [pt]="{ root: { id: 'loans-new-item-btn-root' } }"
+      [label]="'common.newItem' | translate"
+      icon="pi pi-plus"
+    />
   </div>
 </div>
 
-<div class="card-section">
-  <div class="table-toolbar">
-    <div class="table-toolbar__filters">
-      <p-iconfield>
-        <p-inputicon class="pi pi-search" />
+<div class="card-section" id="loans-list-section">
+  <div class="table-toolbar" id="loans-toolbar">
+    <div class="table-toolbar__filters" id="loans-toolbar-filters">
+      <p-iconfield id="loans-search-field">
+        <p-inputicon id="loans-search-icon" class="pi pi-search" />
         <input
+          id="loans-search-input"
           pInputText
           type="text"
           [placeholder]="'common.search' | translate"
@@ -22,6 +28,8 @@
         />
       </p-iconfield>
       <p-select
+        id="loans-segment-filter"
+        [pt]="{ dropdown: { id: 'loans-segment-filter-dropdown-btn' } }"
         [options]="segmentOptions()"
         [ngModel]="segmentFilter()"
         (ngModelChange)="segmentFilter.set($event)"
@@ -32,7 +40,13 @@
     </div>
   </div>
 
-  <p-table [value]="filtered()" [rows]="10" [paginator]="filtered().length > 10" dataKey="id">
+  <p-table
+    id="loans-table"
+    [value]="filtered()"
+    [rows]="10"
+    [paginator]="filtered().length > 10"
+    dataKey="id"
+  >
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -45,7 +59,7 @@
       </tr>
     </ng-template>
     <ng-template #body let-item>
-      <tr class="clickable-row" (click)="openDetail(item.id)">
+      <tr [id]="'loans-row-' + item.id" class="clickable-row" (click)="openDetail(item.id)">
         <td>{{ item.id }}</td>
         <td>{{ item.applicant }}</td>
         <td>{{ 'loans.segment.' + item.segment | translate }}</td>
@@ -53,12 +67,19 @@
         <td>{{ item.requestedAmount | number: '1.0-0' }} PLN</td>
         <td>
           <app-status-tag
+            [tagId]="'loans-row-' + item.id + '-stage'"
             [labelKey]="'loans.stage.' + item.stage"
             [severity]="stageSeverity[item.stage]"
           />
         </td>
         <td>
-          <p-button icon="pi pi-chevron-right" [text]="true" (click)="openDetail(item.id)" />
+          <p-button
+            [id]="'loans-row-' + item.id + '-open-btn'"
+            [pt]="{ root: { id: 'loans-row-' + item.id + '-open-btn-root' } }"
+            icon="pi pi-chevron-right"
+            [text]="true"
+            (click)="openDetail(item.id)"
+          />
         </td>
       </tr>
     </ng-template>

@@ -1,12 +1,12 @@
-<div class="page-header">
+<div class="page-header" id="collections-page-header">
   <div class="page-header__text">
-    <h1>{{ 'collections.title' | translate }}</h1>
-    <p>{{ 'collections.subtitle' | translate }}</p>
+    <h1 id="collections-title">{{ 'collections.title' | translate }}</h1>
+    <p id="collections-subtitle">{{ 'collections.subtitle' | translate }}</p>
   </div>
 </div>
 
-<div class="card-section">
-  <p-table [value]="cases" [rows]="10">
+<div class="card-section" id="collections-list-section">
+  <p-table id="collections-table" [value]="cases" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -19,7 +19,7 @@
       </tr>
     </ng-template>
     <ng-template #body let-item>
-      <tr>
+      <tr [id]="'collections-row-' + item.id">
         <td>{{ item.id }}</td>
         <td>{{ item.customer }}</td>
         <td>{{ item.loanId }}</td>
@@ -29,18 +29,23 @@
         <td>{{ item.outstandingAmount | number: '1.0-0' }} PLN</td>
         <td>
           <app-status-tag
+            [tagId]="'collections-row-' + item.id + '-status'"
             [labelKey]="'collections.stage.' + item.stage"
             [severity]="severity[item.stage]"
           />
         </td>
         <td>
           <p-button
+            [id]="'collections-row-' + item.id + '-reminder-btn'"
+            [pt]="{ root: { id: 'collections-row-' + item.id + '-reminder-btn-root' } }"
             [label]="'collections.sendReminder' | translate"
             [text]="true"
             size="small"
             (click)="sendReminder(item)"
           />
           <p-button
+            [id]="'collections-row-' + item.id + '-settlement-btn'"
+            [pt]="{ root: { id: 'collections-row-' + item.id + '-settlement-btn-root' } }"
             [label]="'collections.proposeSettlement' | translate"
             [text]="true"
             size="small"
@@ -48,6 +53,8 @@
             (click)="proposeSettlement(item)"
           />
           <p-button
+            [id]="'collections-row-' + item.id + '-transfer-btn'"
+            [pt]="{ root: { id: 'collections-row-' + item.id + '-transfer-btn-root' } }"
             [label]="'collections.transferExternal' | translate"
             [text]="true"
             size="small"

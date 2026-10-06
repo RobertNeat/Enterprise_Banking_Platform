@@ -1,15 +1,20 @@
-<div class="page-header">
+<div class="page-header" id="cases-page-header">
   <div class="page-header__text">
-    <h1>{{ 'cases.title' | translate }}</h1>
-    <p>{{ 'cases.subtitle' | translate }}</p>
+    <h1 id="cases-title">{{ 'cases.title' | translate }}</h1>
+    <p id="cases-subtitle">{{ 'cases.subtitle' | translate }}</p>
   </div>
   <div class="page-header__actions">
-    <p-button [label]="'common.newItem' | translate" icon="pi pi-plus" />
+    <p-button
+      id="cases-new-item-btn"
+      [pt]="{ root: { id: 'cases-new-item-btn-root' } }"
+      [label]="'common.newItem' | translate"
+      icon="pi pi-plus"
+    />
   </div>
 </div>
 
-<div class="card-section">
-  <p-table [value]="cases" [rows]="10">
+<div class="card-section" id="cases-list-section">
+  <p-table id="cases-table" [value]="cases" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -24,13 +29,14 @@
       </tr>
     </ng-template>
     <ng-template #body let-item>
-      <tr>
+      <tr [id]="'cases-row-' + item.id">
         <td>{{ item.id }}</td>
         <td>{{ item.subject }}</td>
         <td>{{ item.customer }}</td>
         <td>{{ item.owner }}</td>
         <td>
           <p-tag
+            [id]="'cases-row-' + item.id + '-priority'"
             [value]="item.priority"
             [severity]="
               item.priority === 'high'
@@ -53,12 +59,15 @@
         </td>
         <td>
           <app-status-tag
+            [tagId]="'cases-row-' + item.id + '-status'"
             [labelKey]="'cases.status.' + item.status"
             [severity]="severity[item.status]"
           />
         </td>
         <td>
           <p-button
+            [id]="'cases-row-' + item.id + '-escalate-btn'"
+            [pt]="{ root: { id: 'cases-row-' + item.id + '-escalate-btn-root' } }"
             [label]="'cases.escalate' | translate"
             [text]="true"
             size="small"

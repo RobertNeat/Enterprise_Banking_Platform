@@ -46,29 +46,39 @@
   gap: 0.5rem;
 }
 
-.icon-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 999px;
-  border: 1px solid var(--brand-topbar-border);
-  background: var(--brand-topbar-overlay);
-  color: inherit;
-  cursor: pointer;
-  font-size: 0.85rem;
+#app-user-menu {
+  --p-splitbutton-border-radius: 999px;
+  --p-button-text-primary-color: var(--brand-topbar-fg);
+  --p-button-primary-background: var(--brand-topbar-overlay);
+  --p-button-primary-border-color: var(--brand-topbar-border);
+  --p-button-primary-color: var(--brand-topbar-fg);
+  --p-button-primary-hover-background: var(--brand-topbar-overlay-hover);
+  --p-button-primary-hover-border-color: var(--brand-topbar-border);
+  --p-button-primary-hover-color: var(--brand-topbar-fg);
+  --p-button-primary-active-background: var(--brand-topbar-overlay-hover);
+  --p-button-primary-active-border-color: var(--brand-topbar-border);
+  --p-button-primary-active-color: var(--brand-topbar-fg);
   font-weight: 600;
-  transition: background 0.15s ease;
+  font-size: 0.85rem;
 }
 
-.icon-toggle:hover {
-  background: var(--brand-topbar-overlay-hover);
+/* Główny przycisk splitbuttona jest tylko etykietą (nazwa użytkownika) —
+   nieklikalny, ale bez natywnego [disabled], żeby nie wyglądał wyszarzony
+   i nie wypadał z czytników ekranu jako wyłączony. Menu otwiera się
+   wyłącznie przyciskiem zębatki (#app-user-menu-dropdown-btn).
+   ::ng-deep jest konieczne: przycisk renderuje się wewnątrz szablonu
+   PrimeNG (poza zasięgiem Emulated encapsulation tego komponentu), zwykły
+   scoped selektor go nie dosięga — potwierdzone empirycznie w żywym DOM
+   (getComputedStyle pokazywał pointer-events:auto mimo reguły bez ::ng-deep). */
+::ng-deep #app-user-menu-btn {
+  cursor: default !important;
+  pointer-events: none !important;
 }
 
-.lang-toggle {
-  width: auto;
-  padding-inline: 0.75rem;
+::ng-deep #app-user-menu-btn:hover,
+::ng-deep #app-user-menu-btn:focus-visible {
+  background: var(--brand-topbar-overlay) !important;
+  border-color: var(--brand-topbar-border) !important;
 }
 
 .shell__body {

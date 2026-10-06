@@ -1,15 +1,20 @@
-<div class="page-header">
+<div class="page-header" id="enforcement-page-header">
   <div class="page-header__text">
-    <h1>{{ 'enforcement.title' | translate }}</h1>
-    <p>{{ 'enforcement.subtitle' | translate }}</p>
+    <h1 id="enforcement-title">{{ 'enforcement.title' | translate }}</h1>
+    <p id="enforcement-subtitle">{{ 'enforcement.subtitle' | translate }}</p>
   </div>
   <div class="page-header__actions">
-    <p-button [label]="'common.newItem' | translate" icon="pi pi-plus" />
+    <p-button
+      id="enforcement-new-item-btn"
+      [pt]="{ root: { id: 'enforcement-new-item-btn-root' } }"
+      [label]="'common.newItem' | translate"
+      icon="pi pi-plus"
+    />
   </div>
 </div>
 
-<div class="card-section">
-  <p-table [value]="cases" [rows]="10">
+<div class="card-section" id="enforcement-list-section">
+  <p-table id="enforcement-table" [value]="cases" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -24,7 +29,7 @@
       </tr>
     </ng-template>
     <ng-template #body let-item>
-      <tr>
+      <tr [id]="'enforcement-row-' + item.id">
         <td>{{ item.id }}</td>
         <td>{{ item.customer }}</td>
         <td>{{ item.bailiff }}</td>
@@ -34,12 +39,15 @@
         <td>{{ item.protectedAmount | number: '1.2-2' }} PLN</td>
         <td>
           <app-status-tag
+            [tagId]="'enforcement-row-' + item.id + '-status'"
             [labelKey]="'enforcement.status.' + item.status"
             [severity]="severity[item.status]"
           />
         </td>
         <td>
           <p-button
+            [id]="'enforcement-row-' + item.id + '-transfer-btn'"
+            [pt]="{ root: { id: 'enforcement-row-' + item.id + '-transfer-btn-root' } }"
             [label]="'enforcement.transferToAuthority' | translate"
             [text]="true"
             size="small"

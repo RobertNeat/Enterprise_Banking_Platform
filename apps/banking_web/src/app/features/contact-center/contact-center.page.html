@@ -1,47 +1,48 @@
-<div class="page-header">
+<div class="page-header" id="contact-page-header">
   <div class="page-header__text">
-    <h1>{{ 'contact.title' | translate }}</h1>
-    <p>{{ 'contact.subtitle' | translate }}</p>
+    <h1 id="contact-title">{{ 'contact.title' | translate }}</h1>
+    <p id="contact-subtitle">{{ 'contact.subtitle' | translate }}</p>
   </div>
 </div>
 
-<div class="panel-grid">
-  <div class="card-section">
-    <h2>{{ 'contact.customer360' | translate }}</h2>
-    <div class="field-grid">
-      <div class="field-grid__item">
+<div class="panel-grid" id="contact-top-panel-grid">
+  <div class="card-section" id="contact-customer360-section">
+    <h2 id="contact-customer360-title">{{ 'contact.customer360' | translate }}</h2>
+    <div class="field-grid" id="contact-customer360-field-grid">
+      <div class="field-grid__item" id="contact-customer360-name">
         <label>{{ 'common.customer' | translate }}</label>
         <div class="value">{{ profile.name }}</div>
       </div>
-      <div class="field-grid__item">
+      <div class="field-grid__item" id="contact-customer360-segment">
         <label>{{ 'common.segment' | translate }}</label>
         <div class="value">{{ profile.segment }}</div>
       </div>
-      <div class="field-grid__item">
+      <div class="field-grid__item" id="contact-customer360-loans-count">
         <label>{{ 'nav.loans' | translate }}</label>
         <div class="value">{{ profile.loansCount }}</div>
       </div>
-      <div class="field-grid__item">
+      <div class="field-grid__item" id="contact-customer360-cards-count">
         <label>{{ 'nav.cards' | translate }}</label>
         <div class="value">{{ profile.cardsCount }}</div>
       </div>
-      <div class="field-grid__item">
+      <div class="field-grid__item" id="contact-customer360-risk-rating">
         <label>{{ 'risk.rating' | translate }}</label>
         <div class="value">{{ profile.riskRating }}</div>
       </div>
-      <div class="field-grid__item">
+      <div class="field-grid__item" id="contact-customer360-open-cases">
         <label>{{ 'dashboard.kpi.casesOpen' | translate }}</label>
         <div class="value">{{ profile.openCases }}</div>
       </div>
     </div>
   </div>
 
-  <div class="card-section">
-    <h2>{{ 'contact.openChat' | translate }}</h2>
-    <div class="chat-window">
-      <div class="chat-window__messages">
+  <div class="card-section" id="contact-chat-section">
+    <h2 id="contact-chat-title">{{ 'contact.openChat' | translate }}</h2>
+    <div class="chat-window" id="contact-chat-window">
+      <div class="chat-window__messages" id="contact-chat-messages">
         @for (msg of messages(); track $index) {
           <div
+            [id]="'contact-chat-message-' + $index"
             class="chat-bubble"
             [class.chat-bubble--agent]="msg.from === 'agent'"
             [class.chat-bubble--customer]="msg.from === 'customer'"
@@ -53,8 +54,9 @@
           </div>
         }
       </div>
-      <div class="chat-window__composer">
+      <div class="chat-window__composer" id="contact-chat-composer">
         <input
+          id="contact-chat-input"
           pInputText
           type="text"
           [placeholder]="'contact.chatPlaceholder' | translate"
@@ -62,16 +64,21 @@
           (ngModelChange)="draft.set($event)"
           (keyup.enter)="sendMessage()"
         />
-        <p-button icon="pi pi-send" (click)="sendMessage()" />
+        <p-button
+          id="contact-chat-send-btn"
+          [pt]="{ root: { id: 'contact-chat-send-btn-root' } }"
+          icon="pi pi-send"
+          (click)="sendMessage()"
+        />
       </div>
     </div>
   </div>
 </div>
 
-<div class="panel-grid">
-  <div class="card-section">
-    <h2>{{ 'contact.dispositions' | translate }}</h2>
-    <p-table [value]="dispositions" [rows]="10">
+<div class="panel-grid" id="contact-bottom-panel-grid">
+  <div class="card-section" id="contact-dispositions-section">
+    <h2 id="contact-dispositions-title">{{ 'contact.dispositions' | translate }}</h2>
+    <p-table id="contact-dispositions-table" [value]="dispositions" [rows]="10">
       <ng-template #header>
         <tr>
           <th>{{ 'common.id' | translate }}</th>
@@ -81,19 +88,25 @@
         </tr>
       </ng-template>
       <ng-template #body let-item>
-        <tr>
+        <tr [id]="'contact-dispositions-row-' + item.id">
           <td>{{ item.id }}</td>
           <td>{{ item.typeKey | translate }}</td>
           <td>{{ item.linkedCase }}</td>
-          <td><app-status-tag [labelKey]="item.statusKey" [severity]="item.severity" /></td>
+          <td>
+            <app-status-tag
+              [tagId]="'contact-dispositions-row-' + item.id + '-status'"
+              [labelKey]="item.statusKey"
+              [severity]="item.severity"
+            />
+          </td>
         </tr>
       </ng-template>
     </p-table>
   </div>
 
-  <div class="card-section">
-    <h2>{{ 'contact.contactHistory' | translate }}</h2>
-    <p-table [value]="history" [rows]="10">
+  <div class="card-section" id="contact-history-section">
+    <h2 id="contact-history-title">{{ 'contact.contactHistory' | translate }}</h2>
+    <p-table id="contact-history-table" [value]="history" [rows]="10">
       <ng-template #header>
         <tr>
           <th>{{ 'common.channel' | translate }}</th>
@@ -101,8 +114,8 @@
           <th></th>
         </tr>
       </ng-template>
-      <ng-template #body let-item>
-        <tr>
+      <ng-template #body let-item let-i="rowIndex">
+        <tr [id]="'contact-history-row-' + i">
           <td>{{ item.channelKey | translate }}</td>
           <td>{{ item.date }}</td>
           <td>{{ item.summary }}</td>

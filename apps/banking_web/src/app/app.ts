@@ -1,9 +1,13 @@
 import { Component } from '@angular/core';
-import { ShellPage } from './core/layout/shell.page';
+import { RouterOutlet } from '@angular/router';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-root',
-  imports: [ShellPage],
-  template: '<app-shell />',
+  imports: [RouterOutlet, ToastModule],
+  template: `
+    <p-toast id="app-toast" [pt]="{ closeButton: { id: 'app-toast-close-btn' } }" />
+    <router-outlet />
+  `,
 })
 export class App {}

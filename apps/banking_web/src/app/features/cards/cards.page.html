@@ -1,12 +1,12 @@
-<div class="page-header">
+<div class="page-header" id="cards-page-header">
   <div class="page-header__text">
-    <h1>{{ 'cards.title' | translate }}</h1>
-    <p>{{ 'cards.subtitle' | translate }}</p>
+    <h1 id="cards-title">{{ 'cards.title' | translate }}</h1>
+    <p id="cards-subtitle">{{ 'cards.subtitle' | translate }}</p>
   </div>
 </div>
 
-<div class="card-section" style="margin-bottom: 1.5rem">
-  <p-table [value]="cards" [rows]="10">
+<div class="card-section" id="cards-list-section" style="margin-bottom: 1.5rem">
+  <p-table id="cards-table" [value]="cards" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'cards.holder' | translate }}</th>
@@ -19,28 +19,39 @@
       </tr>
     </ng-template>
     <ng-template #body let-card>
-      <tr>
+      <tr [id]="'cards-row-' + card.id">
         <td>{{ card.holder }}</td>
         <td>
           <code>{{ card.maskedNumber }}</code>
         </td>
-        <td><p-tag [value]="card.network" severity="secondary" /></td>
+        <td>
+          <p-tag
+            [id]="'cards-row-' + card.id + '-network'"
+            [value]="card.network"
+            severity="secondary"
+          />
+        </td>
         <td>{{ card.product }}</td>
         <td>{{ card.limitDaily | number: '1.0-0' }} PLN</td>
         <td>
           <app-status-tag
+            [tagId]="'cards-row-' + card.id + '-status'"
             [labelKey]="'cards.status.' + card.status"
             [severity]="statusSeverity[card.status]"
           />
         </td>
         <td>
           <p-button
+            [id]="'cards-row-' + card.id + '-toggle-block-btn'"
+            [pt]="{ root: { id: 'cards-row-' + card.id + '-toggle-block-btn-root' } }"
             [label]="(card.status === 'active' ? 'cards.block' : 'cards.unblock') | translate"
             [text]="true"
             size="small"
             (click)="toggleBlock(card)"
           />
           <p-button
+            [id]="'cards-row-' + card.id + '-chargeback-btn'"
+            [pt]="{ root: { id: 'cards-row-' + card.id + '-chargeback-btn-root' } }"
             [label]="'cards.chargeback' | translate"
             [text]="true"
             size="small"
@@ -53,9 +64,9 @@
   </p-table>
 </div>
 
-<div class="card-section">
-  <h2>{{ 'cards.authorizations' | translate }}</h2>
-  <p-table [value]="authorizations" [rows]="10">
+<div class="card-section" id="cards-authorizations-section">
+  <h2 id="cards-authorizations-title">{{ 'cards.authorizations' | translate }}</h2>
+  <p-table id="cards-authorizations-table" [value]="authorizations" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -67,14 +78,21 @@
       </tr>
     </ng-template>
     <ng-template #body let-auth>
-      <tr>
+      <tr [id]="'cards-authorizations-row-' + auth.id">
         <td>{{ auth.id }}</td>
         <td>{{ auth.merchant }}</td>
         <td>{{ auth.amount | number: '1.2-2' }} PLN</td>
         <td>{{ auth.date }}</td>
-        <td><p-tag [value]="auth.processor" severity="secondary" /></td>
+        <td>
+          <p-tag
+            [id]="'cards-authorizations-row-' + auth.id + '-processor'"
+            [value]="auth.processor"
+            severity="secondary"
+          />
+        </td>
         <td>
           <app-status-tag
+            [tagId]="'cards-authorizations-row-' + auth.id + '-status'"
             [labelKey]="auth.approved ? 'cards.status.active' : 'cards.status.blocked'"
             [severity]="auth.approved ? 'success' : 'danger'"
           />

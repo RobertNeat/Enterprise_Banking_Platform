@@ -1,4 +1,6 @@
 <p-button
+  id="loan-detail-back-btn"
+  [pt]="{ root: { id: 'loan-detail-back-btn-root' } }"
   class="detail-back"
   [label]="'common.back' | translate"
   icon="pi pi-arrow-left"
@@ -6,16 +8,18 @@
   (click)="back()"
 />
 
-<div class="page-header">
+<div class="page-header" id="loan-detail-page-header">
   <div class="page-header__text">
-    <h1>{{ loan().id }} — {{ loan().applicant }}</h1>
-    <p>
+    <h1 id="loan-detail-title">{{ loan().id }} — {{ loan().applicant }}</h1>
+    <p id="loan-detail-subtitle">
       {{ 'loans.product.' + loan().product | translate }} ·
       {{ 'loans.segment.' + loan().segment | translate }}
     </p>
   </div>
   <div class="page-header__actions">
     <p-button
+      id="loan-detail-advance-stage-btn"
+      [pt]="{ root: { id: 'loan-detail-advance-stage-btn-root' } }"
       [label]="'loans.decisionMove' | translate"
       icon="pi pi-check"
       (click)="advanceStage()"
@@ -23,45 +27,48 @@
   </div>
 </div>
 
-<div class="card-section" style="margin-bottom: 1.5rem">
-  <h2>{{ 'loans.lifecycle' | translate }}</h2>
-  <ol class="lifecycle">
-    @for (stage of stages; track stage; let i = $index) {
-      <li
-        class="lifecycle__step"
-        [class.lifecycle__step--done]="i < stageIndex()"
-        [class.lifecycle__step--current]="i === stageIndex()"
-      >
-        <span class="lifecycle__dot"></span>
-        <span class="lifecycle__label">{{ 'loans.stage.' + stage | translate }}</span>
-      </li>
-    }
-  </ol>
+<div class="card-section" id="loan-detail-lifecycle-section" style="margin-bottom: 1.5rem">
+  <h2 id="loan-detail-lifecycle-title">{{ 'loans.lifecycle' | translate }}</h2>
+  <p-stepper id="loan-detail-lifecycle-stepper" [value]="stageIndex()" [linear]="true">
+    <p-step-list id="loan-detail-lifecycle-step-list">
+      @for (stage of stages; track stage; let i = $index) {
+        <p-step
+          [id]="'loan-detail-lifecycle-step-' + stage"
+          [pt]="{ header: { id: 'loan-detail-lifecycle-step-' + stage + '-header' } }"
+          [value]="i"
+          [disabled]="true"
+        >
+          {{ 'loans.stage.' + stage | translate }}
+        </p-step>
+      }
+    </p-step-list>
+  </p-stepper>
 </div>
 
-<div class="field-grid card-section" style="margin-bottom: 1.5rem">
-  <div class="field-grid__item">
+<div class="field-grid card-section" id="loan-detail-fields" style="margin-bottom: 1.5rem">
+  <div class="field-grid__item" id="loan-detail-requested-amount">
     <label>{{ 'loans.requestedAmount' | translate }}</label>
     <div class="value">{{ loan().requestedAmount | number: '1.0-0' }} PLN</div>
   </div>
-  <div class="field-grid__item">
+  <div class="field-grid__item" id="loan-detail-approved-amount">
     <label>{{ 'loans.approvedAmount' | translate }}</label>
     <div class="value">
       {{ loan().approvedAmount ? (loan().approvedAmount! | number: '1.0-0') + ' PLN' : '—' }}
     </div>
   </div>
-  <div class="field-grid__item">
+  <div class="field-grid__item" id="loan-detail-score-result">
     <label>{{ 'loans.scoreResult' | translate }}</label>
     <div class="value">{{ loan().scoreResult || '—' }}</div>
   </div>
-  <div class="field-grid__item">
+  <div class="field-grid__item" id="loan-detail-dsti">
     <label>{{ 'loans.dsti' | translate }}</label>
     <div class="value">{{ loan().dsti ? (loan().dsti * 100 | number: '1.0-1') + '%' : '—' }}</div>
   </div>
-  <div class="field-grid__item">
+  <div class="field-grid__item" id="loan-detail-status">
     <label>{{ 'common.status' | translate }}</label>
     <div class="value">
       <app-status-tag
+        tagId="loan-detail-status-tag"
         [labelKey]="'loans.stage.' + loan().stage"
         [severity]="stageSeverity[loan().stage]"
       />
@@ -69,9 +76,14 @@
   </div>
 </div>
 
-<div class="card-section">
-  <h2>{{ 'loans.scheduleTitle' | translate }}</h2>
-  <p-table [value]="schedule()" [rows]="12" [paginator]="schedule().length > 12">
+<div class="card-section" id="loan-detail-schedule-section">
+  <h2 id="loan-detail-schedule-title">{{ 'loans.scheduleTitle' | translate }}</h2>
+  <p-table
+    id="loan-detail-schedule-table"
+    [value]="schedule()"
+    [rows]="12"
+    [paginator]="schedule().length > 12"
+  >
     <ng-template #header>
       <tr>
         <th>#</th>
@@ -82,13 +94,14 @@
       </tr>
     </ng-template>
     <ng-template #body let-row>
-      <tr>
+      <tr [id]="'loan-detail-schedule-row-' + row.no">
         <td>{{ row.no }}</td>
         <td>{{ row.dueDate }}</td>
         <td>{{ row.principal | number: '1.0-0' }} PLN</td>
         <td>{{ row.interest | number: '1.0-0' }} PLN</td>
         <td>
           <app-status-tag
+            [tagId]="'loan-detail-schedule-row-' + row.no + '-status'"
             [labelKey]="'loans.' + row.status"
             [severity]="
               row.status === 'paid' ? 'success' : row.status === 'overdue' ? 'danger' : 'info'

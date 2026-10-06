@@ -1,42 +1,35 @@
-<p-toast />
-
-<div class="shell">
-  <header class="topbar">
-    <div class="topbar__brand">
-      <img src="colloseum.png" alt="Colosseum Bank" class="topbar__logo" />
+<div class="shell" id="app-shell">
+  <header class="topbar" id="app-topbar">
+    <div class="topbar__brand" id="app-topbar-brand">
+      <img src="colloseum.png" alt="Colosseum Bank" class="topbar__logo" id="app-topbar-logo" />
       <div class="topbar__titles">
-        <span class="topbar__title">{{ 'app.title' | translate }}</span>
+        <span class="topbar__title" id="app-topbar-title">{{ 'app.title' | translate }}</span>
       </div>
     </div>
 
-    <div class="topbar__actions">
-      <button
-        type="button"
-        class="icon-toggle"
-        [pTooltip]="
-          (theme.mode() === 'dark' ? 'theme.toggleLight' : 'theme.toggleDark') | translate
-        "
-        tooltipPosition="bottom"
-        (click)="theme.toggle()"
-      >
-        <i
-          class="pi"
-          [class.pi-sun]="theme.mode() === 'dark'"
-          [class.pi-moon]="theme.mode() === 'light'"
-        ></i>
-      </button>
-      <button type="button" class="icon-toggle lang-toggle" (click)="i18n.toggle()">
-        {{ 'lang.toggle' | translate }}
-      </button>
+    <div class="topbar__actions" id="app-topbar-actions">
+      <p-splitbutton
+        id="app-user-menu"
+        [label]="userMenuLabel()"
+        icon="pi pi-user"
+        dropdownIcon="pi pi-cog"
+        [model]="userMenuItems()"
+        [pt]="{
+          pcButton: { root: { id: 'app-user-menu-btn' } },
+          pcDropdown: { root: { id: 'app-user-menu-dropdown-btn' } },
+        }"
+        (onClick)="$event.stopPropagation()"
+      />
     </div>
   </header>
 
-  <div class="shell__body">
-    <nav class="sidebar">
-      <ul class="sidebar__list">
+  <div class="shell__body" id="app-shell-body">
+    <nav class="sidebar" id="app-sidebar">
+      <ul class="sidebar__list" id="app-sidebar-list">
         @for (item of navItems; track item.route) {
-          <li>
+          <li [id]="'app-nav-item-' + item.route.slice(1)">
             <a
+              [id]="'app-nav-link-' + item.route.slice(1)"
               class="sidebar__link"
               [routerLink]="item.route"
               routerLinkActive="sidebar__link--active"
@@ -49,7 +42,7 @@
       </ul>
     </nav>
 
-    <main class="content">
+    <main class="content" id="app-content">
       <router-outlet />
     </main>
   </div>

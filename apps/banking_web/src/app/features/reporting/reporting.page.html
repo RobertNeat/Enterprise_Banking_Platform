@@ -1,16 +1,20 @@
-<div class="page-header">
+<div class="page-header" id="reporting-page-header">
   <div class="page-header__text">
-    <h1>{{ 'reporting.title' | translate }}</h1>
-    <p>{{ 'reporting.subtitle' | translate }}</p>
+    <h1 id="reporting-title">{{ 'reporting.title' | translate }}</h1>
+    <p id="reporting-subtitle">{{ 'reporting.subtitle' | translate }}</p>
   </div>
   <div class="page-header__actions">
     <p-button
+      id="reporting-view-dashboard-btn"
+      [pt]="{ root: { id: 'reporting-view-dashboard-btn-root' } }"
       [label]="'reporting.viewDashboard' | translate"
       icon="pi pi-chart-bar"
       severity="secondary"
       (click)="viewDashboard()"
     />
     <p-button
+      id="reporting-export-csv-btn"
+      [pt]="{ root: { id: 'reporting-export-csv-btn-root' } }"
       [label]="'common.exportCsv' | translate"
       icon="pi pi-download"
       (click)="exportCsv()"
@@ -18,10 +22,12 @@
   </div>
 </div>
 
-<div class="card-section">
-  <div class="table-toolbar">
-    <div class="table-toolbar__filters">
+<div class="card-section" id="reporting-list-section">
+  <div class="table-toolbar" id="reporting-toolbar">
+    <div class="table-toolbar__filters" id="reporting-toolbar-filters">
       <p-select
+        id="reporting-recipient-filter"
+        [pt]="{ dropdown: { id: 'reporting-recipient-filter-dropdown-btn' } }"
         [options]="recipientOptions"
         [ngModel]="recipientFilter()"
         (ngModelChange)="recipientFilter.set($event)"
@@ -34,6 +40,7 @@
 
   <p-table
     #dt
+    id="reporting-table"
     [value]="reports"
     [rows]="10"
     [globalFilterFields]="['recipient', 'name']"
@@ -51,7 +58,7 @@
     </ng-template>
     <ng-template #body let-r>
       @if (recipientFilter() === 'all' || recipientFilter() === r.recipient) {
-        <tr>
+        <tr [id]="'reporting-row-' + r.id">
           <td>{{ r.id }}</td>
           <td>{{ r.recipient }}</td>
           <td>{{ r.name }}</td>
@@ -59,6 +66,7 @@
           <td>{{ r.dueDate }}</td>
           <td>
             <app-status-tag
+              [tagId]="'reporting-row-' + r.id + '-status'"
               [labelKey]="'reporting.status.' + r.status"
               [severity]="severity[r.status]"
             />

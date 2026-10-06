@@ -1,0 +1,112 @@
+<div class="login" id="login-page">
+  <div class="login__image" id="login-image-col">
+    <img id="login-image" src="login_image.png" [alt]="'auth.login.imageAlt' | translate" />
+  </div>
+
+  <div class="login__panel-col" id="login-panel-col">
+    <div class="login__panel" id="login-panel">
+      <button
+        type="button"
+        id="login-demo-accounts-trigger"
+        class="login__demo-trigger"
+        (click)="demoAccountsPopover.toggle($event)"
+      >
+        <i class="pi pi-info-circle"></i>
+      </button>
+
+      <p-popover #demoAccountsPopover id="login-demo-accounts-panel">
+        <div class="login__demo-list" id="login-demo-accounts-list">
+          <p class="login__demo-list-title" id="login-demo-accounts-list-title">
+            {{ 'auth.login.demoAccountsTitle' | translate }}
+          </p>
+          <p class="login__demo-list-hint" id="login-demo-accounts-list-hint">
+            {{ 'auth.login.demoAccountsHint' | translate }}
+          </p>
+          @for (account of demoAccounts; track account.id) {
+            <button
+              type="button"
+              [id]="'login-demo-account-' + account.id"
+              class="login__demo-account"
+              (click)="selectDemoAccount(account, $event)"
+            >
+              <span class="login__demo-account-role">{{ account.role }}</span>
+              <span class="login__demo-account-id">{{ account.employeeId }}</span>
+            </button>
+          }
+        </div>
+      </p-popover>
+
+      <h1 id="login-title">{{ 'auth.login.title' | translate }}</h1>
+      <p id="login-subtitle">{{ 'auth.login.subtitle' | translate }}</p>
+
+      <form id="login-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="login__field">
+          <label id="login-employee-id-label" for="login-employee-id-input">{{
+            'auth.login.employeeId' | translate
+          }}</label>
+          <input
+            pInputText
+            id="login-employee-id-input"
+            formControlName="employeeId"
+            [fluid]="true"
+            [placeholder]="'auth.login.employeeIdPlaceholder' | translate"
+          />
+          @if (
+            form.controls.employeeId.invalid &&
+            (form.controls.employeeId.dirty || form.controls.employeeId.touched)
+          ) {
+            <small id="login-employee-id-error" class="login__error">
+              @if (form.controls.employeeId.errors?.['required']) {
+                {{ 'auth.validation.required' | translate }}
+              } @else if (form.controls.employeeId.errors?.['pattern']) {
+                {{ 'auth.validation.employeeIdPattern' | translate }}
+              }
+            </small>
+          }
+        </div>
+
+        <div class="login__field">
+          <label id="login-password-label" for="login-password-input">{{
+            'auth.login.password' | translate
+          }}</label>
+          <p-password
+            id="login-password"
+            inputId="login-password-input"
+            formControlName="password"
+            [toggleMask]="true"
+            [feedback]="false"
+            [fluid]="true"
+          />
+          @if (
+            form.controls.password.invalid &&
+            (form.controls.password.dirty || form.controls.password.touched)
+          ) {
+            <small id="login-password-error" class="login__error">
+              @if (form.controls.password.errors?.['required']) {
+                {{ 'auth.validation.required' | translate }}
+              } @else if (form.controls.password.errors?.['minlength']) {
+                {{ 'auth.validation.minLength' | translate: { min: 8 } }}
+              }
+            </small>
+          }
+        </div>
+
+        <p-button
+          id="login-submit-btn"
+          [pt]="{ root: { id: 'login-submit-btn-root' } }"
+          type="submit"
+          [label]="'auth.login.submit' | translate"
+          [disabled]="form.invalid"
+          [fluid]="true"
+        />
+      </form>
+
+      <p class="login__register" id="login-register-hint">
+        {{ 'auth.login.noAccount' | translate }}
+        <a id="login-register-link" routerLink="/register">{{
+          'auth.login.registerLink' | translate
+        }}</a>
+      </p>
+    </div>
+  </div>
+</div>

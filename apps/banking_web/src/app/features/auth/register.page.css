@@ -1,0 +1,174 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  background: var(--p-content-background);
+}
+
+.register-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100dvh;
+  padding: 2.5rem 1.25rem;
+  box-sizing: border-box;
+}
+
+.register-panel {
+  width: 100%;
+  max-width: 880px;
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Baner na szerokość panelu, spójny z obrazem na ekranie logowania. */
+.register-banner {
+  position: relative;
+  height: 180px;
+}
+
+.register-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.register-banner__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem 2.25rem;
+  background: linear-gradient(0deg, rgba(18, 20, 24, 0.82) 0%, rgba(18, 20, 24, 0.15) 100%);
+}
+
+.register-banner__overlay h1 {
+  margin: 0 0 0.3rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.register-banner__overlay p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+}
+
+.register-panel__body {
+  padding: 2rem 2.25rem 2.5rem;
+}
+
+.register-section {
+  background: var(--p-content-background);
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 12px;
+  padding: 1.5rem 1.5rem 0.4rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 1.25rem;
+}
+
+.register-section + .register-section {
+  margin-top: 1.25rem;
+}
+
+#register-form h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#register-form h2 i {
+  color: var(--p-primary-color);
+  font-size: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.1rem;
+  min-width: 0;
+}
+
+.field--wide,
+.field--checkbox {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--p-text-color);
+}
+
+.field--checkbox {
+  flex-direction: row;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.field--checkbox label {
+  font-weight: 400;
+  flex: 1;
+}
+
+.error {
+  color: var(--p-red-600);
+  font-size: 0.78rem;
+}
+
+.register-form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.75rem;
+}
+
+.register-login-hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--p-text-muted-color);
+}
+
+.register-login-hint a {
+  color: var(--p-primary-color);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 0.3rem;
+}
+
+.register-login-hint a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 700px) {
+  .register-banner {
+    height: 140px;
+  }
+
+  .register-panel__body {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .register-form-actions {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .register-section {
+    grid-template-columns: 1fr;
+  }
+}

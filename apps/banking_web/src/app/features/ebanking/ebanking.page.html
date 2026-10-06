@@ -1,12 +1,12 @@
-<div class="page-header">
+<div class="page-header" id="ebanking-page-header">
   <div class="page-header__text">
-    <h1>{{ 'ebanking.title' | translate }}</h1>
-    <p>{{ 'ebanking.subtitle' | translate }}</p>
+    <h1 id="ebanking-title">{{ 'ebanking.title' | translate }}</h1>
+    <p id="ebanking-subtitle">{{ 'ebanking.subtitle' | translate }}</p>
   </div>
 </div>
 
-<div class="card-section">
-  <p-table [value]="users" [rows]="10">
+<div class="card-section" id="ebanking-users-section">
+  <p-table id="ebanking-users-table" [value]="users" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'ebanking.username' | translate }}</th>
@@ -20,29 +20,36 @@
       </tr>
     </ng-template>
     <ng-template #body let-user>
-      <tr>
+      <tr [id]="'ebanking-row-' + user.id">
         <td>{{ user.username }}</td>
         <td>{{ user.customer }}</td>
         <td>
-          <p-tag [value]="'ebanking.channel.' + user.channel | translate" severity="secondary" />
+          <p-tag
+            [id]="'ebanking-row-' + user.id + '-channel'"
+            [value]="'ebanking.channel.' + user.channel | translate"
+            severity="secondary"
+          />
         </td>
         <td>{{ user.dailyLimit | number: '1.0-0' }} PLN</td>
         <td>{{ user.lastLogin }}</td>
         <td>
           <div style="display: flex; gap: 0.25rem; flex-wrap: wrap">
-            @for (perm of user.permissions; track perm) {
-              <p-chip [label]="perm" />
+            @for (perm of user.permissions; track perm; let i = $index) {
+              <p-chip [id]="'ebanking-row-' + user.id + '-permission-' + i" [label]="perm" />
             }
           </div>
         </td>
         <td>
           <app-status-tag
+            [tagId]="'ebanking-row-' + user.id + '-access-status'"
             [labelKey]="'ebanking.access.' + user.accessStatus"
             [severity]="accessSeverity[user.accessStatus]"
           />
         </td>
         <td>
           <p-button
+            [id]="'ebanking-row-' + user.id + '-unlock-btn'"
+            [pt]="{ root: { id: 'ebanking-row-' + user.id + '-unlock-btn-root' } }"
             [label]="'ebanking.unlock' | translate"
             [text]="true"
             size="small"
@@ -50,6 +57,8 @@
           />
           @if (user.channel === 'mobile') {
             <p-button
+              [id]="'ebanking-row-' + user.id + '-reset-device-btn'"
+              [pt]="{ root: { id: 'ebanking-row-' + user.id + '-reset-device-btn-root' } }"
               [label]="'ebanking.resetDevice' | translate"
               [text]="true"
               size="small"

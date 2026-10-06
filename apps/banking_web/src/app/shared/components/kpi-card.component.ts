@@ -7,13 +7,21 @@ export type KpiTrend = 'up' | 'down' | 'flat';
   selector: 'app-kpi-card',
   standalone: true,
   imports: [TranslatePipe],
+  // Host (app-kpi-card) dostaje bazowe cardId; elementy wewnętrzne dostają
+  // sufiksy ('-card', '-label' itd.), żeby uniknąć duplikatu id w DOM.
+  host: { '[attr.id]': 'cardId()' },
   template: `
-    <div class="kpi">
-      <span class="kpi__label">{{ labelKey() | translate }}</span>
-      <span class="kpi__value">{{ value() }}</span>
+    <div class="kpi" [attr.id]="cardId() ? cardId() + '-card' : null">
+      <span class="kpi__label" [attr.id]="cardId() ? cardId() + '-label' : null">{{
+        labelKey() | translate
+      }}</span>
+      <span class="kpi__value" [attr.id]="cardId() ? cardId() + '-value' : null">{{
+        value()
+      }}</span>
       @if (trendLabel()) {
         <span
           class="kpi__trend"
+          [attr.id]="cardId() ? cardId() + '-trend' : null"
           [class.kpi__trend--up]="trend() === 'up'"
           [class.kpi__trend--down]="trend() === 'down'"
         >
@@ -65,6 +73,8 @@ export type KpiTrend = 'up' | 'down' | 'flat';
   `,
 })
 export class KpiCardComponent {
+  /** Id przekazywany przez wywołującego, używany jako prefiks id elementów wewnętrznych. */
+  readonly cardId = input<string>();
   readonly labelKey = input.required<string>();
   readonly value = input.required<string>();
   readonly trend = input<KpiTrend>('flat');

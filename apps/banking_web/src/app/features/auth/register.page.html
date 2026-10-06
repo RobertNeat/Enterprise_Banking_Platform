@@ -1,0 +1,333 @@
+<div class="register-wrap" id="register-page">
+  <div class="register-panel" id="register-panel">
+    <div class="register-banner" id="register-banner">
+      <img
+        id="register-banner-image"
+        src="register_image.png"
+        [alt]="'auth.register.imageAlt' | translate"
+      />
+      <div class="register-banner__overlay" id="register-banner-overlay">
+        <h1 id="register-title">{{ 'auth.register.title' | translate }}</h1>
+        <p id="register-subtitle">{{ 'auth.register.subtitle' | translate }}</p>
+      </div>
+    </div>
+
+    <form
+      class="register-panel__body"
+      [formGroup]="form"
+      (ngSubmit)="onSubmit()"
+      id="register-form"
+    >
+      <div class="register-section" formGroupName="personal" id="register-section-personal">
+        <h2 id="register-section-personal-title">
+          <i class="pi pi-user"></i>
+          {{ 'auth.register.section.personal' | translate }}
+        </h2>
+
+        <div class="field" id="register-first-name-field">
+          <label for="register-first-name-input">{{ 'auth.register.firstName' | translate }}</label>
+          <input pInputText id="register-first-name-input" formControlName="firstName" />
+          @if (
+            personalGroup.controls.firstName.invalid && personalGroup.controls.firstName.touched
+          ) {
+            <small id="register-first-name-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-last-name-field">
+          <label for="register-last-name-input">{{ 'auth.register.lastName' | translate }}</label>
+          <input pInputText id="register-last-name-input" formControlName="lastName" />
+          @if (personalGroup.controls.lastName.invalid && personalGroup.controls.lastName.touched) {
+            <small id="register-last-name-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+
+        <div class="field field--wide" id="register-email-field">
+          <label for="register-email-input">{{ 'auth.register.email' | translate }}</label>
+          <input pInputText id="register-email-input" formControlName="email" />
+          @if (personalGroup.controls.email.invalid && personalGroup.controls.email.touched) {
+            <small id="register-email-error" class="error">
+              {{
+                (personalGroup.controls.email.errors?.['email']
+                  ? 'auth.validation.email'
+                  : 'auth.validation.required'
+                ) | translate
+              }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-phone-field">
+          <label for="register-phone-input">{{ 'auth.register.phone' | translate }}</label>
+          <input pInputText id="register-phone-input" formControlName="phone" />
+          @if (personalGroup.controls.phone.invalid && personalGroup.controls.phone.touched) {
+            <small id="register-phone-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+      </div>
+
+      <div class="register-section" formGroupName="employment" id="register-section-employment">
+        <h2 id="register-section-employment-title">
+          <i class="pi pi-briefcase"></i>
+          {{ 'auth.register.section.employment' | translate }}
+        </h2>
+
+        <div class="field" id="register-employee-id-field">
+          <label for="register-employee-id-input">{{
+            'auth.register.employeeId' | translate
+          }}</label>
+          <input
+            pInputText
+            id="register-employee-id-input"
+            formControlName="employeeId"
+            placeholder="PRC-00000"
+          />
+          @if (
+            employmentGroup.controls.employeeId.invalid &&
+            employmentGroup.controls.employeeId.touched
+          ) {
+            <small id="register-employee-id-error" class="error">
+              {{
+                (employmentGroup.controls.employeeId.errors?.['pattern']
+                  ? 'auth.validation.minLength'
+                  : 'auth.validation.required'
+                ) | translate
+              }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-department-field">
+          <label for="register-department-select">{{
+            'auth.register.department' | translate
+          }}</label>
+          <p-select
+            id="register-department-select"
+            [pt]="{ dropdown: { id: 'register-department-select-dropdown-btn' } }"
+            formControlName="department"
+            [options]="departments"
+            [showClear]="true"
+            [fluid]="true"
+          />
+          @if (
+            employmentGroup.controls.department.invalid &&
+            employmentGroup.controls.department.touched
+          ) {
+            <small id="register-department-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+
+        <div class="field field--wide" id="register-branch-field">
+          <label for="register-branch-input">{{ 'auth.register.branch' | translate }}</label>
+          <input pInputText id="register-branch-input" formControlName="branch" />
+          @if (employmentGroup.controls.branch.invalid && employmentGroup.controls.branch.touched) {
+            <small id="register-branch-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-position-field">
+          <label for="register-position-input">{{ 'auth.register.position' | translate }}</label>
+          <input pInputText id="register-position-input" formControlName="position" />
+          @if (
+            employmentGroup.controls.position.invalid && employmentGroup.controls.position.touched
+          ) {
+            <small id="register-position-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-supervisor-field">
+          <label for="register-supervisor-input">{{
+            'auth.register.supervisor' | translate
+          }}</label>
+          <input pInputText id="register-supervisor-input" formControlName="supervisor" />
+          @if (
+            employmentGroup.controls.supervisor.invalid &&
+            employmentGroup.controls.supervisor.touched
+          ) {
+            <small id="register-supervisor-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-start-date-field">
+          <label for="register-start-date-input">{{ 'auth.register.startDate' | translate }}</label>
+          <p-datepicker
+            inputId="register-start-date-input"
+            [pt]="{ dropdown: { id: 'register-start-date-input-dropdown-btn' } }"
+            formControlName="startDate"
+            [showIcon]="true"
+            dateFormat="yy-mm-dd"
+            [fluid]="true"
+          />
+          @if (
+            employmentGroup.controls.startDate.invalid && employmentGroup.controls.startDate.touched
+          ) {
+            <small id="register-start-date-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+      </div>
+
+      <div class="register-section" formGroupName="industry" id="register-section-industry">
+        <h2 id="register-section-industry-title">
+          <i class="pi pi-verified"></i>
+          {{ 'auth.register.section.industry' | translate }}
+        </h2>
+
+        <div class="field field--wide" id="register-business-lines-field">
+          <label for="register-business-lines-select">{{
+            'auth.register.businessLines' | translate
+          }}</label>
+          <p-multiselect
+            id="register-business-lines-select"
+            formControlName="businessLines"
+            [options]="businessLineOptions"
+            optionLabel="labelKey"
+            optionValue="key"
+            display="chip"
+            [fluid]="true"
+          >
+            <ng-template let-option #item>
+              {{ option.labelKey | translate }}
+            </ng-template>
+          </p-multiselect>
+          @if (
+            industryGroup.controls.businessLines.invalid &&
+            industryGroup.controls.businessLines.touched
+          ) {
+            <small id="register-business-lines-error" class="error">
+              {{ 'auth.validation.required' | translate }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-certifications-field">
+          <label for="register-certifications-input">{{
+            'auth.register.certifications' | translate
+          }}</label>
+          <input
+            pInputText
+            id="register-certifications-input"
+            formControlName="certifications"
+            [placeholder]="'auth.register.certificationsPlaceholder' | translate"
+          />
+        </div>
+
+        <div class="field" id="register-license-number-field">
+          <label for="register-license-number-input">{{
+            'auth.register.licenseNumber' | translate
+          }}</label>
+          <input
+            pInputText
+            id="register-license-number-input"
+            formControlName="licenseNumber"
+            [placeholder]="'auth.register.licenseNumberPlaceholder' | translate"
+          />
+        </div>
+      </div>
+
+      <div class="register-section" formGroupName="account" id="register-section-account">
+        <h2 id="register-section-account-title">
+          <i class="pi pi-lock"></i>
+          {{ 'auth.register.section.account' | translate }}
+        </h2>
+
+        <div class="field" id="register-password-field">
+          <label for="register-password-input">{{ 'auth.register.password' | translate }}</label>
+          <p-password
+            inputId="register-password-input"
+            formControlName="password"
+            [feedback]="true"
+            [toggleMask]="true"
+            [fluid]="true"
+          />
+          @if (accountGroup.controls.password.invalid && accountGroup.controls.password.touched) {
+            <small id="register-password-error" class="error">
+              {{
+                (accountGroup.controls.password.errors?.['minlength']
+                  ? 'auth.validation.minLength'
+                  : 'auth.validation.required'
+                ) | translate
+              }}
+            </small>
+          }
+        </div>
+
+        <div class="field" id="register-confirm-password-field">
+          <label for="register-confirm-password-input">{{
+            'auth.register.confirmPassword' | translate
+          }}</label>
+          <p-password
+            inputId="register-confirm-password-input"
+            formControlName="confirmPassword"
+            [feedback]="false"
+            [toggleMask]="true"
+            [fluid]="true"
+          />
+          @if (
+            accountGroup.controls.confirmPassword.touched &&
+            (accountGroup.controls.confirmPassword.invalid ||
+              accountGroup.errors?.['passwordMismatch'])
+          ) {
+            <small id="register-confirm-password-error" class="error">
+              {{
+                (accountGroup.controls.confirmPassword.errors?.['required']
+                  ? 'auth.validation.required'
+                  : 'auth.validation.passwordMismatch'
+                ) | translate
+              }}
+            </small>
+          }
+        </div>
+
+        <div class="field field--checkbox" id="register-accept-policy-field">
+          <p-checkbox
+            inputId="register-accept-policy-checkbox"
+            formControlName="acceptPolicy"
+            [binary]="true"
+          />
+          <label for="register-accept-policy-checkbox">{{
+            'auth.register.acceptPolicy' | translate
+          }}</label>
+          @if (
+            accountGroup.controls.acceptPolicy.invalid && accountGroup.controls.acceptPolicy.touched
+          ) {
+            <small id="register-accept-policy-error" class="error">
+              {{ 'auth.validation.mustAccept' | translate }}
+            </small>
+          }
+        </div>
+      </div>
+
+      <div class="register-form-actions" id="register-form-actions">
+        <p class="register-login-hint" id="register-login-hint">
+          {{ 'auth.register.haveAccount' | translate }}
+          <a id="register-login-link" routerLink="/login">{{
+            'auth.register.loginLink' | translate
+          }}</a>
+        </p>
+        <p-button
+          id="register-submit-btn"
+          [pt]="{ root: { id: 'register-submit-btn-root' } }"
+          [label]="'auth.register.submit' | translate"
+          [disabled]="form.invalid"
+          type="submit"
+        />
+      </div>
+    </form>
+  </div>
+</div>

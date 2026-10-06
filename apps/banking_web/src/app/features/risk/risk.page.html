@@ -1,12 +1,12 @@
-<div class="page-header">
+<div class="page-header" id="risk-page-header">
   <div class="page-header__text">
-    <h1>{{ 'risk.title' | translate }}</h1>
-    <p>{{ 'risk.subtitle' | translate }}</p>
+    <h1 id="risk-title">{{ 'risk.title' | translate }}</h1>
+    <p id="risk-subtitle">{{ 'risk.subtitle' | translate }}</p>
   </div>
 </div>
 
-<div class="card-section">
-  <p-table [value]="entries" [rows]="10">
+<div class="card-section" id="risk-list-section">
+  <p-table id="risk-table" [value]="entries" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
@@ -20,13 +20,14 @@
       </tr>
     </ng-template>
     <ng-template #body let-row>
-      <tr>
+      <tr [id]="'risk-row-' + row.id">
         <td>{{ row.id }}</td>
         <td>{{ row.customer }}</td>
         <td>{{ 'risk.collateral.' + row.type | translate }}</td>
         <td>{{ row.valuation | number: '1.0-0' }} PLN</td>
         <td style="min-width: 140px">
           <p-progressbar
+            [id]="'risk-row-' + row.id + '-ltv-bar'"
             [value]="row.ltv * 100 > 100 ? 100 : row.ltv * 100"
             [showValue]="false"
             [style]="{ height: '6px' }"
@@ -35,7 +36,11 @@
         </td>
         <td>{{ row.rating }}</td>
         <td>
-          <app-status-tag [labelKey]="'risk.' + row.stage" [severity]="stageSeverity[row.stage]" />
+          <app-status-tag
+            [tagId]="'risk-row-' + row.id + '-stage'"
+            [labelKey]="'risk.' + row.stage"
+            [severity]="stageSeverity[row.stage]"
+          />
         </td>
         <td>{{ row.provision | number: '1.0-0' }} PLN</td>
       </tr>
