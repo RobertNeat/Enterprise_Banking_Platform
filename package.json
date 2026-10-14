@@ -8,10 +8,10 @@
     "typecheck:frontend": "pnpm --filter banking-web typecheck",
     "format:frontend": "pnpm --filter banking-web format",
 
-    "start:card_api": "pnpm --filter card_processor_api start:dev",
-    "lint:card_api": "pnpm --filter card_processor_api lint",
-    "typecheck:card_api": "pnpm --filter card_processor_api typecheck",
-    "format:card_api": "pnpm --filter card_processor_api format",
+    "start:card_processor_mock": "pnpm --filter card_processor_mock start:dev",
+    "lint:card_processor_mock": "pnpm --filter card_processor_mock lint",
+    "typecheck:card_processor_mock": "pnpm --filter card_processor_mock typecheck",
+    "format:card_processor_mock": "pnpm --filter card_processor_mock format",
 
     "start:backend": "cd apps/banking_backend && .\\mvnw.cmd spring-boot:run",
     "lint:backend": "echo \"banking_backend: no linter configured, skipping\"",

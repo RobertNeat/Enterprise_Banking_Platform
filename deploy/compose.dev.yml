@@ -1,0 +1,103 @@
+# Nakładka lokalna (tylko różnice deweloperskie względem compose.yml):
+#   pnpm --filter banking-web build  (wymagane przed --build, zob. banking-web poniżej)
+#   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file .env up -d --build
+# Budowanie odwzorowuje .github/steps/create_docker_image.sh (te same build-args).
+# Lokalne buildy aplikacji (pnpm/mvnw bez `-s`) używają rejestrów publicznych —
+# rejestry prywatne (ZOT/Verdaccio/Reposilite) są używane tylko w pipeline CI.
+
+x-spring-build: &spring-build
+  context: ..
+  dockerfile: .github/docker/spring.Dockerfile
+  args: &spring-args
+    RUNTIME_VERSION: "25"
+    BUILD_OUTPUT: target/*.jar
+    START_COMMAND: java -jar /app/app.jar
+
+services:
+  postgres:
+    # internal: true nie publikuje portów - dopięcie do sieci default.
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${BANKING_DB_HOST_PORT:-10526}:5432"
+
+  banking-web:
+    # Wymaga lokalnego builda przed `up --build`: pnpm --filter banking-web build
+    # (unika pnpm install/supply-chain check w kontenerze - zob. angular.local.Dockerfile).
+    build:
+      context: ../apps/banking_web
+      dockerfile: ../../.github/docker/angular.local.Dockerfile
+      args:
+        BUILD_OUTPUT: dist/banking_web/browser
+        SERVER_CONFIG: nginx.conf
+        APP_PORT: "10500"
+    ports: !override
+      - "127.0.0.1:${BANKING_WEB_HOST_PORT:-10500}:${BANKING_WEB_CONTAINER_PORT:-10500}"
+
+  banking-backend:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/banking_backend
+        APP_PORT: "10520"
+    ports: !override
+      - "127.0.0.1:${BANKING_BACKEND_HOST_PORT:-10520}:${BANKING_BACKEND_CONTAINER_PORT:-10520}"
+
+  card-processor-mock:
+    build:
+      context: ..
+      dockerfile: .github/docker/node.Dockerfile
+      args:
+        RUNTIME_VERSION: "24"
+        PACKAGE_NAME: card_processor_mock
+        PROJECT_PATH: apps/card_processor_mock
+        BUILD_OUTPUT: dist
+        START_COMMAND: node dist/main.js
+        APP_PORT: "10521"
+    ports: !override
+      - "127.0.0.1:${CARD_PROCESSOR_MOCK_HOST_PORT:-10521}:${CARD_PROCESSOR_MOCK_CONTAINER_PORT:-10521}"
+
+  credit-risk-mock:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/credit_risk_mock
+        APP_PORT: "10522"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${CREDIT_RISK_MOCK_HOST_PORT:-10522}:${CREDIT_RISK_MOCK_CONTAINER_PORT:-10522}"
+
+  external-institutions-gateway-mock:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/external_institutions_gateway_mock
+        APP_PORT: "10523"
+    ports: !override
+      - "127.0.0.1:${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_HOST_PORT:-10523}:${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_CONTAINER_PORT:-10523}"
+
+  governance-mock:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/governance_mock
+        APP_PORT: "10524"
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${GOVERNANCE_MOCK_HOST_PORT:-10524}:${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}"
+
+  identity-access-mock:
+    build:
+      <<: *spring-build
+      args:
+        <<: *spring-args
+        PROJECT_PATH: apps/identity_access_mock
+        APP_PORT: "10525"
+    ports: !override
+      - "127.0.0.1:${IDENTITY_ACCESS_MOCK_HOST_PORT:-10525}:${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}"

@@ -1,0 +1,192 @@
+# Kanoniczny stos Enterprise Banking Platform: produkcja i lokalnie.
+#  - produkcja: deploy_compose_ssh.sh kopiuje na host TYLKO ten plik (+ config.env,
+#    projects.env); obrazy z rejestru, brak `build:`.
+#  - lokalnie: nakładka compose.dev.yml (build, porty na loopback) + .env:
+#      docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file .env up -d --build
+# Wartości domyślne `:-` (obrazy/porty = projects.json) pozwalają uruchamiać stos
+# bez projects.env; zgodność z projects.json pilnuje validate_projects.sh.
+#
+# Dostępność usług: `banking_web`, `banking_backend`, `card_processor_mock`,
+# `external_institutions_gateway_mock` i `identity_access_mock` są wywoływane
+# bezpośrednio z przeglądarki (zob. docs/banking_web_functions(concise).md,
+# sekcja "Podstawowe przepływy działań") i dlatego publikują port na hoście.
+# `credit_risk_mock` i `governance_mock` są wołane wyłącznie przez
+# `banking_backend` (moduły domenowe w przepływach) i zostają w sieci
+# wewnętrznej bez portu na hoście.
+#
+# Dane: tylko `banking_backend` czyta/pisze do PostgreSQL (Spring Data JPA);
+# serwisy mockowe trzymają stan tylko w pamięci procesu.
+name: enterprise-banking-platform
+
+services:
+  postgres:
+    # Pull-through przez ZOT (sync z registry-1.docker.io) zamiast Docker Hub
+    # bezpośrednio - ten sam rejestr co bazowe obrazy w .github/docker/*.Dockerfile.
+    image: 192.168.1.162:5000/library/postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${BANKING_DB_NAME:?BANKING_DB_NAME is required in config.env}
+      POSTGRES_USER: ${BANKING_DB_USER:?BANKING_DB_USER is required in config.env}
+      POSTGRES_PASSWORD: ${BANKING_DB_PASSWORD:?BANKING_DB_PASSWORD is required in config.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - banking-internal
+
+  banking-web:
+    image: ${REGISTRY:-local}/${BANKING_WEB_IMAGE:-enterprise-banking-platform/banking-web}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    ports:
+      - "${BANKING_WEB_HOST_PORT:-10500}:${BANKING_WEB_CONTAINER_PORT:-10500}"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:${BANKING_WEB_CONTAINER_PORT:-10500}/ || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  banking-backend:
+    image: ${REGISTRY:-local}/${BANKING_BACKEND_IMAGE:-enterprise-banking-platform/banking-backend}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    env_file:
+      - path: config.env
+        required: false
+    environment:
+      SERVER_PORT: ${BANKING_BACKEND_CONTAINER_PORT:-10520}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${BANKING_DB_NAME:-banking}
+      SPRING_DATASOURCE_USERNAME: ${BANKING_DB_USER:-banking}
+      SPRING_DATASOURCE_PASSWORD: ${BANKING_DB_PASSWORD:-banking}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${BANKING_BACKEND_HOST_PORT:-10520}:${BANKING_BACKEND_CONTAINER_PORT:-10520}"
+    networks:
+      - default
+      - banking-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${BANKING_BACKEND_CONTAINER_PORT:-10520}/actuator/health > /dev/null || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  card-processor-mock:
+    image: ${REGISTRY:-local}/${CARD_PROCESSOR_MOCK_IMAGE:-enterprise-banking-platform/card-processor-mock}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      PORT: ${CARD_PROCESSOR_MOCK_CONTAINER_PORT:-10521}
+    ports:
+      - "${CARD_PROCESSOR_MOCK_HOST_PORT:-10521}:${CARD_PROCESSOR_MOCK_CONTAINER_PORT:-10521}"
+    networks:
+      - default
+      - banking-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://127.0.0.1:${CARD_PROCESSOR_MOCK_CONTAINER_PORT:-10521}/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  credit-risk-mock:
+    image: ${REGISTRY:-local}/${CREDIT_RISK_MOCK_IMAGE:-enterprise-banking-platform/credit-risk-mock}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${CREDIT_RISK_MOCK_CONTAINER_PORT:-10522}
+    networks:
+      - banking-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${CREDIT_RISK_MOCK_CONTAINER_PORT:-10522}/actuator/health > /dev/null || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  external-institutions-gateway-mock:
+    image: ${REGISTRY:-local}/${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_IMAGE:-enterprise-banking-platform/external-institutions-gateway-mock}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_CONTAINER_PORT:-10523}
+    ports:
+      - "${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_HOST_PORT:-10523}:${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_CONTAINER_PORT:-10523}"
+    networks:
+      - default
+      - banking-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_CONTAINER_PORT:-10523}/actuator/health > /dev/null || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  governance-mock:
+    image: ${REGISTRY:-local}/${GOVERNANCE_MOCK_IMAGE:-enterprise-banking-platform/governance-mock}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}
+    networks:
+      - banking-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}/actuator/health > /dev/null || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  identity-access-mock:
+    image: ${REGISTRY:-local}/${IDENTITY_ACCESS_MOCK_IMAGE:-enterprise-banking-platform/identity-access-mock}:${IMAGE_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: ${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}
+    ports:
+      - "${IDENTITY_ACCESS_MOCK_HOST_PORT:-10525}:${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}"
+    networks:
+      - default
+      - banking-internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}/actuator/health > /dev/null || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+networks:
+  banking-internal:
+    internal: true
+
+volumes:
+  postgres-data:
