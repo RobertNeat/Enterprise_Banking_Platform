@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { ShellPage } from './core/layout/shell.page';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -13,6 +14,7 @@ export const routes: Routes = [
   {
     path: '',
     component: ShellPage,
+    canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
@@ -72,6 +74,11 @@ export const routes: Routes = [
         path: 'collections',
         loadComponent: () =>
           import('./features/collections/collections.page').then((m) => m.CollectionsPage),
+      },
+      {
+        path: 'approvals',
+        loadComponent: () =>
+          import('./features/approvals/approvals.page').then((m) => m.ApprovalsPage),
       },
     ],
   },

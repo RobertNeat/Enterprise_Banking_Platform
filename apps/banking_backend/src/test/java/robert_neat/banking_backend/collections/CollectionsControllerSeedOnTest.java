@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +25,7 @@ class CollectionsControllerSeedOnTest {
 
     @Test
     void listsCollectionsCasesWithRequiredFields() throws Exception {
-        mockMvc.perform(get("/collections"))
+        mockMvc.perform(get("/collections").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(6))
                 .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.everyItem(
@@ -40,15 +41,15 @@ class CollectionsControllerSeedOnTest {
     @Test
     void listsActionsForKnownCase() throws Exception {
         String caseId = com.jayway.jsonpath.JsonPath.read(
-                mockMvc.perform(get("/collections")).andReturn().getResponse().getContentAsString(),
+                mockMvc.perform(get("/collections").with(testJwt())).andReturn().getResponse().getContentAsString(),
                 "$[0].id");
-        mockMvc.perform(get("/collections/" + caseId + "/actions"))
+        mockMvc.perform(get("/collections/" + caseId + "/actions").with(testJwt()))
                 .andExpect(status().isOk());
     }
 
     @Test
     void unknownCaseReturns404() throws Exception {
-        mockMvc.perform(get("/collections/DBT-9999/actions"))
+        mockMvc.perform(get("/collections/DBT-9999/actions").with(testJwt()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").isNotEmpty());
     }

@@ -37,6 +37,16 @@ Serwis jest czystym REST API — brak UI/panelu operatorskiego (Thymeleaf jest t
 
 Pełny kontrakt request/response: `docs/card_processor_mock_contract/api.md`.
 
+### Seedowanie startowe
+
+Zmienna `CARD_PROCESSOR_SEED_MOCK_DATA` (domyślnie `true`, patrz `.env.example`/`deploy/compose.yml`) kontroluje, czy przy starcie procesu (w konstruktorach serwisów, odczyt `process.env` — bez nowej zależności typu `@nestjs/config`) zasiewane są dane zgodne z seedem `banking_backend`:
+
+- 4 autoryzacje z identyfikatorami UUID zgodnymi z `card_authorization_ref` w `db/changelog/seed/003-card.sql`: `dfd92a8d-976a-4601-97be-13ab2e09c7b1` (CRD-5521, Empik), `fc936c4c-ffaf-4dd1-9fdd-c5b4af746a98` (CRD-5521, Orlen), `449084f7-77b5-4cab-a790-e680763a6572` (CRD-5530, Amazon EU), `c78bf1a6-6d59-4a54-8de4-f5a3bc862310` (CRD-5522, Biedronka).
+- Chargeback `d9a633a4-1223-48cd-b470-217a69610114` na autoryzacji `449084f7-...`, `reasonCode=4837`, status `FILED`.
+- Karta `CRD-5522` oznaczona jako zablokowana (zgodnie z `payment_card.status='blocked'` w seedzie backendu).
+
+Ustawienie `CARD_PROCESSOR_SEED_MOCK_DATA=false` startuje serwis z pustym stanem (jak przed R1.5). Stan nadal żyje tylko w pamięci procesu — restart zawsze resetuje do seeda (lub do pustego stanu, zależnie od flagi).
+
 ## Walidacja
 
 Walidacja ręczna w kontrolerach (bez `class-validator`/`class-transformer` — nie są zależnościami projektu). Błędy walidacji → `400 Bad Request` z `{ "message": "..." }`. Brak zasobu → `404 Not Found`. Niedozwolone przejście chargeback → `409 Conflict`. Symulowana niedostępność procesora → `503 Service Unavailable`.

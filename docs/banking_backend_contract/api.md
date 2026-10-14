@@ -2,22 +2,110 @@
 
 Serwis eksponowany na hoście: `http://localhost:10520`. Wewnątrz sieci compose:
 `http://banking_backend:10520` (nazwa hosta zgodna z nazwą usługi w `deploy/compose.yml`). Wołany
-bezpośrednio z przeglądarki przez `banking_web` (CORS, origin konfigurowalny przez property
-`app.cors.allowed-origin` / zmienną środowiskową `BANKING_WEB_ORIGIN`, domyślnie
-`http://localhost:10500`).
+bezpośrednio z przeglądarki przez `banking_web` (CORS skonfigurowany w security filter chain, origin
+konfigurowalny przez property `app.cors.allowed-origin` / zmienną środowiskową `BANKING_WEB_ORIGIN`,
+domyślnie `http://localhost:10500`; metody `GET, POST, PUT, PATCH, DELETE, OPTIONS`, nagłówki
+`Authorization, Content-Type`).
 
-Wszystkie endpointy to `GET` — bez wiązania akcji/mutacji (świadomie poza zakresem tej iteracji).
-Serializacja JSON przez Jackson (transytywnie z `spring-boot-starter-web`, bez nowej zależności).
-DTO to Java records; encje JPA nigdy nie są serializowane bezpośrednio.
+Wszystkie endpointy GET-only poza zakresem auth (21 encji) — bez wiązania akcji/mutacji (świadomie
+poza zakresem tej iteracji). Serializacja JSON przez Jackson (transytywnie z
+`spring-boot-starter-web`, bez nowej zależności). DTO to Java records; encje JPA nigdy nie są
+serializowane bezpośrednio.
 
-Odpowiedzi błędów (404):
+Odpowiedzi błędów (404 i inne):
 
 ```json
 { "message": "opis błędu" }
 ```
 
+## Auth (JWT)
+
+`banking_backend` jest jedynym pośrednikiem auth dla `banking_web` — `identity_access_mock` NIE jest
+wołany bezpośrednio z przeglądarki (mimo że eksponuje port na hoście dla narzędzi operatorskich).
+
+### POST /auth/login
+
+Publiczny (`permitAll`). Request: `{ "employeeId": "PRC-00001", "password": "Admin12345" }` —
+przekazywany 1:1 do `identity_access_mock` `/auth/login`. Na podstawie odpowiedzi (`role`,
+`permissions`) wydaje własny JWT podpisany HS256 (sekret `banking.jwt.secret` / `BANKING_JWT_SECRET`,
+min. 32 bajty, bez defaultu w kodzie — wymagany).
+
+Response `200`:
+
+```json
+{ "token": "<jwt>", "employeeId": "PRC-00001", "role": "Administrator systemu", "permissions": ["dashboard", "..."], "seniorityLevel": 3 }
+```
+
+`role` w body to tekst PL (do wyświetlenia), permissions 1:1 z `identity_access_mock` (bez
+duplikowania tabeli rola→permission w backendzie). `seniorityLevel` (dodane R1.5) — hierarchia ról
+NIE istniejąca w `identity_access_mock`, zdefiniowana tylko tutaj (`auth/RoleCode.java`):
+`admin`=3, `compliance`=2, `loans`/`risk`/`collections`/`contact`=1. Używana przez kolejkę
+zatwierdzeń (maker-checker, patrz "Approvals" niżej). Claimy JWT: `sub`=employeeId, `role`=stabilny
+kod (`admin`/`loans`/`risk`/`collections`/`contact`/`compliance` — mapowanie w `auth/RoleCode.java`),
+`permissions` (lista), `seniorityLevel` (int), `iat`, `exp` (+8h).
+
+Błędy: `401`/`403`/`400` przekazane 1:1 z `identity_access_mock`; `502` jeśli `identity_access_mock`
+zwróci rolę nierozpoznaną w `RoleCode`; `503` jeśli `identity_access_mock` jest nieosiągalny.
+
+### POST /auth/logout
+
+Wymaga `Authorization: Bearer <jwt>` (JWT wydany przez `banking_backend`, nie token
+`identity_access_mock`). Proxy do `identity_access_mock` `/auth/logout` (forward Bearer — no-op tam,
+token nieznany temu serwisowi). Response: `204 No Content`.
+
+### POST /auth/register
+
+Publiczny (`permitAll`). Passthrough request/response 1:1 do `identity_access_mock` `/auth/register`
+(zob. `docs/identity_access_mock_contract/api.md` dla kształtu). Response: `201` lub błąd (`400`/`409`)
+przekazany 1:1.
+
+### Autoryzacja innych endpointów
+
+Wszystkie endpointy poza `/actuator/health`, `POST /auth/login`, `POST /auth/register` wymagają
+nagłówka `Authorization: Bearer <jwt>` z tokenem wydanym przez `POST /auth/login` powyżej (nie token
+`identity_access_mock`). Brak/niepoprawny/wygasły token → `401`.
+
 Gdy `BANKING_SEED_MOCK_DATA=false` (schemat bez danych): endpointy listujące zwracają `200 OK` z
 pustą listą `[]`; endpointy GET-by-id i "najnowszy snapshot" zwracają `404 Not Found`.
+
+## Approvals (proxy do governance_mock, R1.5)
+
+Proxy do `governance_mock`'s `/approvals` (kolejka zatwierdzeń maker-checker) — zob.
+`docs/governance_mock_contract/api.md` dla kształtu bazowego. Wymaga JWT jak każdy inny endpoint
+poza auth.
+
+### GET /approvals
+
+Query opcjonalny `status` (`PENDING|APPROVED|REJECTED`). Każdy wpis wzbogacony o
+`requestedByRole`/`requestedBySeniorityLevel` (rozwiązane z `Employee.role` w banking_backend, NIE z
+`identity_access_mock`) — `null`/`null` jeśli rola wnioskodawcy nie mapuje się na `RoleCode`.
+
+```json
+{
+  "id": "uuid", "type": "LOAN_STAGE_TRANSITION", "requestedBy": "PRC-10234",
+  "payload": "...", "status": "PENDING", "createdAt": "...", "decidedBy": null, "decidedAt": null,
+  "requestedByRole": "Doradca kredytowy", "requestedBySeniorityLevel": 1
+}
+```
+
+### GET /approvals/{id}
+
+Jak wyżej, pojedynczy wpis. `404` jeśli nieznany (przekazane z `governance_mock`).
+
+### POST /approvals/{id}/decide
+
+Request: `{ "decision": "APPROVED" }` (`APPROVED|REJECTED`) — **bez** `decidedBy`: backend ustawia
+go z `sub` JWT wołającego, nigdy z ciała żądania.
+
+Reguła maker-checker wymuszana PRZED wywołaniem `governance_mock` (więc `governance_mock`'s własny
+409 self-approval check praktycznie nie jest już osiągalny stąd — tylko przez bezpośrednie
+wywołanie `governance_mock`, poza zakresem tego proxy):
+
+- `403` jeśli wołający jest tą samą osobą co `requestedBy` approvala.
+- `403` jeśli rola wnioskodawcy nie mapuje się na `RoleCode` (fail closed).
+- `403` jeśli `checker.seniorityLevel <= requesterRole.seniorityLevel()`.
+- `404`/`409` przekazane 1:1 z `governance_mock` (nieznany approval / już zdecydowany).
+- `200 OK` sukces, zwraca zaktualizowany wpis (jak `GET /approvals/{id}`).
 
 ## Macierz pokrycia pól (widok → model TS → backend)
 

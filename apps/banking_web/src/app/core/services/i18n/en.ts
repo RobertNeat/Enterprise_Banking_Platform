@@ -12,6 +12,7 @@ export const en: Record<string, string> = {
   'nav.reporting': 'Reporting',
   'nav.cases': 'Case Management',
   'nav.collections': 'Collections',
+  'nav.approvals': 'Approvals',
 
   'common.search': 'Search',
   'common.filter': 'Filter',
@@ -77,6 +78,10 @@ export const en: Record<string, string> = {
   'auth.register.imageAlt': 'Colosseum Bank',
   'auth.login.demoAccountsTitle': 'Demo accounts',
   'auth.login.demoAccountsHint': 'Click to fill the form with its login details.',
+  'auth.login.error.invalidCredentials': 'Invalid employee ID or password.',
+  'auth.login.error.pendingApproval': 'Account is pending administrator approval.',
+  'auth.login.error.unavailable': 'The login service is temporarily unavailable. Try again later.',
+  'auth.login.error.generic': 'Login failed. Please try again.',
   'auth.validation.required': 'This field is required.',
   'auth.validation.employeeIdPattern': 'ID must match the PRC-00000 format.',
   'auth.validation.minLength': 'Value is too short (min. {{min}} characters).',
@@ -316,6 +321,18 @@ export const en: Record<string, string> = {
   'cases.wizard.step2': 'Priority & deadlines',
   'cases.wizard.step3': 'Summary',
   'cases.wizard.summary': 'Review case details',
+
+  'approvals.title': 'Approval queue',
+  'approvals.subtitle': 'Four-eyes (maker-checker) review of employee requests',
+  'approvals.requestedBy': 'Requested by',
+  'approvals.payload': 'Description',
+  'approvals.decidedBy': 'Decided by',
+  'approvals.status.PENDING': 'Pending',
+  'approvals.status.APPROVED': 'Approved',
+  'approvals.status.REJECTED': 'Rejected',
+  'approvals.error.forbidden':
+    'Insufficient seniority to decide this request (or it is your own request).',
+  'approvals.error.generic': 'Could not save the decision.',
 
   'collections.title': 'Collections',
   'collections.subtitle': 'Delinquency, reminders, settlements, restructuring',

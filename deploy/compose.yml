@@ -67,6 +67,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${BANKING_DB_USER:-banking}
       SPRING_DATASOURCE_PASSWORD: ${BANKING_DB_PASSWORD:-banking}
       BANKING_SEED_MOCK_DATA: ${BANKING_SEED_MOCK_DATA:-false}
+      BANKING_JWT_SECRET: ${BANKING_JWT_SECRET:?BANKING_JWT_SECRET is required in config.env}
+      BANKING_IDENTITYACCESS_BASEURL: http://identity-access-mock:${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}
+      BANKING_GOVERNANCE_BASEURL: http://governance-mock:${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +94,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: ${CARD_PROCESSOR_MOCK_CONTAINER_PORT:-10521}
+      CARD_PROCESSOR_SEED_MOCK_DATA: ${CARD_PROCESSOR_SEED_MOCK_DATA:-true}
     ports:
       - "${CARD_PROCESSOR_MOCK_HOST_PORT:-10521}:${CARD_PROCESSOR_MOCK_CONTAINER_PORT:-10521}"
     networks:
@@ -130,6 +134,7 @@ services:
     restart: unless-stopped
     environment:
       SERVER_PORT: ${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_CONTAINER_PORT:-10523}
+      GATEWAY_SEED_MOCK_DATA: ${GATEWAY_SEED_MOCK_DATA:-true}
     ports:
       - "${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_HOST_PORT:-10523}:${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_CONTAINER_PORT:-10523}"
     networks:
@@ -151,6 +156,7 @@ services:
     restart: unless-stopped
     environment:
       SERVER_PORT: ${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}
+      GOVERNANCE_SEED_MOCK_DATA: ${GOVERNANCE_SEED_MOCK_DATA:-true}
     networks:
       - banking-internal
     healthcheck:

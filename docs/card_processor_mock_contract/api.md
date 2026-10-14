@@ -2,6 +2,8 @@
 
 Serwis eksponowany na hoście: `http://localhost:10521`. Wewnątrz sieci compose: `http://card_processor_mock:10521` (nazwa hosta zgodna z nazwą usługi w `deploy/compose.yml`).
 
+Zmienna `CARD_PROCESSOR_SEED_MOCK_DATA` (domyślnie `true`) kontroluje seedowanie startowe (autoryzacje/chargeback/blokada karty zgodne z seedem `banking_backend`) — szczegóły w `docs/services/card_processor_mock.md`.
+
 Wszystkie odpowiedzi błędów walidacji/brakującego zasobu/niedozwolonego przejścia mają postać:
 
 ```json

@@ -2,6 +2,8 @@
 
 Serwis wewnętrzny (bez portu na hoście), wołany wyłącznie przez `banking_backend`. Port wewnętrzny: `10524` (env `SERVER_PORT`, patrz `deploy/compose.yml`). Health: `GET /actuator/health` → `{"status":"UP"}`.
 
+Zmienna `GOVERNANCE_SEED_MOCK_DATA` (domyślnie `true`) kontroluje seedowanie startowe kolejki zatwierdzeń zgodne z seedem `banking_backend` — szczegóły w `docs/services/governance_mock.md`.
+
 Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap`) — reset po restarcie serwisu. Brak bazy danych w tej iteracji.
 
 Błędy walidacyjne i konfliktowe zwracają `ProblemDetail` (RFC 9457), np.:

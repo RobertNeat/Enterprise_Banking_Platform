@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +25,7 @@ class CardControllerSeedOnTest {
 
     @Test
     void listsCardsWithRequiredFields() throws Exception {
-        mockMvc.perform(get("/cards"))
+        mockMvc.perform(get("/cards").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.everyItem(
@@ -37,7 +38,7 @@ class CardControllerSeedOnTest {
 
     @Test
     void listsAuthorizations() throws Exception {
-        mockMvc.perform(get("/cards/authorizations"))
+        mockMvc.perform(get("/cards/authorizations").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0].cardId").isNotEmpty());
@@ -45,7 +46,7 @@ class CardControllerSeedOnTest {
 
     @Test
     void listsChargebacks() throws Exception {
-        mockMvc.perform(get("/cards/chargebacks"))
+        mockMvc.perform(get("/cards/chargebacks").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].reasonCode").isNotEmpty());

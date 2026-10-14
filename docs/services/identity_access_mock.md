@@ -16,6 +16,11 @@ uwierzytelnieniem) z `docs/banking_web_functions(concise).md`.
 - **auth** — konta pracowników (`EmployeeAccount`), logowanie/wylogowanie, rejestracja, statyczna mapa
   rola→uprawnienia (`RolePermissions`). 6 kont demo zgodnych z `DemoAccount` z banking_web
   (`PRC-00001`…`PRC-50123`). Token sesji to zwykły UUID (nie JWT), przekazywany w `Authorization: Bearer <token>`.
+  `RolePermissions` jest świadomie bez hierarchii ("no persistence, no hierarchy") — hierarchia
+  (`seniorityLevel`) żyje wyłącznie w `banking_backend`'s `auth/RoleCode.java` (R1.5). Permission
+  `"approvals"` (dodana w R1.5, tylko dla `ADMIN`/`COMPLIANCE`) gatuje widok kolejki zatwierdzeń
+  (maker-checker) w `banking_web` — to osobny mechanizm od hierarchii, nie łamie konwencji
+  "no hierarchy" (permissions i seniority to różne osie).
 - **otp** — generowanie i weryfikacja 6-cyfrowych kodów OTP (TTL 5 minut, jednorazowe — po pozytywnej
   weryfikacji kod jest oznaczany jako zużyty). Kod nigdy nie wraca w odpowiedzi REST — jest widoczny
   tylko w panelu operatorskim (`/otp`).

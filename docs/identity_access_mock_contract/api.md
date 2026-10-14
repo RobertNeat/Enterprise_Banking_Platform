@@ -26,6 +26,12 @@ Response `200`:
 }
 ```
 
+`permissions` dla `Administrator systemu` i `Compliance / AML` zawiera też `"approvals"` (dodane w
+R1.5) — gatuje widok kolejki zatwierdzeń (maker-checker) w `banking_web`. Pozostałe role (`Doradca
+kredytowy`, `Analityk ryzyka`, `Windykator`, `Konsultant kanału kontaktu`) nie mają tej wartości.
+Hierarchia ról (kto może zatwierdzić czyj wniosek) NIE żyje tutaj — patrz `banking_backend`'s
+`auth/RoleCode.java` (`seniorityLevel`), zwracane też jako claim JWT i pole `LoginResponse`.
+
 Błędy: `401` (niepoprawne dane logowania), `403` (konto `PENDING_APPROVAL`), `400` (brak pól).
 
 ### POST /auth/logout

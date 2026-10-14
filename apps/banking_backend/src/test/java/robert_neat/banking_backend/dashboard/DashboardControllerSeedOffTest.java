@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,13 +25,13 @@ class DashboardControllerSeedOffTest {
 
     @Test
     void listsReturnEmptyWhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/dashboard/recent-cases")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-        mockMvc.perform(get("/dashboard/regulatory-alerts")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-        mockMvc.perform(get("/dashboard/portfolio-trend")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/dashboard/recent-cases").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/dashboard/regulatory-alerts").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/dashboard/portfolio-trend").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void latestKpiSnapshotReturns404WhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/dashboard/kpi-snapshot/latest")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/dashboard/kpi-snapshot/latest").with(testJwt())).andExpect(status().isNotFound());
     }
 }

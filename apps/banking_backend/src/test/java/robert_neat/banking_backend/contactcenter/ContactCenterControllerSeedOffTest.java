@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,12 +25,12 @@ class ContactCenterControllerSeedOffTest {
 
     @Test
     void listsReturnEmptyWhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/contact-center/dispositions")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-        mockMvc.perform(get("/contact-center/history")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/contact-center/dispositions").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/contact-center/history").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void profileReturns404WhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/contact-center/profile/CUST-001")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/contact-center/profile/CUST-001").with(testJwt())).andExpect(status().isNotFound());
     }
 }

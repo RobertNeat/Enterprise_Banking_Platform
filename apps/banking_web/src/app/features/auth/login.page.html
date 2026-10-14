@@ -91,12 +91,18 @@
           }
         </div>
 
+        @if (errorKey()) {
+          <p id="login-form-error" class="login__error login__error--form">
+            {{ errorKey()! | translate }}
+          </p>
+        }
+
         <p-button
           id="login-submit-btn"
           [pt]="{ root: { id: 'login-submit-btn-root' } }"
           type="submit"
           [label]="'auth.login.submit' | translate"
-          [disabled]="form.invalid"
+          [disabled]="form.invalid || submitting()"
           [fluid]="true"
         />
       </form>

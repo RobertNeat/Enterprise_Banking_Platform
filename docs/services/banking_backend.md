@@ -328,13 +328,83 @@ layer jest `@Transactional(readOnly = true)`, mapuje encje na DTO w ramach trans
 `LazyInitializationException`; `spring.jpa.open-in-view=false`). Pełny kontrakt (endpointy, DTO,
 macierz pokrycia pól widok ↔ backend, udokumentowane GAP-y): `docs/banking_backend_contract/api.md`.
 
-CORS: `config/CorsConfig.java`, origin konfigurowalny przez `app.cors.allowed-origin` (zmienna
-środowiskowa `BANKING_WEB_ORIGIN`), domyślnie `http://localhost:10500`, tylko `GET`.
-
 Testowanie kontrolerów wymaga dodatkowego startera `spring-boot-starter-webmvc-test` (test-scoped) —
 Spring Boot 4.1 wymodularyzował `@AutoConfigureMockMvc` poza `spring-boot-starter-test`, analogicznie
 do `spring-boot-starter-liquibase` wyżej; pakiet adnotacji też się przeniósł, do
 `org.springframework.boot.webmvc.test.autoconfigure`.
+
+## Security (JWT / Spring Security)
+
+Stateless resource-server: `config/SecurityConfig.java`. CSRF disabled, sesje
+`SessionCreationPolicy.STATELESS`. CORS skonfigurowany WEWNĄTRZ security filter chain
+(`CorsConfigurationSource`, `/**`, metody `GET/POST/PUT/PATCH/DELETE/OPTIONS`, nagłówki
+`Authorization, Content-Type`, origin z `app.cors.allowed-origin`/`BANKING_WEB_ORIGIN`) — NIE przez
+`WebMvcConfigurer` (ta klasa z poprzedniej rundy, `config/CorsConfig.java`, została usunięta), bo
+inaczej preflight `OPTIONS` dla POST z nagłówkiem `Authorization` dostaje 401 przed dojściem do CORS.
+
+`permitAll`: `/actuator/health` (healthcheck w `deploy/compose.yml`), `POST /auth/login`,
+`POST /auth/register`. Wszystko inne wymaga poprawnego JWT.
+
+JWT HS256: `config/JwtConfig.java` (`JwtEncoder`/`JwtDecoder` z Nimbus, część
+`spring-security-oauth2-jose`, bez bibliotek trzeciej strony). Sekret `banking.jwt.secret`
+(`BANKING_JWT_SECRET`, wymagany, min. 32 bajty, walidowany przy starcie) — bez defaultu w kodzie, tylko
+w `.env.example`/`application.properties` lokalnie. Role→kod: `auth/RoleCode.java` (enum, jedno
+miejsce). `auth/AuthService.java` woła `identity_access_mock` przez `auth/IdentityAccessClient.java`
+(`RestClient`, adres `banking.identity-access.base-url`/`BANKING_IDENTITYACCESS_BASEURL`, domyślnie
+`http://localhost:10525`) i wydaje własny token; `/auth/logout` i `/auth/register` to proxy 1:1.
+
+Pełny opis claimów/endpointów: `docs/banking_backend_contract/api.md`, sekcja "Auth (JWT)".
+
+### Hierarchia ról (seniorityLevel) i kolejka zatwierdzeń (maker-checker, R1.5)
+
+`auth/RoleCode.java` dodaje `seniorityLevel` (int) — hierarchia NIE istnieje w `identity_access_mock`
+(jego `RolePermissions` jest świadomie "no persistence, no hierarchy"), więc żyje wyłącznie tutaj:
+`ADMIN=3`, `COMPLIANCE=2`, `LOANS=RISK=COLLECTIONS=CONTACT=1`. Decyzja: `COMPLIANCE` jest jedyną rolą
+pośrednią (zatwierdza 4 role liniowe, zatwierdzana tylko przez `ADMIN`); role liniowe są płaskie
+między sobą — nie znaleziono powodu biznesowego, by np. analityk ryzyka miał wyższy poziom niż
+doradca kredytowy. Zwracane jako claim JWT `seniorityLevel` oraz pole `LoginResponse.seniorityLevel`
+(frontend go potrzebuje bez dekodowania JWT ręcznie).
+
+`approvals/` — proxy do `governance_mock`'s `/approvals` (`GovernanceClient`, `RestClient`, adres
+`banking.governance.base-url`/`BANKING_GOVERNANCE_BASEURL`, domyślnie `http://localhost:10524`).
+Endpointy: `GET /approvals` (filtr `status`), `GET /approvals/{id}`, `POST /approvals/{id}/decide`.
+`GovernanceClient` ma też `recordAuditEvent(...)` zdefiniowany, ale niewywoływany jeszcze przez żaden
+endpoint — przestrzeń do rozszerzenia w R2 (audyt F2/F8), żeby nie duplikować klienta HTTP.
+
+Reguła maker-checker wymuszana PO STRONIE BACKENDU (nie tylko UI), w `ApprovalsService.decide()`:
+1. `requestedBy` approvala (zawsze `employeeId` typu `PRC-xxxxx`) jest tą samą osobą co wołający →
+   403 (self-approval), bez wołania `governance_mock`.
+2. Rola wnioskodawcy jest rozwiązywana z `Employee.role` (tabela `employee` w `banking_backend`, NIE
+   wołanie HTTP do `identity_access_mock`) → `RoleCode.fromDisplayName()` → `seniorityLevel`. Działa,
+   bo `employee.id` i `identity_access_mock`'s demo-konta używają tych samych `PRC-xxxxx` (patrz
+   `db/changelog/seed/001-customer.sql`). Jeśli rola wnioskodawcy nie mapuje się na `RoleCode` (np.
+   `PRC-6000x`, "Doradca klienta") → fail closed, 403.
+3. `checker.seniorityLevel <= requesterRole.seniorityLevel()` → 403.
+4. W przeciwnym razie: `decidedBy` ustawiany z JWT `sub` (NIE z ciała żądania klienta — frontend
+   wysyła tylko `{decision}`), forward do `governance_mock`.
+
+`GET /approvals` wzbogaca każdy wpis o `requestedByRole`/`requestedBySeniorityLevel` (ta sama
+rezolucja co wyżej), żeby frontend mógł pokazać/schować przycisk zatwierdź/odrzuć bez duplikowania
+mapowania employeeId→rola.
+
+### Pułapki Spring Boot 4.1 (do wiedzy przy kolejnych rundach)
+
+- Startery: `spring-boot-starter-security` + `spring-boot-starter-oauth2-resource-server` (główny),
+  `spring-boot-starter-security-test` (test-scoped, daje `SecurityMockMvcRequestPostProcessors.jwt()`).
+  Potwierdzone empirycznie w BOM 4.1.1 — żadna biblioteka poza ekosystemem Spring Security.
+- **Jackson 3**: `spring-boot-starter-web` w Boot 4.1 ciągnie `tools.jackson.core:jackson-databind`
+  (pakiet `tools.jackson.databind.*`), NIE `com.fasterxml.jackson.databind.*` — tylko
+  `jackson-annotations` zostało w starym pakiecie `com.fasterxml.jackson.annotation`. Kod korzystający
+  z `JsonNode`/`ObjectMapper` musi importować z `tools.jackson.databind`.
+- **`EndpointRequest` się przeniósł**: teraz w `spring-boot-security` (nie
+  `spring-boot-actuator-autoconfigure`), pakiet
+  `org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest`.
+- **Brak auto-configured `RestClient.Builder`**: `spring-boot-starter-web` samo nie wystawia tego beana
+  w tym układzie modułów — dodany ręcznie w `config/HttpClientConfig.java` (`@Bean RestClient.Builder`).
+  Kolejne rundy (R2+) wołające inne mocki powinny reużyć tego beana, nie duplikować.
+- **Dwa beany `RequestMappingHandlerMapping`** (`requestMappingHandlerMapping` +
+  `controllerEndpointHandlerMapping` z Actuatora) — wstrzykiwanie wymaga
+  `@Qualifier("requestMappingHandlerMapping")` (zob. `EndpointAuthorizationTest`).
 
 ## Do uzupełnienia w innych częściach aplikacji
 
@@ -351,3 +421,19 @@ do `spring-boot-starter-liquibase` wyżej; pakiet adnotacji też się przeniós�
 - Mutacje (POST/PATCH) są poza zakresem tej iteracji — wszystkie dzisiejsze akcje UI (blokada karty,
   eskalacja sprawy, awans etapu kredytu itd.) żyją tylko w pamięci przeglądarki po stronie
   `banking_web`, backend nie je persystuje.
+- **Rozjazd nawigacji vs permissions `identity_access_mock`**: `RolePermissions.java` w
+  `identity_access_mock` nie ma wartości `reporting` ani `cases` (żadna rola ich nie ma), a `admin` nie
+  ma `enforcement` (mają je tylko `collections`). `banking_web`'s `nav.model.ts` dla R1 mapuje
+  `reporting` → permission `compliance` (najbliższa dziedzina) i `cases` → brak gate (widoczne dla
+  każdego zalogowanego) — do przeglądu, czy `identity_access_mock` powinien dostać te permissions
+  jawnie w kolejnej rundzie.
+- `AuthService.logout()` przekazuje JWT wydany przez `banking_backend` jako Bearer do
+  `identity_access_mock` `/auth/logout` — ten serwis nie rozpoznaje tego tokenu (nieznany token = no-op
+  wg jego kontraktu), więc logout tam nie ma żadnego efektu poza formalnym wywołaniem. JWT
+  `banking_backend` nie jest rewokowalny (stateless) — wygasa tylko po `exp` (8h).
+- **Pułapka**: filtr bearer-token Spring Security odrzuca niepoprawny/wygasły nagłówek
+  `Authorization` z `401` ZANIM `permitAll` na `/auth/login`/`/auth/register` zostanie
+  wyewaluowane — request z nieprawidłowym tokenem na te ścieżki dostaje 401, nie trafia do
+  kontrolera. `banking_web`'s `authInterceptor` świadomie NIE dołącza przechowywanego tokenu do
+  `/auth/login`/`/auth/register` z tego powodu (inaczej ponowne logowanie po wygaśnięciu tokenu by
+  się nie udało). Zob. test `AuthControllerTest.loginWithAGarbageAuthorizationHeaderFailsBeforeReachingPermitAll`.

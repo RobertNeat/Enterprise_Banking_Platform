@@ -13,14 +13,18 @@ public final class RolePermissions {
     public static final String CONTACT = "Konsultant kanału kontaktu";
     public static final String COMPLIANCE = "Compliance / AML";
 
+    // "approvals" (maker-checker queue, R1.5) gates the banking_web approvals screen for the two
+    // roles with seniorityLevel high enough to ever decide anything (see banking_backend's
+    // RoleCode) — a separate concern from the hierarchy itself, which intentionally stays out of
+    // this map (see class javadoc). Not a breaking change to existing demo accounts' other values.
     private static final Map<String, List<String>> PERMISSIONS_BY_ROLE = Map.of(
             ADMIN, List.of("dashboard", "loans", "risk", "collections", "contact", "compliance",
-                    "ebanking", "cards", "accounts-admin", "audit"),
+                    "ebanking", "cards", "accounts-admin", "audit", "approvals"),
             LOANS, List.of("dashboard", "loans", "ebanking"),
             RISK, List.of("dashboard", "risk", "loans"),
             COLLECTIONS, List.of("dashboard", "collections", "enforcement"),
             CONTACT, List.of("dashboard", "contact", "ebanking", "cards"),
-            COMPLIANCE, List.of("dashboard", "compliance", "audit")
+            COMPLIANCE, List.of("dashboard", "compliance", "audit", "approvals")
     );
 
     private RolePermissions() {

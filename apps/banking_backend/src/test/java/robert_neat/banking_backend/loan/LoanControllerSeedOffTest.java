@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,14 +25,14 @@ class LoanControllerSeedOffTest {
 
     @Test
     void listReturnsEmptyArrayWhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/loans"))
+        mockMvc.perform(get("/loans").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void detailReturns404WhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/loans/LN-80231"))
+        mockMvc.perform(get("/loans/LN-80231").with(testJwt()))
                 .andExpect(status().isNotFound());
     }
 }

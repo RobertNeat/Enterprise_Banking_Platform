@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +25,7 @@ class LoanControllerSeedOnTest {
 
     @Test
     void listReturnsAllSeededLoansWithRequiredFieldsPopulated() throws Exception {
-        mockMvc.perform(get("/loans"))
+        mockMvc.perform(get("/loans").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(13))
                 .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.everyItem(
@@ -51,14 +52,14 @@ class LoanControllerSeedOnTest {
         // created_at seed value is '2026-08-12 09:00:00+02:00' — UTC would still show
         // 2026-08-12 (07:00 UTC), but this pins the zone so a future change to a
         // timestamp close to local midnight doesn't silently regress to UTC.
-        mockMvc.perform(get("/loans/LN-80231"))
+        mockMvc.perform(get("/loans/LN-80231").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.createdAt").value("2026-08-12"));
     }
 
     @Test
     void detailIncludesInstallmentsAndStageTransitionsForSeededLoan() throws Exception {
-        mockMvc.perform(get("/loans/LN-80231"))
+        mockMvc.perform(get("/loans/LN-80231").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("LN-80231"))
                 .andExpect(jsonPath("$.applicant").value("Jan Wiśniewski"))
@@ -68,7 +69,7 @@ class LoanControllerSeedOnTest {
 
     @Test
     void detailReturnsEmptyInstallmentsForLoanWithoutSchedule() throws Exception {
-        mockMvc.perform(get("/loans/LN-80255"))
+        mockMvc.perform(get("/loans/LN-80255").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.installments").isArray())
                 .andExpect(jsonPath("$.installments.length()").value(0));
@@ -76,7 +77,7 @@ class LoanControllerSeedOnTest {
 
     @Test
     void unknownIdReturns404WithMessageBody() throws Exception {
-        mockMvc.perform(get("/loans/LN-99999"))
+        mockMvc.perform(get("/loans/LN-99999").with(testJwt()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").isNotEmpty());
     }

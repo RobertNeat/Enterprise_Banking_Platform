@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +25,7 @@ class ReportingControllerSeedOnTest {
 
     @Test
     void listsReportsWithAllowedStatuses() throws Exception {
-        mockMvc.perform(get("/reporting/reports"))
+        mockMvc.perform(get("/reporting/reports").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.everyItem(
@@ -35,14 +36,14 @@ class ReportingControllerSeedOnTest {
 
     @Test
     void listsSubmissionsForKnownReport() throws Exception {
-        mockMvc.perform(get("/reporting/reports/RPT-NBP-014/submissions"))
+        mockMvc.perform(get("/reporting/reports/RPT-NBP-014/submissions").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThan(0)));
     }
 
     @Test
     void unknownReportReturns404() throws Exception {
-        mockMvc.perform(get("/reporting/reports/RPT-XXX-999/submissions"))
+        mockMvc.perform(get("/reporting/reports/RPT-XXX-999/submissions").with(testJwt()))
                 .andExpect(status().isNotFound());
     }
 }

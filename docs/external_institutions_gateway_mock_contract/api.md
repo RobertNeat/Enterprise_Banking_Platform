@@ -2,6 +2,8 @@
 
 Serwis eksponowany na hoście (wołany bezpośrednio z przeglądarki / `banking_web`, nie tylko z `banking_backend`). Port: `10523` (env `SERVER_PORT`, patrz `deploy/compose.yml`). Health: `GET /actuator/health` → `{"status":"UP"}`.
 
+Zmienna `GATEWAY_SEED_MOCK_DATA` (domyślnie `true`) kontroluje seedowanie startowe rejestru zajęć komorniczych zgodne z seedem `banking_backend` — szczegóły w `docs/services/external_institutions_gateway_mock.md`.
+
 Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap`) — reset po restarcie serwisu. Brak bazy danych w tej iteracji (planowana w kolejnej sesji).
 
 CORS: endpointy REST (`/enforcement/**`, `/fatca-crs/**`, `/regulatory-gateway/**`) mają włączony CORS dla originów z `gateway.cors.allowed-origin-patterns` (domyślnie `http://localhost:*,http://127.0.0.1:*`), metody `GET`/`POST`. Strony `/ui/**` nie wymagają CORS (renderowane serwerowo).

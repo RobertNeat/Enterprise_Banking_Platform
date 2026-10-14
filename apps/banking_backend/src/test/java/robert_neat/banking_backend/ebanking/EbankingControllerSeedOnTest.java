@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +25,7 @@ class EbankingControllerSeedOnTest {
 
     @Test
     void listsUsersWithPermissionsSplitAndAllowedStatuses() throws Exception {
-        mockMvc.perform(get("/ebanking/users"))
+        mockMvc.perform(get("/ebanking/users").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(5))
                 .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.everyItem(
@@ -40,7 +41,7 @@ class EbankingControllerSeedOnTest {
     void lastLoginIsFlattenedInWarsawLocalTimeNotUtc() throws Exception {
         // EB-1001 last_login seed value is '2026-10-03 14:22:00+02:00' — UTC would wrongly
         // show 12:22, which is the exact regression this pins down.
-        mockMvc.perform(get("/ebanking/users"))
+        mockMvc.perform(get("/ebanking/users").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='EB-1001')].lastLogin").value(
                         org.hamcrest.Matchers.contains("2026-10-03 14:22")));

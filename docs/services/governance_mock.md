@@ -16,6 +16,15 @@ Pełny kontrakt JSON: `docs/governance_mock_contract/api.md`.
 
 Błędy walidacyjne/konfliktowe (400/404/409) zwracane jako `ProblemDetail` (RFC 9457) — włączone przez `spring.mvc.problemdetails.enabled=true`, obejmuje zarówno ręcznie rzucane `ResponseStatusException`, jak i błędy deserializacji JSON (np. nieznana wartość enum) obsługiwane przez domyślny mechanizm Spring MVC.
 
+### Seedowanie startowe
+
+Zmienna `GOVERNANCE_SEED_MOCK_DATA` (domyślnie `true`, patrz `.env.example`/`deploy/compose.yml`, property `governance.seed-mock-data`) kontroluje, czy `ApprovalService` zasiewa przy starcie (`@PostConstruct`) wpisy zgodne z seedem `loan_application`/`loan_stage_transition` w `banking_backend` (`db/changelog/seed/002-loan.sql`):
+
+- `11111111-1111-4111-8111-111111111001` — `LOAN_STAGE_TRANSITION`, `LN-80231` (jedyny wniosek, który w seedzie backendu faktycznie przeszedł `decision → contract`), status `APPROVED`, `requestedBy=PRC-10234`, `decidedBy=PRC-00001`.
+- `22222222-2222-4222-8222-222222222002` — `LOAN_STAGE_TRANSITION`, `LN-80255` (nadal w `stage='decision'`, brak wiersza w `loan_stage_transition` — nikt jeszcze nie zdecydował), status `PENDING`, `requestedBy=PRC-20456`.
+
+Ustawienie `GOVERNANCE_SEED_MOCK_DATA=false` startuje z pustą kolejką zatwierdzeń (jak przed R1.5). Stan nadal żyje tylko w pamięci procesu.
+
 ## Struktura kodu
 
 ```
@@ -34,7 +43,7 @@ src/main/java/robert_neat/governance_mock/
 
 - `banking_backend` musi przekazywać stabilne `entityId` (np. id sprawy/wniosku/zajęcia) przy wywołaniach `POST /audit-events` i `POST /cases/{caseId}/sla-check`, aby wpisy audytowe i eskalacje można było korelować z encjami domenowymi.
 - `POST /cases/{caseId}/sla-check` nie ma deduplikacji — wielokrotne wywołanie dla tej samej sprawy przy przekroczonym SLA tworzy kolejne wpisy `AUTO_ESCALATED`. `banking_backend` powinien wywoływać ten endpoint raz per przekroczenie progu (np. przy przejściu z `inProgress` do `escalated`), a nie przy każdym odświeżeniu widoku.
-- Rozwiązanie zatwierdzeń (`decide`) porównuje `decidedBy` i `requestedBy` jako zwykłe stringi (`trim` + ignorowanie wielkości liter) — `banking_backend` powinien przekazywać identyfikator pracownika w stabilnym formacie (np. `PRC-00000`), zgodnym z `ACC-01`, żeby porównanie było sensowne.
+- Rozwiązanie zatwierdzeń (`decide`) porównuje `decidedBy` i `requestedBy` jako zwykłe stringi (`trim` + ignorowanie wielkości liter) — rozwiązane w R1.5: `banking_backend`'s `/approvals/{id}/decide` proxy ustawia `decidedBy` z `sub` JWT (zawsze `PRC-xxxxx`), nigdy z ciała żądania klienta.
 - `GET /ict-incidents` nie ma filtra po `status`/`severity` — jeśli pulpit (`DSH-05`) będzie potrzebował tylko otwartych incydentów o wysokiej istotności, filtrowanie trzeba będzie dodać po stronie `banking_backend` lub rozszerzyć ten endpoint w kolejnej iteracji.
 - Następna sesja (druga iteracja): zamiana `ConcurrentHashMap` na trwały storage (Spring Data JPA + baza danych) z seederem — kontrakt REST pozostaje bez zmian, zmienia się tylko trwałość stanu.
 - Brak autoryzacji/uwierzytelnienia na poziomie tego serwisu — zakładane jest, że sieć wewnętrzna (`banking-internal`) i `banking_backend` są jedynym wołającym; `identity_access_mock` odpowiada za RBAC na poziomie UI/`banking_backend`.

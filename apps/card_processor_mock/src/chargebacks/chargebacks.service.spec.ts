@@ -5,7 +5,12 @@ describe('ChargebacksService', () => {
   let service: ChargebacksService;
 
   beforeEach(() => {
+    process.env.CARD_PROCESSOR_SEED_MOCK_DATA = 'false';
     service = new ChargebacksService();
+  });
+
+  afterEach(() => {
+    delete process.env.CARD_PROCESSOR_SEED_MOCK_DATA;
   });
 
   it('files a chargeback in status FILED', () => {
@@ -69,5 +74,19 @@ describe('ChargebacksService', () => {
     });
     expect(service.findAll('auth-1')).toHaveLength(1);
     expect(service.findAll()).toHaveLength(2);
+  });
+
+  describe('seeding', () => {
+    it('seeds the banking_backend-matching FILED chargeback by default', () => {
+      delete process.env.CARD_PROCESSOR_SEED_MOCK_DATA;
+      const seeded = new ChargebacksService();
+      expect(
+        seeded.findById('d9a633a4-1223-48cd-b470-217a69610114').status,
+      ).toBe('FILED');
+    });
+
+    it('seeds nothing when CARD_PROCESSOR_SEED_MOCK_DATA=false', () => {
+      expect(service.findAll()).toHaveLength(0);
+    });
   });
 });

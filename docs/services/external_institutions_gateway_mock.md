@@ -16,6 +16,10 @@ Pełny kontrakt JSON: `docs/external_institutions_gateway_mock_contract/api.md`.
 - **CORS**: endpointy REST mają włączony CORS (`gateway.cors.allowed-origin-patterns`, domyślnie `localhost`/`127.0.0.1` na każdym porcie) — wymagane, bo serwis jest wołany z innego originu przez przeglądarkę.
 - **Health**: `GET /actuator/health`.
 
+### Seedowanie startowe
+
+Zmienna `GATEWAY_SEED_MOCK_DATA` (domyślnie `true`, patrz `.env.example`/`deploy/compose.yml`, property `gateway.seed-mock-data`) kontroluje, czy `EnforcementService` zasiewa przy starcie (`@PostConstruct`) wpisy zgodne z `enforcement_case` w `banking_backend` (`db/changelog/seed/009-enforcement.sql`): `KM 1123/26` (CUST-006, `active`), `KM 998/26` (CUST-004, `settled`), `KM 887/25` (CUST-005, `closed`), `KM 1145/26` (CUST-002, `registered`). Identyfikatory gatewaya są fikcyjne UUID (nie te z `enforcement_case.id` w backendzie) — backendowa kolumna `gateway_enforcement_id` jest w seedzie `NULL`, powiązanie id-do-id nie jest jeszcze zrobione (patrz "Do uzupełnienia" niżej). Ustawienie `GATEWAY_SEED_MOCK_DATA=false` startuje z pustym rejestrem zajęć (jak przed R1.5).
+
 ## UI operatorski (Thymeleaf)
 
 Natywne fragmenty (`th:replace`/`th:insert`), bez Layout Dialect.
@@ -45,6 +49,7 @@ src/main/java/robert_neat/external_institutions_gateway_mock/
 ## Do uzupełnienia w innych częściach aplikacji
 
 - `banking_backend` musi odpytywać `GET /enforcement` okresowo (polling), aby wykrywać nowe przychodzące zajęcia komornicze — serwis nie wysyła żadnych webhooków/powiadomień push.
+- Powiązanie seedowanych zajęć z `enforcement_case` w `banking_backend` jest obecnie tylko "po danych" (ten sam `caseNumber`/`customer`), nie po id — `enforcement_case.gateway_enforcement_id` zostaje `NULL` w seedzie backendu. Wypełnienie tej kolumny (np. przy R4, F6) wymaga zdecydowania, czy backend importuje gateway id przy starcie, czy odwrotnie.
 - Docelowy XSD dla eksportu FATCA/CRS nie został ustalony — obecny XML jest uproszczonym mockiem strukturalnym (korzeń `FatcaCrsReport`), nie odwzorowuje żadnego konkretnego standardu IRS/OECD. Do uzgodnienia przed integracją produkcyjną.
 - Prawdziwa integracja z systemem Ognivo (e-zajęcia komornicze) jest poza zakresem — obecny endpoint `/enforcement/incoming` tylko symuluje odebranie tytułu wykonawczego.
 - Reguła deterministyczna `REJECTED`/`ACCEPTED` bramy sprawozdawczej (`hash(reportId) mod 10 == 0`) jest mockiem — prawdziwa walidacja KNF/NBP/BFG nie jest tu implementowana.

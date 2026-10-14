@@ -1,0 +1,78 @@
+<div class="page-header" id="approvals-page-header">
+  <div class="page-header__text">
+    <h1 id="approvals-title">{{ 'approvals.title' | translate }}</h1>
+    <p id="approvals-subtitle">{{ 'approvals.subtitle' | translate }}</p>
+  </div>
+  <div class="page-header__actions">
+    <p-select
+      id="approvals-status-filter"
+      [pt]="{ dropdown: { id: 'approvals-status-filter-dropdown-btn' } }"
+      [ngModel]="statusFilter()"
+      (ngModelChange)="onStatusFilterChange($event)"
+      [options]="statusOptions"
+    />
+  </div>
+</div>
+
+<div class="card-section" id="approvals-list-section">
+  <p-table id="approvals-table" [value]="approvals()" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'common.id' | translate }}</th>
+        <th>{{ 'common.type' | translate }}</th>
+        <th>{{ 'approvals.requestedBy' | translate }}</th>
+        <th>{{ 'approvals.payload' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+        <th>{{ 'approvals.decidedBy' | translate }}</th>
+        <th>{{ 'common.actions' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-item>
+      <tr [id]="'approvals-row-' + item.id">
+        <td>{{ item.id }}</td>
+        <td>{{ item.type }}</td>
+        <td>
+          {{ item.requestedBy }}
+          @if (item.requestedByRole) {
+            <span class="text-muted">({{ item.requestedByRole }})</span>
+          }
+        </td>
+        <td>{{ item.payload }}</td>
+        <td>
+          <app-status-tag
+            [tagId]="'approvals-row-' + item.id + '-status'"
+            [labelKey]="'approvals.status.' + item.status"
+            [severity]="severity[item.status]"
+          />
+        </td>
+        <td>{{ item.decidedBy ?? '—' }}</td>
+        <td>
+          @if (canDecide(item)) {
+            <p-button
+              [id]="'approvals-row-' + item.id + '-approve-btn'"
+              [pt]="{ root: { id: 'approvals-row-' + item.id + '-approve-btn-root' } }"
+              [label]="'common.approve' | translate"
+              [text]="true"
+              size="small"
+              severity="success"
+              [loading]="decidingId() === item.id"
+              (click)="decide(item, 'APPROVED')"
+            />
+            <p-button
+              [id]="'approvals-row-' + item.id + '-reject-btn'"
+              [pt]="{ root: { id: 'approvals-row-' + item.id + '-reject-btn-root' } }"
+              [label]="'common.reject' | translate"
+              [text]="true"
+              size="small"
+              severity="danger"
+              [loading]="decidingId() === item.id"
+              (click)="decide(item, 'REJECTED')"
+            />
+          } @else {
+            —
+          }
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

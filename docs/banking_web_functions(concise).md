@@ -291,16 +291,21 @@ Serwisy: `IDENTITY_ACCESS_mock`
 sequenceDiagram
     actor Pracownik
     participant WEB as banking_web
+    participant BB as banking_backend
     participant IAM as IDENTITY_ACCESS (mikroserwis)
 
     Pracownik->>WEB: Wprowadza identyfikator i hasło
-    WEB->>IAM: Żąda uwierzytelnienia
+    WEB->>BB: Żąda uwierzytelnienia
+    BB->>IAM: Przekazuje żądanie logowania
     IAM->>IAM: Weryfikuje dane i rolę
-    IAM-->>WEB: Zwraca token i listę uprawnień
+    IAM-->>BB: Zwraca rolę i listę uprawnień
+    BB->>BB: Wydaje własny JWT (role, permissions, seniorityLevel)
+    BB-->>WEB: Zwraca token i listę uprawnień
     WEB->>WEB: Filtruje nawigację wg roli
     WEB-->>Pracownik: Wyświetla pulpit
     Pracownik->>WEB: Wylogowanie
-    WEB->>IAM: Unieważnia sesję
+    WEB->>BB: Unieważnia sesję
+    BB->>IAM: Przekazuje wylogowanie
 ```
 
 ## F2 — Wniosek kredytowy od złożenia do uruchomienia
@@ -357,18 +362,23 @@ Serwisy: `CARD_PROCESSOR_mock`, `GOVERNANCE_mock`
 sequenceDiagram
     actor Pracownik
     participant WEB as banking_web
+    participant BB as banking_backend
     participant CP as CARD_PROCESSOR (mikroserwis)
     participant GOV as GOVERNANCE (moduł)
 
-    CP->>WEB: Zgłasza autoryzację transakcji kartowej
+    CP->>BB: Zgłasza autoryzację transakcji kartowej
+    BB-->>WEB: Udostępnia nową autoryzację na liście
     Pracownik->>WEB: Blokuje kartę / zgłasza chargeback
-    WEB->>CP: Przesyła żądanie (odwołuje się do autoryzacji)
-    CP-->>WEB: Zwraca status reklamacji
-    WEB->>GOV: Rejestruje operację w audycie
+    WEB->>BB: Przesyła żądanie (odwołuje się do autoryzacji)
+    BB->>CP: Przekazuje żądanie
+    CP-->>BB: Zwraca status reklamacji
+    BB-->>WEB: Zwraca status reklamacji
+    BB->>GOV: Rejestruje operację w audycie
     alt Procesor niedostępny
-        CP--xWEB: Brak odpowiedzi procesora
-        WEB->>GOV: Rejestruje incydent ICT
-        GOV-->>WEB: Incydent widoczny na liście alertów
+        CP--xBB: Brak odpowiedzi procesora
+        BB->>GOV: Rejestruje incydent ICT
+        GOV-->>BB: Incydent zarejestrowany
+        BB-->>WEB: Incydent widoczny na liście alertów
     end
 ```
 
@@ -382,16 +392,19 @@ sequenceDiagram
     actor Pracownik
     actor Klient
     participant WEB as banking_web
+    participant BB as banking_backend
     participant IAM as IDENTITY_ACCESS (mikroserwis)
     participant GOV as GOVERNANCE (moduł)
 
     Pracownik->>WEB: Odblokowuje dostęp / resetuje urządzenie
-    WEB->>IAM: Żąda potwierdzenia drugim czynnikiem
+    WEB->>BB: Żąda potwierdzenia drugim czynnikiem
+    BB->>IAM: Przekazuje żądanie OTP
     IAM->>Klient: Wysyła kod OTP
     Klient-->>IAM: Potwierdza kod OTP
     IAM->>IAM: Aktualizuje rejestr urządzeń
-    IAM-->>WEB: Potwierdza odblokowanie
-    WEB->>GOV: Rejestruje operację w audycie
+    IAM-->>BB: Potwierdza odblokowanie
+    BB-->>WEB: Potwierdza odblokowanie
+    BB->>GOV: Rejestruje operację w audycie
 ```
 
 ## F6 — Zajęcie komornicze od rejestracji do przekazania środków
@@ -412,10 +425,15 @@ sequenceDiagram
     GW->>BB: Rejestruje zajęcie i blokuje środki
     BB-->>WEB: Wyświetla nowy wpis w rejestrze zajęć
     Pracownik->>WEB: Zatwierdza przekazanie należności
-    WEB->>GOV: Żąda zatwierdzenia (czworu oczu) i audytu
-    GOV-->>WEB: Zatwierdzono
-    WEB->>GW: Przekazuje należność do organu
+    WEB->>BB: Żąda zatwierdzenia (czworu oczu) i audytu
+    BB->>GOV: Przekazuje żądanie zatwierdzenia
+    GOV-->>BB: Zatwierdzono
+    BB-->>WEB: Zatwierdzono
+    WEB->>BB: Zleca przekazanie należności
+    BB->>GW: Przekazuje należność do organu
     GW->>Komornik: Potwierdza rozliczenie
+    GW-->>BB: Potwierdza rozliczenie
+    BB-->>WEB: Aktualizuje status zajęcia
 ```
 
 ## F7 — Raport regulacyjny od generowania do złożenia
@@ -436,7 +454,8 @@ sequenceDiagram
     BB->>GW: Generuje plik w formacie docelowym (np. FATCA/CRS XML)
     GW->>KNF: Składa raport do systemu nadzorczego
     KNF-->>GW: Zwraca status przyjęcia / odrzucenia
-    GW-->>WEB: Aktualizuje status raportu
+    GW-->>BB: Aktualizuje status raportu
+    BB-->>WEB: Aktualizuje status raportu
     WEB-->>Pracownik: Wyświetla zaktualizowany dashboard raportowania
 ```
 
@@ -455,10 +474,11 @@ sequenceDiagram
     Pracownik->>WEB: Rejestruje nową sprawę (kreator)
     WEB->>BB: Wylicza termin ustawowy i SLA
     BB-->>WEB: Wyświetla sprawę na liście i pulpicie
-    BB->>GOV: Monitoruje czas SLA
+    BB->>GOV: Monitoruje czas SLA (sla-check)
     alt Przekroczenie SLA
-        GOV->>WEB: Automatyczna eskalacja
-        WEB->>GOV: Rejestruje eskalację w audycie
+        GOV->>GOV: Automatyczna eskalacja i wpis audytowy
+        GOV-->>BB: escalated=true
+        BB-->>WEB: Aktualizuje status sprawy (eskalowana)
     end
     Pracownik->>WEB: Łączy zlecenie serwisowe ze sprawą
 ```

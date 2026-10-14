@@ -12,6 +12,7 @@ export const pl: Record<string, string> = {
   'nav.reporting': 'Raportowanie',
   'nav.cases': 'Sprawy klientów',
   'nav.collections': 'Windykacja',
+  'nav.approvals': 'Zatwierdzenia',
 
   'common.search': 'Szukaj',
   'common.filter': 'Filtruj',
@@ -77,6 +78,10 @@ export const pl: Record<string, string> = {
   'auth.register.imageAlt': 'Colosseum Bank',
   'auth.login.demoAccountsTitle': 'Konta demo',
   'auth.login.demoAccountsHint': 'Kliknij, aby uzupełnić formularz danymi logowania.',
+  'auth.login.error.invalidCredentials': 'Niepoprawny identyfikator pracownika lub hasło.',
+  'auth.login.error.pendingApproval': 'Konto czeka na zatwierdzenie przez administratora.',
+  'auth.login.error.unavailable': 'Usługa logowania jest tymczasowo niedostępna. Spróbuj później.',
+  'auth.login.error.generic': 'Nie udało się zalogować. Spróbuj ponownie.',
   'auth.validation.required': 'To pole jest wymagane.',
   'auth.validation.employeeIdPattern': 'Identyfikator musi mieć format PRC-00000.',
   'auth.validation.minLength': 'Wartość jest za krótka (min. {{min}} znaków).',
@@ -316,6 +321,18 @@ export const pl: Record<string, string> = {
   'cases.wizard.step2': 'Priorytet i terminy',
   'cases.wizard.step3': 'Podsumowanie',
   'cases.wizard.summary': 'Przegląd danych sprawy',
+
+  'approvals.title': 'Kolejka zatwierdzeń',
+  'approvals.subtitle': 'Weryfikacja czworu oczu (maker-checker) dla wniosków pracowników',
+  'approvals.requestedBy': 'Złożone przez',
+  'approvals.payload': 'Opis',
+  'approvals.decidedBy': 'Zdecydowane przez',
+  'approvals.status.PENDING': 'Oczekujące',
+  'approvals.status.APPROVED': 'Zatwierdzone',
+  'approvals.status.REJECTED': 'Odrzucone',
+  'approvals.error.forbidden':
+    'Niewystarczający poziom uprawnień do zatwierdzenia tego wniosku (lub wniosek własny).',
+  'approvals.error.generic': 'Nie udało się zapisać decyzji.',
 
   'collections.title': 'Windykacja',
   'collections.subtitle': 'Opóźnienia, wezwania, ugody, restrukturyzacje',

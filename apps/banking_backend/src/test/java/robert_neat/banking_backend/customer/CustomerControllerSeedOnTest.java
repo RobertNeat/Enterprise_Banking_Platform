@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +25,7 @@ class CustomerControllerSeedOnTest {
 
     @Test
     void listsCustomers() throws Exception {
-        mockMvc.perform(get("/customers"))
+        mockMvc.perform(get("/customers").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(12))
                 .andExpect(jsonPath("$[0].fullName").isNotEmpty());
@@ -32,7 +33,7 @@ class CustomerControllerSeedOnTest {
 
     @Test
     void listsEmployeesWithBusinessLinesSplit() throws Exception {
-        mockMvc.perform(get("/employees"))
+        mockMvc.perform(get("/employees").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(9))
                 .andExpect(jsonPath("$[0].businessLines").isArray());
@@ -40,7 +41,7 @@ class CustomerControllerSeedOnTest {
 
     @Test
     void listsAccountsForKnownCustomer() throws Exception {
-        mockMvc.perform(get("/customers/CUST-001/accounts"))
+        mockMvc.perform(get("/customers/CUST-001/accounts").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThan(0)))
                 .andExpect(jsonPath("$[0].maskedNumber").isNotEmpty());
@@ -48,6 +49,6 @@ class CustomerControllerSeedOnTest {
 
     @Test
     void unknownCustomerAccountsReturns404() throws Exception {
-        mockMvc.perform(get("/customers/CUST-999/accounts")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/customers/CUST-999/accounts").with(testJwt())).andExpect(status().isNotFound());
     }
 }

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -6,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { PasswordModule } from 'primeng/password';
 import { TranslatePipe } from '../../core/services/translate.pipe';
+import { AuthService } from '../../core/services/auth.service';
 
 /** Konto demo: identyfikator/hasło/rola do szybkiego logowania bez wpisywania danych ręcznie. */
 export interface DemoAccount {
@@ -52,6 +54,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 export class LoginPage {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   protected readonly demoAccountsPopover = viewChild<Popover>('demoAccountsPopover');
 
@@ -61,13 +64,33 @@ export class LoginPage {
   });
 
   protected readonly demoAccounts = DEMO_ACCOUNTS;
+  protected readonly submitting = signal(false);
+  protected readonly errorKey = signal<string | null>(null);
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.router.navigate(['/dashboard']);
+    this.errorKey.set(null);
+    this.submitting.set(true);
+    try {
+      await this.auth.login(this.form.getRawValue());
+      await this.router.navigate(['/dashboard']);
+    } catch (error) {
+      this.errorKey.set(this.resolveErrorKey(error));
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  private resolveErrorKey(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 401) return 'auth.login.error.invalidCredentials';
+      if (error.status === 403) return 'auth.login.error.pendingApproval';
+      if (error.status === 0 || error.status >= 500) return 'auth.login.error.unavailable';
+    }
+    return 'auth.login.error.generic';
   }
 
   selectDemoAccount(account: DemoAccount, event: Event): void {

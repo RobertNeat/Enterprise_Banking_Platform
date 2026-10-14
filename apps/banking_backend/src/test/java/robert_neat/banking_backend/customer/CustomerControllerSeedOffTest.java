@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,12 +25,12 @@ class CustomerControllerSeedOffTest {
 
     @Test
     void listsReturnEmptyWhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/customers")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-        mockMvc.perform(get("/employees")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/customers").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/employees").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void accountsReturn404WhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/customers/CUST-001/accounts")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/customers/CUST-001/accounts").with(testJwt())).andExpect(status().isNotFound());
     }
 }

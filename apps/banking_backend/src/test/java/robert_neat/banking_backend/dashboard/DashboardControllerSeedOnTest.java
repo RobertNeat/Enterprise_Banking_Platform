@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,7 +25,7 @@ class DashboardControllerSeedOnTest {
 
     @Test
     void recentCasesReturnsTop4ByRegisteredAtDesc() throws Exception {
-        mockMvc.perform(get("/dashboard/recent-cases"))
+        mockMvc.perform(get("/dashboard/recent-cases").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0].customer").isNotEmpty())
@@ -33,7 +34,7 @@ class DashboardControllerSeedOnTest {
 
     @Test
     void regulatoryAlertsExcludeAcceptedAndReturnTop3() throws Exception {
-        mockMvc.perform(get("/dashboard/regulatory-alerts"))
+        mockMvc.perform(get("/dashboard/regulatory-alerts").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
                 .andExpect(jsonPath("$[?(@.status=='accepted')]").isEmpty());
@@ -41,7 +42,7 @@ class DashboardControllerSeedOnTest {
 
     @Test
     void latestKpiSnapshotReturnsSeededRow() throws Exception {
-        mockMvc.perform(get("/dashboard/kpi-snapshot/latest"))
+        mockMvc.perform(get("/dashboard/kpi-snapshot/latest").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.snapshotDate").isNotEmpty())
                 .andExpect(jsonPath("$.activeLoansCount").isNumber());
@@ -49,7 +50,7 @@ class DashboardControllerSeedOnTest {
 
     @Test
     void portfolioTrendReturnsAllSeededPoints() throws Exception {
-        mockMvc.perform(get("/dashboard/portfolio-trend"))
+        mockMvc.perform(get("/dashboard/portfolio-trend").with(testJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(9));
     }

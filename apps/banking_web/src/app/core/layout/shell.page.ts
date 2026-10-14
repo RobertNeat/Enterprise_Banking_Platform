@@ -5,6 +5,7 @@ import { SplitButtonModule } from 'primeng/splitbutton';
 import { TranslatePipe } from '../services/translate.pipe';
 import { TranslationService } from '../services/translation.service';
 import { ThemeService } from '../services/theme.service';
+import { AuthService } from '../services/auth.service';
 import { NAV_ITEMS } from '../models/nav.model';
 
 @Component({
@@ -17,8 +18,14 @@ import { NAV_ITEMS } from '../models/nav.model';
 export class ShellPage {
   protected readonly i18n = inject(TranslationService);
   protected readonly theme = inject(ThemeService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  protected readonly navItems = NAV_ITEMS;
+
+  /** Only nav items whose permission the current token grants — hides links, does not guard routes. */
+  protected readonly navItems = computed(() => {
+    const granted = new Set(this.auth.permissions());
+    return NAV_ITEMS.filter((item) => !item.permission || granted.has(item.permission));
+  });
 
   protected readonly userMenuLabel = computed(() => this.i18n.translate('user.mockName'));
 
@@ -45,8 +52,17 @@ export class ShellPage {
         id: 'app-user-menu-logout',
         label: this.i18n.translate('user.menu.logout'),
         icon: 'pi pi-sign-out',
-        command: () => void this.router.navigate(['/login']),
+        command: () => void this.doLogout(),
       },
     ];
   });
+
+  /** Always navigates to /login, even if the /auth/logout call itself fails (e.g. expired token). */
+  private async doLogout(): Promise<void> {
+    try {
+      await this.auth.logout();
+    } finally {
+      void this.router.navigate(['/login']);
+    }
+  }
 }

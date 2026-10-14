@@ -158,6 +158,10 @@
   font-size: 0.8rem;
 }
 
+.login__error--form {
+  margin: 0;
+}
+
 .login__register {
   margin: 1.5rem 0 0;
   text-align: center;

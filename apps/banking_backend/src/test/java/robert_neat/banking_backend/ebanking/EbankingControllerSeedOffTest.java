@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,6 +25,6 @@ class EbankingControllerSeedOffTest {
 
     @Test
     void returnsEmptyListWhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/ebanking/users")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/ebanking/users").with(testJwt())).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
     }
 }

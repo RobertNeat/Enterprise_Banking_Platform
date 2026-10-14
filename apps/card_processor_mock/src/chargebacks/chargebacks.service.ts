@@ -24,9 +24,30 @@ const ALLOWED_TRANSITIONS: Record<ChargebackStatus, ChargebackStatus[]> = {
   RESOLVED_MERCHANT: [],
 };
 
+// Matches apps/banking_backend's chargeback_ref seed (db/changelog/seed/003-card.sql): filed
+// against authorization 449084f7-... (Amazon EU, CRD-5530), reasonCode 4837, status FILED.
+const SEED_CHARGEBACKS: Chargeback[] = [
+  {
+    id: 'd9a633a4-1223-48cd-b470-217a69610114',
+    authorizationId: '449084f7-77b5-4cab-a790-e680763a6572',
+    reasonCode: '4837',
+    description: 'Transakcja nieautoryzowana (karta nieobecna)',
+    status: 'FILED',
+    filedAt: '2026-09-26T09:00:00.000Z',
+  },
+];
+
 @Injectable()
 export class ChargebacksService {
   private readonly chargebacks = new Map<string, Chargeback>();
+
+  constructor() {
+    if (process.env.CARD_PROCESSOR_SEED_MOCK_DATA !== 'false') {
+      for (const chargeback of SEED_CHARGEBACKS) {
+        this.chargebacks.set(chargeback.id, { ...chargeback });
+      }
+    }
+  }
 
   create(input: CreateChargebackInput): Chargeback {
     const chargeback: Chargeback = {
