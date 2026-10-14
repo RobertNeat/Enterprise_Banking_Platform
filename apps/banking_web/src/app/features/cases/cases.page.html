@@ -110,39 +110,47 @@
             }
           </div>
           <div class="field" id="cases-wizard-customer-field">
-            <label for="cases-wizard-customer-input" class="required">{{
+            <label for="cases-wizard-customer-select" class="required">{{
               'common.customer' | translate
             }}</label>
-            <input
-              pInputText
-              id="cases-wizard-customer-input"
-              formControlName="customer"
+            <p-select
+              id="cases-wizard-customer-select"
+              [pt]="{ dropdown: { id: 'cases-wizard-customer-select-dropdown-btn' } }"
+              formControlName="customerId"
+              [options]="customerOptions()"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
               [fluid]="true"
             />
             @if (
-              form.controls.details.controls.customer.invalid &&
-              form.controls.details.controls.customer.touched
+              form.controls.details.controls.customerId.invalid &&
+              form.controls.details.controls.customerId.touched
             ) {
               <small id="cases-wizard-customer-error" class="error">
                 {{ 'wizard.validation.required' | translate }}
               </small>
             }
           </div>
-          <div class="field" id="cases-wizard-owner-field">
-            <label for="cases-wizard-owner-input" class="required">{{
-              'common.owner' | translate
+          <div class="field" id="cases-wizard-case-type-field">
+            <label for="cases-wizard-case-type-select" class="required">{{
+              'cases.caseType' | translate
             }}</label>
-            <input
-              pInputText
-              id="cases-wizard-owner-input"
-              formControlName="owner"
+            <p-select
+              id="cases-wizard-case-type-select"
+              [pt]="{ dropdown: { id: 'cases-wizard-case-type-select-dropdown-btn' } }"
+              formControlName="caseType"
+              [options]="caseTypeOptions()"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
               [fluid]="true"
             />
             @if (
-              form.controls.details.controls.owner.invalid &&
-              form.controls.details.controls.owner.touched
+              form.controls.details.controls.caseType.invalid &&
+              form.controls.details.controls.caseType.touched
             ) {
-              <small id="cases-wizard-owner-error" class="error">
+              <small id="cases-wizard-case-type-error" class="error">
                 {{ 'wizard.validation.required' | translate }}
               </small>
             }
@@ -150,6 +158,7 @@
         </div>
       }
       @case (1) {
+        <!-- statutoryDeadline/slaRemainingHours są wyliczane przez backend (F8) — nie ma tu formularza. -->
         <div formGroupName="schedule" id="cases-wizard-step2" class="wizard-field-group">
           <div class="field" id="cases-wizard-priority-field">
             <label for="cases-wizard-priority-select" class="required">{{
@@ -172,51 +181,6 @@
               </small>
             }
           </div>
-          <div class="field" id="cases-wizard-deadline-field">
-            <label for="cases-wizard-deadline-input" class="required">{{
-              'cases.statutoryDeadline' | translate
-            }}</label>
-            <p-datepicker
-              inputId="cases-wizard-deadline-input"
-              [pt]="{ dropdown: { id: 'cases-wizard-deadline-input-dropdown-btn' } }"
-              formControlName="statutoryDeadline"
-              [showIcon]="true"
-              dateFormat="yy-mm-dd"
-              appendTo="body"
-              [fluid]="true"
-            />
-            @if (
-              form.controls.schedule.controls.statutoryDeadline.invalid &&
-              form.controls.schedule.controls.statutoryDeadline.touched
-            ) {
-              <small id="cases-wizard-deadline-error" class="error">
-                {{ 'wizard.validation.required' | translate }}
-              </small>
-            }
-          </div>
-          <div class="field" id="cases-wizard-sla-field">
-            <label for="cases-wizard-sla-input" class="required">{{
-              'cases.slaRemaining' | translate
-            }}</label>
-            <p-inputnumber
-              inputId="cases-wizard-sla-input"
-              formControlName="slaRemainingHours"
-              [min]="0"
-              [fluid]="true"
-            />
-            @if (
-              form.controls.schedule.controls.slaRemainingHours.invalid &&
-              form.controls.schedule.controls.slaRemainingHours.touched
-            ) {
-              <small id="cases-wizard-sla-error" class="error">
-                @if (form.controls.schedule.controls.slaRemainingHours.errors?.['required']) {
-                  {{ 'wizard.validation.required' | translate }}
-                } @else {
-                  {{ 'wizard.validation.min' | translate: { min: 0 } }}
-                }
-              </small>
-            }
-          </div>
         </div>
       }
       @case (2) {
@@ -229,11 +193,13 @@
             </div>
             <div class="field-grid__item" id="cases-wizard-summary-customer">
               <label>{{ 'common.customer' | translate }}</label>
-              <div class="value">{{ summary().customer }}</div>
+              <div class="value">{{ summary().customerId }}</div>
             </div>
-            <div class="field-grid__item" id="cases-wizard-summary-owner">
-              <label>{{ 'common.owner' | translate }}</label>
-              <div class="value">{{ summary().owner }}</div>
+            <div class="field-grid__item" id="cases-wizard-summary-case-type">
+              <label>{{ 'cases.caseType' | translate }}</label>
+              <div class="value">
+                {{ summary().caseType ? ('cases.type.' + summary().caseType | translate) : '' }}
+              </div>
             </div>
             <div class="field-grid__item" id="cases-wizard-summary-priority">
               <label>{{ 'common.priority' | translate }}</label>
@@ -245,15 +211,10 @@
                 />
               }
             </div>
-            <div class="field-grid__item" id="cases-wizard-summary-deadline">
-              <label>{{ 'cases.statutoryDeadline' | translate }}</label>
-              <div class="value">{{ summary().statutoryDeadline }}</div>
-            </div>
-            <div class="field-grid__item" id="cases-wizard-summary-sla">
-              <label>{{ 'cases.slaRemaining' | translate }}</label>
-              <div class="value">{{ summary().slaRemainingHours }} h</div>
-            </div>
           </div>
+          <p id="cases-wizard-summary-deadline-hint">
+            {{ 'cases.wizard.deadlineComputedHint' | translate }}
+          </p>
         </div>
       }
     }

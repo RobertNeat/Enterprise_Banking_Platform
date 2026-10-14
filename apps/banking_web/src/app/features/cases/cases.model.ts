@@ -19,3 +19,21 @@ export interface CustomerCase {
   slaRemainingHours: number;
   status: CaseStatus;
 }
+
+/**
+ * POST /cases request — statutoryDeadline/slaRemainingHours are computed by banking_backend
+ * (F8 rule, see CaseActionsService), not accepted from the wizard. ownerId is optional; the
+ * backend defaults it to the JWT caller when omitted.
+ */
+export interface CreateCustomerCaseRequest {
+  subject: string;
+  customerId: string;
+  ownerId?: string;
+  priority: 'low' | 'medium' | 'high';
+  caseType: string;
+}
+
+export interface EscalateCaseResponse {
+  customerCase: CustomerCase;
+  escalated: boolean;
+}

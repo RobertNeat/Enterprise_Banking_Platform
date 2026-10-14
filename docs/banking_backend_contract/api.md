@@ -7,8 +7,9 @@ konfigurowalny przez property `app.cors.allowed-origin` / zmienną środowiskow�
 domyślnie `http://localhost:10500`; metody `GET, POST, PUT, PATCH, DELETE, OPTIONS`, nagłówki
 `Authorization, Content-Type`).
 
-Wszystkie endpointy GET-only poza zakresem auth (21 encji) — bez wiązania akcji/mutacji (świadomie
-poza zakresem tej iteracji). Serializacja JSON przez Jackson (transytywnie z
+Większość endpointów to GET-only (21 encji z R1). Od R2: `POST /loans`, `POST /loans/{id}/submit-for-approval`,
+`POST /loans/{id}/advance-stage`, `POST /cases`, `POST /cases/{id}/escalate` mutują dane (F2/F8,
+zob. sekcje "Loans"/"Cases" niżej). Serializacja JSON przez Jackson (transytywnie z
 `spring-boot-starter-web`, bez nowej zależności). DTO to Java records; encje JPA nigdy nie są
 serializowane bezpośrednio.
 
@@ -318,6 +319,22 @@ widoku frontendowego dziś.
 
 - `GET /loans` → `LoanSummaryDto[]`
 - `GET /loans/{id}` → `LoanDetailDto` (404 jeśli brak) — zawiera `installments[]` i `stageTransitions[]`
+- `POST /loans` (F2) → `LoanDetailDto`. Request: `{ "customerId", "segment", "product", "requestedAmount", "termMonths"? }`
+  (bez `scoreResult`/`dsti` — pochodzą z `credit_risk_mock` POST `/credit-bureau/score`, wołane
+  przed zapisem; outage mocka → `503`, brak zapisanego wiersza). Zapisuje `stage='application'`,
+  `interestRate` = stała 0.0790 (brak tabeli stawek per produkt), `termMonths` domyślnie 36 gdy
+  nie podano.
+- `POST /loans/{id}/submit-for-approval` (F2, `application`→`decision`) → `{ "loan": LoanDetailDto, "approvalId" }`.
+  Otwiera wpis w `governance_mock` (`type=LOAN_STAGE_TRANSITION`, `requestedBy`=employeeId z JWT),
+  zapisuje `LoanStageTransition` z `approvalId`, woła `recordAuditEvent(LOAN_STAGE_CHANGED)`. `409`
+  jeśli wniosek nie jest w `application`.
+- `POST /loans/{id}/advance-stage` (F2, `decision`→`contract`) → `LoanDetailDto`. Odczytuje
+  `approvalId` z ostatniego przejścia do `decision`, wymaga `governance_mock` approval w statusie
+  `APPROVED` (`409` jeśli `PENDING`/`REJECTED`). Ustawia `approvedAmount=requestedAmount`, generuje
+  `Installment` (rata równa, annuity, `interestRate`/`termMonths` z encji), woła
+  `recordAuditEvent(LOAN_STAGE_CHANGED)`. Wywoływane ręcznie przez pracownika po zobaczeniu
+  decyzji w kolejce zatwierdzeń (decyzja projektowa R2 — brak automatycznego callbacku z
+  `ApprovalsService.decide()`, zob. `docs/services/banking_backend.md`).
 
 ```json
 // LoanSummaryDto
@@ -359,6 +376,16 @@ widoku frontendowego dziś.
 ### Cases
 
 - `GET /cases` → `CustomerCaseDto[]`
+- `POST /cases` (F8) → `CustomerCaseDto`. Request: `{ "subject", "customerId", "ownerId"?, "priority", "caseType" }`
+  (bez `statutoryDeadline`/`slaRemainingHours` — wyliczane przez backend, zob. reguła w
+  `docs/services/banking_backend.md`). `ownerId` opcjonalny, domyślnie employeeId z JWT. Status
+  startowy `new`.
+- `POST /cases/{id}/escalate` (F8) → `{ "customerCase": CustomerCaseDto, "escalated": boolean }`.
+  Woła `governance_mock` `POST /cases/{caseId}/sla-check` z aktualnym SLA wyliczonym z
+  `sla_due_at`. `escalated=true` (SLA już minęło) → status `escalated`, audit event już dopisany
+  przez `governance_mock` (brak duplikacji). `escalated=false` (eskalacja manualna mimo że SLA
+  jeszcze nie minęło) → status `escalated`, backend dopisuje własny `CASE_ESCALATED_MANUALLY`
+  audit event. `409` jeśli sprawa już `escalated` lub `resolved`.
 
 ### Collections
 
@@ -404,4 +431,5 @@ widoku frontendowego dziś.
 ## CORS
 
 Origin konfigurowalny przez `app.cors.allowed-origin` (zmienna środowiskowa o tej samej nazwie),
-domyślnie `http://localhost:10500`. Metody: `GET` (jedyne wystawione w tej iteracji).
+domyślnie `http://localhost:10500`. Metody: `GET, POST, PUT, PATCH, DELETE, OPTIONS` (security filter
+chain pozwala wszystkie od R1; `POST` faktycznie używane od R1.5/R2 dla auth/approvals/loans/cases).

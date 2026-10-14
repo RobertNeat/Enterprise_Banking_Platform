@@ -55,6 +55,36 @@ export interface LoanApplication {
   createdAt: string;
 }
 
+/** POST /loans request — scoreResult/dsti are no longer user input, see banking_backend's CreateLoanApplicationRequest. */
+export interface CreateLoanApplicationRequest {
+  customerId: string;
+  segment: LoanSegment;
+  product: LoanProduct;
+  requestedAmount: number;
+  termMonths?: number;
+}
+
+/** Full detail shape returned by POST /loans, POST /loans/{id}/advance-stage and GET /loans/{id}. */
+export interface LoanDetail extends LoanApplication {
+  interestRate: number;
+  termMonths: number;
+  installments: Installment[];
+  stageTransitions: LoanStageTransitionEntry[];
+}
+
+export interface LoanStageTransitionEntry {
+  fromStage: string;
+  toStage: string;
+  transitionedAt: string;
+  transitionedBy: string;
+  approvalId: string | null;
+}
+
+export interface SubmitForApprovalResponse {
+  loan: LoanDetail;
+  approvalId: string;
+}
+
 export type InstallmentStatus = 'paid' | 'upcoming' | 'overdue';
 
 export const INSTALLMENT_SEVERITY: Record<InstallmentStatus, StatusSeverity> = {

@@ -192,6 +192,9 @@ export const pl: Record<string, string> = {
   'loans.wizard.scoreResult': 'Wynik scoringu (0-1000)',
   'loans.wizard.dsti': 'Wskaźnik DSTI (0-1)',
   'loans.wizard.summary': 'Sprawdź dane przed zatwierdzeniem wniosku',
+  'loans.wizard.scoringLoading': 'Przetwarzanie scoringu w biurze informacji kredytowej...',
+  'loans.wizard.scoringError': 'Nie udało się uzyskać wyniku scoringu. Spróbuj ponownie.',
+  'loans.error.generic': 'Nie udało się zapisać wniosku kredytowego.',
 
   'cards.title': 'Karty płatnicze i autoryzacje',
   'cards.subtitle': 'Wydawanie, limity, blokady, reklamacje',
@@ -321,6 +324,13 @@ export const pl: Record<string, string> = {
   'cases.wizard.step2': 'Priorytet i terminy',
   'cases.wizard.step3': 'Podsumowanie',
   'cases.wizard.summary': 'Przegląd danych sprawy',
+  'cases.wizard.deadlineComputedHint':
+    'Termin ustawowy i SLA zostaną wyliczone automatycznie po zapisaniu sprawy.',
+  'cases.caseType': 'Typ sprawy',
+  'cases.type.complaint': 'Reklamacja',
+  'cases.type.restructuring_request': 'Wniosek o restrukturyzację',
+  'cases.type.inquiry': 'Zapytanie',
+  'cases.error.generic': 'Nie udało się zapisać sprawy.',
 
   'approvals.title': 'Kolejka zatwierdzeń',
   'approvals.subtitle': 'Weryfikacja czworu oczu (maker-checker) dla wniosków pracowników',

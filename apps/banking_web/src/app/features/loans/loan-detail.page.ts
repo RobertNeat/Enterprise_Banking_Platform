@@ -106,12 +106,26 @@ export class LoanDetailPage {
     this.router.navigate(['/loans']);
   }
 
-  advanceStage(): void {
-    const idx = this.stageIndex();
-    if (idx >= this.stages.length - 1) {
+  protected readonly canAdvance = computed(() => this.loan().stage === 'decision');
+
+  /**
+   * decision -> contract requires the linked governance_mock approval to already be APPROVED
+   * (see LoanActionsService.advanceStage) — the employee clicks this after seeing the approval
+   * decided in the approvals queue (R2 design: manual action, no automatic callback from
+   * ApprovalsService.decide(), see docs/services/banking_backend.md).
+   */
+  async advanceStage(): Promise<void> {
+    if (!this.canAdvance()) {
       this.notify.warn('toast.actionBlocked');
       return;
     }
-    this.notify.success('toast.saved');
+    try {
+      const updated = await this.store.advanceStage(this.loan().id);
+      this.fetchedLoan.set(updated);
+      this.fetchedInstallments.set(updated.installments);
+      this.notify.success('toast.saved');
+    } catch {
+      this.notify.error('loans.error.generic');
+    }
   }
 }

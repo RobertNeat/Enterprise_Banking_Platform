@@ -17,13 +17,15 @@
     </p>
   </div>
   <div class="page-header__actions">
-    <p-button
-      id="loan-detail-advance-stage-btn"
-      [pt]="{ root: { id: 'loan-detail-advance-stage-btn-root' } }"
-      [label]="'loans.decisionMove' | translate"
-      icon="pi pi-check"
-      (click)="advanceStage()"
-    />
+    @if (canAdvance()) {
+      <p-button
+        id="loan-detail-advance-stage-btn"
+        [pt]="{ root: { id: 'loan-detail-advance-stage-btn-root' } }"
+        [label]="'loans.decisionMove' | translate"
+        icon="pi pi-check"
+        (click)="advanceStage()"
+      />
+    }
   </div>
 </div>
 

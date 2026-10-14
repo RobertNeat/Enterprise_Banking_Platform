@@ -322,8 +322,10 @@ punktu; status poniżej odzwierciedla wynik.
 
 ## Warstwa REST
 
-Kontrolery `@RestController` (pakiet domenowy, GET-only, bez wiązania akcji/mutacji) wystawiają dane
-frontendowi przez DTO (Java records) — encje JPA nigdy nie są serializowane bezpośrednio. Service
+Kontrolery `@RestController` (pakiet domenowy) wystawiają dane frontendowi przez DTO (Java
+records) — encje JPA nigdy nie są serializowane bezpośrednio. Większość endpointów jest GET-only
+(R1); od R1.5/R2 część kontrolerów (`approvals/`, `loan/`, `cases/`) dodała też mutujące `POST`
+(maker-checker approvals, F2 wniosek kredytowy, F8 sprawa klienta — zob. sekcje niżej). Service
 layer jest `@Transactional(readOnly = true)`, mapuje encje na DTO w ramach transakcji (unika
 `LazyInitializationException`; `spring.jpa.open-in-view=false`). Pełny kontrakt (endpointy, DTO,
 macierz pokrycia pól widok ↔ backend, udokumentowane GAP-y): `docs/banking_backend_contract/api.md`.
@@ -368,8 +370,8 @@ doradca kredytowy. Zwracane jako claim JWT `seniorityLevel` oraz pole `LoginResp
 `approvals/` — proxy do `governance_mock`'s `/approvals` (`GovernanceClient`, `RestClient`, adres
 `banking.governance.base-url`/`BANKING_GOVERNANCE_BASEURL`, domyślnie `http://localhost:10524`).
 Endpointy: `GET /approvals` (filtr `status`), `GET /approvals/{id}`, `POST /approvals/{id}/decide`.
-`GovernanceClient` ma też `recordAuditEvent(...)` zdefiniowany, ale niewywoływany jeszcze przez żaden
-endpoint — przestrzeń do rozszerzenia w R2 (audyt F2/F8), żeby nie duplikować klienta HTTP.
+`GovernanceClient` ma też `recordAuditEvent(...)` i `slaCheck(...)` — wywoływane od R2 przez
+`loan/LoanActionsService` (F2) i `cases/CaseActionsService` (F8), zob. niżej.
 
 Reguła maker-checker wymuszana PO STRONIE BACKENDU (nie tylko UI), w `ApprovalsService.decide()`:
 1. `requestedBy` approvala (zawsze `employeeId` typu `PRC-xxxxx`) jest tą samą osobą co wołający →
@@ -386,6 +388,73 @@ Reguła maker-checker wymuszana PO STRONIE BACKENDU (nie tylko UI), w `Approvals
 `GET /approvals` wzbogaca każdy wpis o `requestedByRole`/`requestedBySeniorityLevel` (ta sama
 rezolucja co wyżej), żeby frontend mógł pokazać/schować przycisk zatwierdź/odrzuć bez duplikowania
 mapowania employeeId→rola.
+
+### F2 — wniosek kredytowy: scoring → approval → decyzja → harmonogram (R2)
+
+`loan/LoanActionsService` rozszerza istniejący `LoanController`/`LoanService` (GET-only z R1) o trzy
+mutujące endpointy — zob. `docs/banking_backend_contract/api.md`, sekcja "Loans", dla kształtu
+request/response. Przepływ:
+
+1. `POST /loans` — `CreditRiskClient.score(customerId, requestedAmount, segment)` (nowy klient,
+   pakiet `creditrisk/`, wzorzec identyczny z `GovernanceClient`: `RestClient`, adres
+   `banking.creditrisk.base-url`/`BANKING_CREDITRISK_BASEURL`, domyślnie `http://localhost:10522`,
+   mapowanie błędów 4xx→`CreditRiskException`/connection-refused→`CreditRiskUnavailableException`→503).
+   Scoring woła się PRZED zapisem — outage `credit_risk_mock` nie zostawia częściowego wiersza w
+   `loan_application` (sprawdzone testem `createReturns503WhenCreditRiskMockUnavailable...`).
+   `scoreResult`/`dsti`/`bureauInquiryId` z odpowiedzi, `interestRate` = stała `0.0790` (seed używa
+   tej samej stawki dla każdego produktu, brak tabeli stawek per-produkt w tej iteracji), `stage='application'`.
+2. `POST /loans/{id}/submit-for-approval` — `GovernanceClient.createApproval(type=LOAN_STAGE_TRANSITION,
+   requestedBy=<employeeId z JWT>, payload=<opis>)`, zapisuje `LoanStageTransition` z `approvalId`
+   wypełnionym (kolumna istniała od R1, nieużywana do teraz), `stage→'decision'`,
+   `recordAuditEvent(LOAN_STAGE_CHANGED)`. `409` jeśli wniosek nie jest w `application`.
+3. `POST /loans/{id}/advance-stage` — **decyzja projektowa R2**: endpoint wołany RĘCZNIE przez
+   pracownika (nie automatyczny callback z `ApprovalsService.decide()`). Powód: `ApprovalRecord`
+   (kontrakt `governance_mock`) niesie tylko `payload` jako wolny tekst — `ApprovalsService` (pakiet
+   `approvals/`) nie ma żadnej strukturalnej wiedzy "to jest kredyt, awansuj go po APPROVED"; żeby to
+   zrobić automatycznie, trzeba by parsować tekst payloadu albo wprowadzić sprzężenie
+   `approvals/`→`loan/` (import pakietu domenowego z generycznego proxy). Trzymanie `approvalId` na
+   `LoanStageTransition` (R1 zostawił tę kolumnę pod to) i odczytanie go z powrotem w
+   `advance-stage` (`GovernanceClient.getApproval(approvalId)`, wymaga `status=APPROVED`, inaczej
+   `409`) jest prostsze i bliższe dzisiejszemu UI, gdzie pracownik klika akcje jawnie (wzorowane na
+   istniejącym przycisku "Przesuń do kolejnego etapu" w `loan-detail.page.ts`). Generuje
+   `Installment` (rata równa — annuity: `r = interestRate/12`, `payment = amount*r*(1+r)^n/((1+r)^n-1)`,
+   ostatnia rata domyka różnicę zaokrągleń tak, by suma kapitału = `approvedAmount`; to nie jest
+   kalkulator finansowy klasy produkcyjnej, tylko wypełnienie encji dla UI), `approvedAmount=requestedAmount`,
+   `stage→'contract'`, `recordAuditEvent(LOAN_STAGE_CHANGED)`.
+
+### F8 — sprawa klienta: termin ustawowy, SLA, eskalacja (R2)
+
+`cases/CaseActionsService` rozszerza `CaseController`/`CaseService` o dwa mutujące endpointy:
+
+1. `POST /cases` — **termin ustawowy i SLA są wyliczane przez backend, nie przyjmowane z
+   formularza** (zgodnie z `docs/banking_web_functions(concise).md`, sekcja "Sprawy klientów i
+   reklamacje": "automatyczne wyliczenie terminu ustawowego (30 dni od zgłoszenia, z możliwością
+   wydłużenia do 60 dni w sprawach szczególnie złożonych) na podstawie typu sprawy"). Reguła
+   zaimplementowana: `caseType='restructuring_request'` → 60 dni (restrukturyzacja wymaga wielu
+   stron/komitetu kredytowego — uznana za "szczególnie złożoną"), każdy inny `caseType` (`complaint`,
+   `inquiry`) → 30 dni. SLA do eskalacji to OSOBNY, krótszy zegar, kluczowany priorytetem — reguła
+   wewnętrzna (nie z żadnego kontraktu/ustawy): `high`=24h, `medium`=72h, `low`=120h. `ownerId`
+   opcjonalny, domyślnie employeeId z JWT (pracownik rejestrujący sprawę staje się jej właścicielem,
+   jeśli nie wskaże innego). Status startowy `new`.
+2. `POST /cases/{id}/escalate` — woła `GovernanceClient.slaCheck(caseId, hoursRemaining)` z aktualnym
+   odliczeniem do `sla_due_at` (liczone na nowo z `Instant.now()`, NIE z zaokrąglonego
+   `slaRemainingHours` z DTO). Jeśli `escalated=true` (SLA już minęło) — `governance_mock` sam dopisał
+   audit event `AUTO_ESCALATED`, backend tylko zapisuje `escalationSource='AUTO_SLA'` i
+   `governanceAuditEventId` z odpowiedzi, bez drugiego wywołania `/audit-events`. Jeśli
+   `escalated=false` (pracownik eskaluje mimo że SLA jeszcze nie minęło — manualna decyzja,
+   `governance_mock` nie audytuje tego przypadku) — backend woła
+   `recordAuditEvent(actor=<employeeId>, action=CASE_ESCALATED_MANUALLY, ...)` sam, zapisuje
+   `escalationSource='MANUAL'`. Oba przypadki ustawiają `status='escalated'`. `409` jeśli sprawa jest
+   już `escalated` lub `resolved` (governance_mock nie deduplikuje wpisów audytowych dla powtórnych
+   wywołań tej samej sprawy — bez tego gate'u klik dwa razy na "Eskaluj" dopisałby drugi audit event).
+
+**Wzorzec do ponownego użycia w R3/R4**: obsługa niedostępności mocka (connection refused →
+dedykowany `*UnavailableException` → `503`; 4xx mocka → przekazanie 1:1 statusu/komunikatu) jest
+teraz zduplikowana trzy razy (`GovernanceClient`, `CreditRiskClient`) z identyczną strukturą
+`exchange()` + `extractMessage()`. R3 (karty, `card_processor_mock`, ścieżka 503→incydent ICT) i R4
+(`external_institutions_gateway_mock`) powinny powielić ten sam wzorzec klienta, nie wymyślać
+nowego — ale jeśli liczba klientów urośnie dalej, warto rozważyć wspólną klasę bazową/helper zamiast
+kopiowania `exchange()` po raz czwarty.
 
 ### Pułapki Spring Boot 4.1 (do wiedzy przy kolejnych rundach)
 
@@ -418,9 +487,10 @@ mapowania employeeId→rola.
   `GET /loans/{id}`, a `loan-detail.page.ts` spada na lokalnie liczony `buildSchedule()` jak
   dotychczas. Pełne przechowywanie harmonogramu dla wszystkich wniosków wymagałoby rozszerzenia
   seeda (zmiana liczności).
-- Mutacje (POST/PATCH) są poza zakresem tej iteracji — wszystkie dzisiejsze akcje UI (blokada karty,
-  eskalacja sprawy, awans etapu kredytu itd.) żyją tylko w pamięci przeglądarki po stronie
-  `banking_web`, backend nie je persystuje.
+- Mutacje dla kart (`card_processor_mock`, R3) i egzekucji/raportowania (`external_institutions_gateway_mock`,
+  R4) są poza zakresem R2 — te akcje UI (blokada karty, zgłoszenie chargebacku, złożenie raportu
+  itd.) wciąż żyją tylko w pamięci przeglądarki. F2 (kredyty) i F8 (sprawy klientów) są już
+  podłączone do backendu od R2 — zob. sekcje "F2"/"F8" niżej.
 - **Rozjazd nawigacji vs permissions `identity_access_mock`**: `RolePermissions.java` w
   `identity_access_mock` nie ma wartości `reporting` ani `cases` (żadna rola ich nie ma), a `admin` nie
   ma `enforcement` (mają je tylko `collections`). `banking_web`'s `nav.model.ts` dla R1 mapuje

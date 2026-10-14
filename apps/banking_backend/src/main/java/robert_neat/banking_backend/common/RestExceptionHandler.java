@@ -11,6 +11,9 @@ import robert_neat.banking_backend.auth.UnmappedRoleException;
 import robert_neat.banking_backend.approvals.GovernanceException;
 import robert_neat.banking_backend.approvals.GovernanceUnavailableException;
 import robert_neat.banking_backend.approvals.InsufficientSeniorityException;
+import robert_neat.banking_backend.creditrisk.CreditRiskException;
+import robert_neat.banking_backend.creditrisk.CreditRiskUnavailableException;
+import robert_neat.banking_backend.common.InvalidStageTransitionException;
 
 @RestControllerAdvice(annotations = RestController.class)
 public class RestExceptionHandler {
@@ -54,5 +57,23 @@ public class RestExceptionHandler {
     public ResponseEntity<ApiError> handleGovernanceUnavailable(GovernanceUnavailableException ex) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ApiError("governance_mock unavailable"));
+    }
+
+    /** Passes credit_risk_mock's own status/message through unchanged (400). */
+    @ExceptionHandler(CreditRiskException.class)
+    public ResponseEntity<ApiError> handleCreditRisk(CreditRiskException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(new ApiError(ex.getMessage()));
+    }
+
+    @ExceptionHandler(CreditRiskUnavailableException.class)
+    public ResponseEntity<ApiError> handleCreditRiskUnavailable(CreditRiskUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiError("credit_risk_mock unavailable"));
+    }
+
+    /** Stage/status precondition failed (e.g. loan not in 'application', case already escalated). */
+    @ExceptionHandler(InvalidStageTransitionException.class)
+    public ResponseEntity<ApiError> handleInvalidStageTransition(InvalidStageTransitionException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(ex.getMessage()));
     }
 }

@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
@@ -12,10 +13,18 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
 import { LoansStore } from './loans.store';
+import { LoanDetail } from './loans.model';
 import { LOAN_PRODUCTS, LOAN_STAGE_SEVERITY, LoanProduct, LoanSegment } from './loans.model';
+
+interface CustomerOption {
+  id: string;
+  fullName: string;
+  segment: string;
+}
 
 @Component({
   selector: 'app-loans-page',
@@ -41,6 +50,8 @@ export class LoansPage {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(LoansStore);
   private readonly notify = inject(NotificationService);
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(ApiBaseUrlService);
   protected readonly i18n = inject(TranslationService);
 
   protected readonly applications = this.store.applications;
@@ -49,6 +60,14 @@ export class LoansPage {
 
   protected readonly searchTerm = signal('');
   protected readonly segmentFilter = signal<LoanSegment | 'all'>('all');
+
+  protected readonly customers = signal<CustomerOption[]>([]);
+
+  constructor() {
+    this.http
+      .get<CustomerOption[]>(`${this.apiBaseUrl.bankingBackend}/customers`)
+      .subscribe((list) => this.customers.set(list));
+  }
 
   protected readonly segmentOptions = computed(() => [
     { label: this.i18n.translate('common.all'), value: 'all' as const },
@@ -68,6 +87,10 @@ export class LoansPage {
     })),
   );
 
+  protected readonly customerOptions = computed(() =>
+    this.customers().map((c) => ({ label: `${c.fullName} (${c.id})`, value: c.id })),
+  );
+
   protected readonly filtered = computed(() => {
     const term = this.searchTerm().toLowerCase();
     const segment = this.segmentFilter();
@@ -84,10 +107,18 @@ export class LoansPage {
   }
 
   // --- Wizard: nowy wniosek kredytowy ---
+  //
+  // Krok 2 (scoring) nie jest już formularzem — po wypełnieniu kroków 0-1 wizard wywołuje
+  // POST /loans (scoring w credit_risk_mock) i wyświetla wynik jako read-only podsumowanie.
+  // Submit na kroku 3 woła POST /loans/{id}/submit-for-approval (otwiera kolejkę zatwierdzeń).
+  // Wynik scoringu nie jest już polem formularza (patrz docs/services/banking_backend.md, F2).
 
   protected readonly wizard = viewChild(WizardDialogComponent);
   protected readonly wizardOpen = signal(false);
   protected readonly wizardStep = signal(0);
+  protected readonly scoring = signal(false);
+  protected readonly scoringError = signal(false);
+  protected readonly createdLoan = signal<LoanDetail | null>(null);
 
   protected readonly wizardSteps: WizardStep[] = [
     { labelKey: 'loans.wizard.step1' },
@@ -97,22 +128,12 @@ export class LoansPage {
   ];
 
   protected readonly form = this.fb.nonNullable.group({
-    applicant: ['', [Validators.required, Validators.minLength(3)]],
+    customerId: this.fb.nonNullable.control<string | null>(null, Validators.required),
     segment: this.fb.nonNullable.control<LoanSegment | null>(null, Validators.required),
     product: this.fb.nonNullable.control<LoanProduct | null>(null, Validators.required),
     requestedAmount: this.fb.nonNullable.control<number | null>(null, [
       Validators.required,
       Validators.min(0.01),
-    ]),
-    scoreResult: this.fb.nonNullable.control<number | null>(null, [
-      Validators.required,
-      Validators.min(0),
-      Validators.max(1000),
-    ]),
-    dsti: this.fb.nonNullable.control<number | null>(null, [
-      Validators.required,
-      Validators.min(0),
-      Validators.max(1),
     ]),
   });
 
@@ -124,13 +145,13 @@ export class LoansPage {
     const f = this.form.controls;
     switch (step) {
       case 0:
-        return f.applicant.valid && f.segment.valid;
+        return f.customerId.valid && f.segment.valid;
       case 1:
         return f.product.valid && f.requestedAmount.valid;
       case 2:
-        return f.scoreResult.valid && f.dsti.valid;
+        return !this.scoring() && !this.scoringError() && this.createdLoan() !== null;
       case 3:
-        return this.form.valid;
+        return this.createdLoan() !== null;
       default:
         return false;
     }
@@ -139,50 +160,61 @@ export class LoansPage {
   openWizard(): void {
     this.form.reset();
     this.wizardStep.set(0);
+    this.createdLoan.set(null);
+    this.scoringError.set(false);
     this.wizard()?.reset();
     this.wizardOpen.set(true);
   }
 
-  onWizardStepChange(step: number): void {
+  async onWizardStepChange(step: number): Promise<void> {
     this.wizardStep.set(step);
+    if (step === 2 && this.createdLoan() === null) {
+      await this.scoreApplication();
+    }
   }
 
   closeWizard(): void {
     this.wizardOpen.set(false);
     this.wizardStep.set(0);
+    this.createdLoan.set(null);
     this.form.reset();
   }
 
-  submitWizard(): void {
-    if (this.form.invalid) {
+  private async scoreApplication(): Promise<void> {
+    const value = this.form.getRawValue();
+    this.scoring.set(true);
+    this.scoringError.set(false);
+    try {
+      const loan = await this.store.create({
+        customerId: value.customerId!,
+        segment: value.segment!,
+        product: value.product!,
+        requestedAmount: value.requestedAmount!,
+      });
+      this.createdLoan.set(loan);
+    } catch {
+      this.scoringError.set(true);
+      this.notify.error('loans.error.generic');
+    } finally {
+      this.scoring.set(false);
+    }
+  }
+
+  async submitWizard(): Promise<void> {
+    const loan = this.createdLoan();
+    if (!loan) {
       return;
     }
-    const value = this.form.getRawValue();
-    const id = this.generateId();
-    this.store.add({
-      id,
-      applicant: value.applicant,
-      segment: value.segment!,
-      product: value.product!,
-      stage: 'application',
-      requestedAmount: value.requestedAmount!,
-      approvedAmount: null,
-      scoreResult: value.scoreResult!,
-      dsti: value.dsti!,
-      createdAt: new Date().toISOString().slice(0, 10),
-    });
-    this.wizardOpen.set(false);
-    this.wizardStep.set(0);
-    this.form.reset();
-    this.notify.success('toast.saved');
-  }
-
-  private generateId(): string {
-    let id: string;
-    do {
-      const digits = Math.floor(10000 + Math.random() * 90000);
-      id = `LN-${digits}`;
-    } while (this.store.findById(id));
-    return id;
+    try {
+      await this.store.submitForApproval(loan.id);
+      this.notify.success('toast.saved');
+    } catch {
+      this.notify.error('loans.error.generic');
+    } finally {
+      this.wizardOpen.set(false);
+      this.wizardStep.set(0);
+      this.createdLoan.set(null);
+      this.form.reset();
+    }
   }
 }

@@ -13,19 +13,6 @@ raport, nie modyfikuje kodu) → PAUZA (decyzja użytkownika o następnej rundzi
   i 5 serwisami mockowymi. `banking_web` nie woła mocków bezpośrednio nigdzie (R1 już to ustawiło
   dla auth, R1.5 dla approvals; R2+ kontynuuje dla pozostałych flow).
 
-## R2 — Wspólna infrastruktura akcji + F2 (kredyty) + F8 (sprawy klientów)
-
-- `GovernanceClient` (helper maker-checker `/approvals`, adres przez property + env override) już
-  istnieje od R1.5 (`approvals/GovernanceClient.java`) — reużyć, nie duplikować. Doplementować
-  `recordAuditEvent(...)` (sygnatura już zdefiniowana, niewywoływana jeszcze) dla audytu F2/F8.
-  Potrzebny jeszcze klient HTTP do `credit_risk_mock` (nowy, analogiczny wzorzec).
-- Adresy mocków: właściwość + env override, domyślnie `localhost:1052x` lokalnie, w `compose.yml`
-  nazwy DNS serwisów (`http://governance-mock:10524` itd.) — `banking-backend` jest już w sieci
-  `banking-internal`. Wzorzec z `banking.governance.base-url`/`BANKING_GOVERNANCE_BASEURL` (R1.5).
-- F2: złożenie wniosku → `credit_risk_mock` (scoring/DSTI) → `governance_mock` (approval) → decyzja
-  → harmonogram. F8: rejestracja sprawy z terminem/SLA, monitoring eskalacji z `governance_mock`.
-- Frontend: store'y po mutacji odświeżają/łatają sygnał z odpowiedzi (nie tylko toast).
-
 ## R3 — F4 (karty) + F5 (e-banking/OTP)
 
 - Karty: autoryzacja (`card_processor_mock`), blokada/odblokowanie, zgłoszenie i cykl chargebacku,

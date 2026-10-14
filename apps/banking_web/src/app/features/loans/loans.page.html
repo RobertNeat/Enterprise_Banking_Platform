@@ -108,23 +108,22 @@
       @case (0) {
         <div class="wizard-field-group">
           <div class="field">
-            <label for="loans-wizard-applicant-input" class="required">{{
+            <label for="loans-wizard-customer-select" class="required">{{
               'loans.wizard.applicant' | translate
             }}</label>
-            <input
-              id="loans-wizard-applicant-input"
-              pInputText
-              type="text"
-              formControlName="applicant"
+            <p-select
+              id="loans-wizard-customer-select"
+              [pt]="{ dropdown: { id: 'loans-wizard-customer-select-dropdown-btn' } }"
+              [options]="customerOptions()"
+              formControlName="customerId"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
               [fluid]="true"
             />
-            @if (form.controls.applicant.invalid && form.controls.applicant.touched) {
-              <small id="loans-wizard-applicant-error" class="error">
-                @if (form.controls.applicant.errors?.['required']) {
-                  {{ 'wizard.validation.required' | translate }}
-                } @else {
-                  {{ 'wizard.validation.minLength' | translate: { min: 3 } }}
-                }
+            @if (form.controls.customerId.invalid && form.controls.customerId.touched) {
+              <small id="loans-wizard-customer-error" class="error">
+                {{ 'wizard.validation.required' | translate }}
               </small>
             }
           </div>
@@ -197,58 +196,28 @@
         </div>
       }
       @case (2) {
-        <div class="wizard-field-group">
-          <div class="field">
-            <label for="loans-wizard-score-input" class="required">{{
-              'loans.wizard.scoreResult' | translate
-            }}</label>
-            <input
-              id="loans-wizard-score-input"
-              pInputText
-              type="number"
-              min="0"
-              max="1000"
-              formControlName="scoreResult"
-              [fluid]="true"
-            />
-            @if (form.controls.scoreResult.invalid && form.controls.scoreResult.touched) {
-              <small id="loans-wizard-score-error" class="error">
-                @if (form.controls.scoreResult.errors?.['required']) {
-                  {{ 'wizard.validation.required' | translate }}
-                } @else if (form.controls.scoreResult.errors?.['min']) {
-                  {{ 'wizard.validation.min' | translate: { min: 0 } }}
-                } @else {
-                  {{ 'wizard.validation.max' | translate: { max: 1000 } }}
-                }
-              </small>
-            }
-          </div>
-          <div class="field">
-            <label for="loans-wizard-dsti-input" class="required">{{
-              'loans.wizard.dsti' | translate
-            }}</label>
-            <input
-              id="loans-wizard-dsti-input"
-              pInputText
-              type="number"
-              min="0"
-              max="1"
-              step="0.01"
-              formControlName="dsti"
-              [fluid]="true"
-            />
-            @if (form.controls.dsti.invalid && form.controls.dsti.touched) {
-              <small id="loans-wizard-dsti-error" class="error">
-                @if (form.controls.dsti.errors?.['required']) {
-                  {{ 'wizard.validation.required' | translate }}
-                } @else if (form.controls.dsti.errors?.['min']) {
-                  {{ 'wizard.validation.min' | translate: { min: 0 } }}
-                } @else {
-                  {{ 'wizard.validation.max' | translate: { max: 1 } }}
-                }
-              </small>
-            }
-          </div>
+        <!-- Scoring przychodzi z backendu (POST /loans -> credit_risk_mock); read-only. -->
+        <div class="wizard-field-group" id="loans-wizard-scoring-step">
+          @if (scoring()) {
+            <p id="loans-wizard-scoring-loading">{{ 'loans.wizard.scoringLoading' | translate }}</p>
+          } @else if (scoringError()) {
+            <p id="loans-wizard-scoring-error" class="error">
+              {{ 'loans.wizard.scoringError' | translate }}
+            </p>
+          } @else if (createdLoan()) {
+            <div class="wizard-summary" id="loans-wizard-scoring-result">
+              <div>
+                <span>{{ 'loans.wizard.scoreResult' | translate }}:</span>
+                <strong id="loans-wizard-scoring-score">{{ createdLoan()!.scoreResult }}</strong>
+              </div>
+              <div>
+                <span>{{ 'loans.wizard.dsti' | translate }}:</span>
+                <strong id="loans-wizard-scoring-dsti"
+                  >{{ createdLoan()!.dsti * 100 | number: '1.0-1' }}%</strong
+                >
+              </div>
+            </div>
+          }
         </div>
       }
       @case (3) {
@@ -256,7 +225,7 @@
         <div class="wizard-summary" id="loans-wizard-summary">
           <div>
             <span>{{ 'loans.wizard.applicant' | translate }}:</span>
-            <strong id="loans-wizard-summary-applicant">{{ form.controls.applicant.value }}</strong>
+            <strong id="loans-wizard-summary-applicant">{{ createdLoan()?.applicant }}</strong>
           </div>
           <div>
             <span>{{ 'loans.wizard.segment' | translate }}:</span>
@@ -282,11 +251,11 @@
           </div>
           <div>
             <span>{{ 'loans.wizard.scoreResult' | translate }}:</span>
-            <strong id="loans-wizard-summary-score">{{ form.controls.scoreResult.value }}</strong>
+            <strong id="loans-wizard-summary-score">{{ createdLoan()?.scoreResult }}</strong>
           </div>
           <div>
             <span>{{ 'loans.wizard.dsti' | translate }}:</span>
-            <strong id="loans-wizard-summary-dsti">{{ form.controls.dsti.value }}</strong>
+            <strong id="loans-wizard-summary-dsti">{{ createdLoan()?.dsti }}</strong>
           </div>
         </div>
       }

@@ -70,6 +70,7 @@ services:
       BANKING_JWT_SECRET: ${BANKING_JWT_SECRET:?BANKING_JWT_SECRET is required in config.env}
       BANKING_IDENTITYACCESS_BASEURL: http://identity-access-mock:${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}
       BANKING_GOVERNANCE_BASEURL: http://governance-mock:${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}
+      BANKING_CREDITRISK_BASEURL: http://credit-risk-mock:${CREDIT_RISK_MOCK_CONTAINER_PORT:-10522}
     depends_on:
       postgres:
         condition: service_healthy

@@ -192,6 +192,9 @@ export const en: Record<string, string> = {
   'loans.wizard.scoreResult': 'Scoring result (0-1000)',
   'loans.wizard.dsti': 'DSTI ratio (0-1)',
   'loans.wizard.summary': 'Review the data before approving the application',
+  'loans.wizard.scoringLoading': 'Scoring with the credit bureau...',
+  'loans.wizard.scoringError': 'Could not get a scoring result. Please try again.',
+  'loans.error.generic': 'Could not save the loan application.',
 
   'cards.title': 'Payment Cards & Authorizations',
   'cards.subtitle': 'Issuance, limits, blocks, chargebacks',
@@ -321,6 +324,13 @@ export const en: Record<string, string> = {
   'cases.wizard.step2': 'Priority & deadlines',
   'cases.wizard.step3': 'Summary',
   'cases.wizard.summary': 'Review case details',
+  'cases.wizard.deadlineComputedHint':
+    'The statutory deadline and SLA will be computed automatically once the case is saved.',
+  'cases.caseType': 'Case type',
+  'cases.type.complaint': 'Complaint',
+  'cases.type.restructuring_request': 'Restructuring request',
+  'cases.type.inquiry': 'Inquiry',
+  'cases.error.generic': 'Could not save the case.',
 
   'approvals.title': 'Approval queue',
   'approvals.subtitle': 'Four-eyes (maker-checker) review of employee requests',

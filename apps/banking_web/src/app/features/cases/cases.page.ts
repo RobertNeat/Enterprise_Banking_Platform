@@ -1,37 +1,28 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { DatePickerModule } from 'primeng/datepicker';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TranslatePipe } from '../../core/services/translate.pipe';
+import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
 import { PRIORITY_SEVERITY, Priority } from '../../shared/utils/status-severity';
 import { CasesStore } from './cases.store';
 import { CASE_SEVERITY, CustomerCase } from './cases.model';
 
-/** Formatuje datę lokalnie jako YYYY-MM-DD (bez konwersji do UTC, patrz toISOString). */
-function formatDateLocal(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+interface CustomerOption {
+  id: string;
+  fullName: string;
 }
 
-function generateCaseId(existing: readonly CustomerCase[]): string {
-  const existingIds = new Set(existing.map((c) => c.id));
-  let id: string;
-  do {
-    const n = Math.floor(10000 + Math.random() * 90000);
-    id = `CS-${n}`;
-  } while (existingIds.has(id));
-  return id;
-}
+const CASE_TYPES = ['complaint', 'restructuring_request', 'inquiry'] as const;
+type CaseType = (typeof CASE_TYPES)[number];
 
 @Component({
   selector: 'app-cases-page',
@@ -42,8 +33,6 @@ function generateCaseId(existing: readonly CustomerCase[]): string {
     TranslatePipe,
     StatusTagComponent,
     ReactiveFormsModule,
-    DatePickerModule,
-    InputNumberModule,
     InputTextModule,
     SelectModule,
     WizardDialogComponent,
@@ -55,16 +44,34 @@ export class CasesPage {
   private readonly notify = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(CasesStore);
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(ApiBaseUrlService);
+  protected readonly i18n = inject(TranslationService);
 
   protected readonly cases = this.store.cases;
   protected readonly severity = CASE_SEVERITY;
   protected readonly prioritySeverity = PRIORITY_SEVERITY;
 
   protected readonly priorityOptions: Priority[] = ['low', 'medium', 'high'];
+  protected readonly caseTypeOptions = computed(() =>
+    CASE_TYPES.map((type) => ({ label: this.i18n.translate('cases.type.' + type), value: type })),
+  );
+
+  protected readonly customers = signal<CustomerOption[]>([]);
+  protected readonly customerOptions = computed(() =>
+    this.customers().map((c) => ({ label: `${c.fullName} (${c.id})`, value: c.id })),
+  );
+
+  constructor() {
+    this.http
+      .get<CustomerOption[]>(`${this.apiBaseUrl.bankingBackend}/customers`)
+      .subscribe((list) => this.customers.set(list));
+  }
 
   protected readonly wizardVisible = signal(false);
   protected readonly wizardStep = signal(0);
   protected readonly wizardRef = viewChild(WizardDialogComponent);
+  protected readonly submitting = signal(false);
 
   protected readonly wizardSteps: WizardStep[] = [
     { labelKey: 'cases.wizard.step1' },
@@ -75,25 +82,14 @@ export class CasesPage {
   protected readonly form = this.fb.group({
     details: this.fb.group({
       subject: this.fb.control('', { validators: [Validators.required] }),
-      customer: this.fb.control('', { validators: [Validators.required] }),
-      owner: this.fb.control('', { validators: [Validators.required] }),
+      customerId: this.fb.control<string | null>(null, { validators: [Validators.required] }),
+      caseType: this.fb.control<CaseType | null>(null, { validators: [Validators.required] }),
     }),
     schedule: this.fb.group({
       priority: this.fb.control<Priority | null>(null, { validators: [Validators.required] }),
-      statutoryDeadline: this.fb.control<Date | null>(null, { validators: [Validators.required] }),
-      slaRemainingHours: this.fb.control<number | null>(null, {
-        validators: [Validators.required, Validators.min(0)],
-      }),
     }),
   });
 
-  // `valueChanges` (nie `statusChanges`!) — status formularza (VALID/INVALID)
-  // nie zmienia się przy każdej zmianie wartości (np. wypełnienie kroku 1
-  // podczas gdy krok 2 jest jeszcze invalid: root form zostaje INVALID w
-  // obu przypadkach), więc `toSignal(statusChanges)` z `Object.is` nie
-  // wykrywa zmiany i computed() nigdy się nie przelicza — Next zostaje
-  // trwale wyszarzony mimo poprawnych danych. `valueChanges` emituje nowy
-  // obiekt przy każdej zmianie wartości, więc ten problem nie występuje.
   private readonly formTick = toSignal(this.form.valueChanges, { initialValue: null });
 
   protected readonly stepValid = computed(() => {
@@ -114,13 +110,9 @@ export class CasesPage {
     const schedule = this.form.controls.schedule.getRawValue();
     return {
       subject: details.subject ?? '',
-      customer: details.customer ?? '',
-      owner: details.owner ?? '',
+      customerId: details.customerId ?? '',
+      caseType: details.caseType,
       priority: schedule.priority,
-      statutoryDeadline: schedule.statutoryDeadline
-        ? formatDateLocal(schedule.statutoryDeadline)
-        : '',
-      slaRemainingHours: schedule.slaRemainingHours,
     };
   });
 
@@ -148,38 +140,45 @@ export class CasesPage {
     this.form.reset();
   }
 
-  submitWizard(): void {
+  async submitWizard(): Promise<void> {
     if (this.form.invalid) {
       return;
     }
     const details = this.form.controls.details.getRawValue();
     const schedule = this.form.controls.schedule.getRawValue();
-    const newCase: CustomerCase = {
-      id: generateCaseId(this.cases()),
-      subject: details.subject!,
-      customer: details.customer!,
-      owner: details.owner!,
-      priority: schedule.priority!,
-      statutoryDeadline: formatDateLocal(schedule.statutoryDeadline!),
-      slaRemainingHours: schedule.slaRemainingHours!,
-      status: 'new',
-    };
-    this.store.add(newCase);
-    this.wizardVisible.set(false);
-    this.wizardStep.set(0);
-    this.form.reset();
-    this.notify.success('toast.saved');
+    this.submitting.set(true);
+    try {
+      // statutoryDeadline/slaRemainingHours are computed by banking_backend (F8), not sent here.
+      await this.store.create({
+        subject: details.subject!,
+        customerId: details.customerId!,
+        priority: schedule.priority!,
+        caseType: details.caseType!,
+      });
+      this.notify.success('toast.saved');
+      this.wizardVisible.set(false);
+      this.wizardStep.set(0);
+      this.form.reset();
+    } catch {
+      this.notify.error('cases.error.generic');
+    } finally {
+      this.submitting.set(false);
+    }
   }
 
-  escalate(item: CustomerCase): void {
-    if (item.status === 'resolved') {
+  async escalate(item: CustomerCase): Promise<void> {
+    if (item.status === 'resolved' || item.status === 'escalated') {
       this.notify.warn('toast.actionBlocked');
       return;
     }
     if (item.slaRemainingHours <= 24) {
       this.notify.warn('toast.deadlineClose');
     }
-    this.store.update(item.id, (c) => ({ ...c, status: 'escalated' }));
-    this.notify.success('toast.saved');
+    try {
+      await this.store.escalate(item.id);
+      this.notify.success('toast.saved');
+    } catch {
+      this.notify.error('cases.error.generic');
+    }
   }
 }

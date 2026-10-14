@@ -3,7 +3,18 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideHttpClient } from '@angular/common/http';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { LOAN_APPLICATIONS } from './loans.data';
+import { LoanDetail, SubmitForApprovalResponse } from './loans.model';
 import { LoansStore } from './loans.store';
+
+const DETAIL: LoanDetail = {
+  ...LOAN_APPLICATIONS[0],
+  id: 'LN-90001',
+  stage: 'application',
+  interestRate: 0.079,
+  termMonths: 36,
+  installments: [],
+  stageTransitions: [],
+};
 
 describe('LoansStore', () => {
   let store: LoansStore;
@@ -36,11 +47,53 @@ describe('LoansStore', () => {
     expect(store.findById('LN-80231')?.applicant).toBe('Jan Wiśniewski');
   });
 
-  it('add prepends a locally created loan without another HTTP call', () => {
-    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`);
-    req.flush([]);
+  it('create() posts to /loans and prepends the backend-scored result', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush([]);
 
-    store.add(LOAN_APPLICATIONS[0]);
-    expect(store.applications()).toEqual([LOAN_APPLICATIONS[0]]);
+    const promise = store.create({
+      customerId: 'CUST-001',
+      segment: 'retail',
+      product: 'cash',
+      requestedAmount: 10000,
+    });
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`);
+    expect(req.request.method).toBe('POST');
+    req.flush(DETAIL);
+    const result = await promise;
+
+    expect(result).toEqual(DETAIL);
+    expect(store.applications()[0].id).toBe('LN-90001');
+  });
+
+  it('submitForApproval() posts and replaces the loan with the updated stage', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush([DETAIL]);
+
+    const response: SubmitForApprovalResponse = {
+      loan: { ...DETAIL, stage: 'decision' },
+      approvalId: 'appr-1',
+    };
+    const promise = store.submitForApproval('LN-90001');
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/loans/LN-90001/submit-for-approval`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(response);
+    const result = await promise;
+
+    expect(result.approvalId).toBe('appr-1');
+    expect(store.findById('LN-90001')?.stage).toBe('decision');
+  });
+
+  it('advanceStage() posts and replaces the loan with the contract stage + installments', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush([DETAIL]);
+
+    const advanced: LoanDetail = { ...DETAIL, stage: 'contract', approvedAmount: 10000 };
+    const promise = store.advanceStage('LN-90001');
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-90001/advance-stage`);
+    expect(req.request.method).toBe('POST');
+    req.flush(advanced);
+    await promise;
+
+    expect(store.findById('LN-90001')?.stage).toBe('contract');
   });
 });

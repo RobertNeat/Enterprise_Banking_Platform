@@ -14,11 +14,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Thin client for governance_mock. Built to be reused beyond approvals (R2+ needs audit-events
- * and, later, ICT incidents / SLA checks for F2/F8) — only the approval-queue methods actually
- * used by R1.5 are implemented; recordAuditEvent's signature is defined now so R2 extends this
- * client instead of writing a second one, but its body is intentionally not wired into any
- * endpoint yet (no caller in this round).
+ * Thin client for governance_mock. Approval queue (maker-checker) used since R1.5; recordAuditEvent
+ * and slaCheck added in R2 for F2 (loan stage audit trail) and F8 (case SLA escalation).
  */
 @Component
 public class GovernanceClient {
@@ -77,23 +74,29 @@ public class GovernanceClient {
         return response.toApprovalRecord();
     }
 
-    /**
-     * Not called anywhere yet in R1.5 — defined so R2's audit trail work (F2/F8) extends this
-     * client rather than duplicating the HTTP plumbing. Mirrors POST /audit-events.
-     */
-    public void recordAuditEvent(String actor, String action, String entityType, String entityId, String details) {
+    /** Mirrors POST /audit-events. Returns the generated audit event id (governance_mock assigns it). */
+    public String recordAuditEvent(String actor, String action, String entityType, String entityId, String details) {
         Map<String, String> body = Map.of(
                 "actor", actor, "action", action, "entityType", entityType, "entityId", entityId,
                 "details", details == null ? "" : details);
-        exchange(() -> {
-            restClient.post()
-                    .uri("/audit-events")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .toBodilessEntity();
-            return null;
-        });
+        AuditEventResponse response = exchange(() -> restClient.post()
+                .uri("/audit-events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(AuditEventResponse.class));
+        return response.id();
+    }
+
+    /** Mirrors POST /cases/{caseId}/sla-check — F8 SLA escalation rule evaluated by governance_mock. */
+    public SlaCheckResult slaCheck(String caseId, long slaRemainingHours) {
+        Map<String, Long> body = Map.of("slaRemainingHours", slaRemainingHours);
+        return exchange(() -> restClient.post()
+                .uri("/cases/{caseId}/sla-check", caseId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(SlaCheckResult.class));
     }
 
     private <T> T exchange(Supplier<T> call) {
