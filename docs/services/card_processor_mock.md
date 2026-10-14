@@ -1,0 +1,55 @@
+# card_processor_mock — stan bieżący
+
+Serwis NestJS (TypeScript ESM), eksponowany na hoście na porcie `10521` (env `PORT`, patrz `deploy/compose.yml`). Wywoływany bezpośrednio z przeglądarki oraz przez `banking_backend`.
+
+Konsoliduje dwa mocki: procesor płatności (autoryzacje kart w konwencji zbliżonej do ISO 8583) i rejestr reklamacji kartowych (chargeback z kodami przyczyn Visa/Mastercard).
+
+Stan przechowywany wyłącznie w pamięci procesu (`Map`/`Set` w singletonach `@Injectable()`) — brak bazy danych, brak ORM. Dane nie przetrwają restartu procesu.
+
+Serwis jest czystym REST API — brak UI/panelu operatorskiego (Thymeleaf jest technologią Spring/Java, niekompatybilną z NestJS; decyzja użytkownika).
+
+## Zaimplementowane endpointy
+
+### Autoryzacje kart (ISO 8583-style)
+
+- `POST /authorizations` — przyjmuje `{ cardId, merchant, amount, mcc, processor? }`. `processor` (`Visa`|`Mastercard`) jest opcjonalny — jeśli nie podany, wyznaczany deterministycznie z hasha `cardId`. Reguła decyzji: `amount <= 5000` → zatwierdzona (`responseCode: "00"`), `amount > 5000` → odrzucona (`responseCode: "05"`). Zwraca pełny rekord `CardAuthorization` rozszerzony o `mcc`, `responseCode`, `processorId`.
+- `GET /authorizations?cardId=...` — lista autoryzacji, filtr po `cardId` opcjonalny.
+- `GET /authorizations/{id}` — pojedyncza autoryzacja; 404 jeśli nieznana.
+- Gdy symulowana jest niedostępność procesora (patrz niżej), `POST /authorizations` zwraca `503`.
+
+### Blokada karty
+
+- `POST /cards/{cardId}/block`, `POST /cards/{cardId}/unblock` — przełączają flagę blokady w pamięci dla danego `cardId`. Serwis przechowuje tylko flagę, nie całą encję `PaymentCard` (ta żyje w `banking_backend`/`banking_web`).
+- `GET /cards/{cardId}/block-status` — `{ cardId, blocked }`.
+
+### Chargeback (rejestr reklamacji kartowych)
+
+- `POST /chargebacks` — przyjmuje `{ authorizationId, reasonCode, description }`. `reasonCode` to jeden z kodów Visa/Mastercard: `4855` (towar niedostarczony), `4837` (transakcja nieautoryzowana), `4853` (towar/usługa niezgodna z opisem), `4863` (transakcja sporna — karta obecna, nieuznana przez posiadacza). Waliduje istnienie `authorizationId` (404 jeśli nieznane). Nowy wpis ma status `FILED`.
+- `POST /chargebacks/{id}/advance` — przyjmuje `{ status }`. Dozwolone przejścia cyklu: `FILED → UNDER_REVIEW`, `UNDER_REVIEW → RESOLVED_CUSTOMER | RESOLVED_MERCHANT`. Każde inne przejście (w tym pominięcie `UNDER_REVIEW` lub zmiana ze stanu rozstrzygniętego) → `409 Conflict`.
+- `GET /chargebacks?authorizationId=...` — lista, filtr opcjonalny.
+- `GET /chargebacks/{id}` — pojedynczy wpis; 404 jeśli nieznany.
+
+### Symulacja niedostępności procesora
+
+- `POST /processor/simulate-outage` — `{ enabled: boolean }`, przełącza globalną flagę w pamięci.
+- `GET /processor/status` — `{ outageSimulated: boolean }`.
+- Służy do testowania przez `banking_backend` ścieżki alternatywnej F4 (procesor niedostępny → rejestracja incydentu ICT w `governance_mock`). Ten serwis **nie** wywołuje `governance_mock` — tylko ułatwia test tej ścieżki.
+
+Pełny kontrakt request/response: `docs/card_processor_mock_contract/api.md`.
+
+## Walidacja
+
+Walidacja ręczna w kontrolerach (bez `class-validator`/`class-transformer` — nie są zależnościami projektu). Błędy walidacji → `400 Bad Request` z `{ "message": "..." }`. Brak zasobu → `404 Not Found`. Niedozwolone przejście chargeback → `409 Conflict`. Symulowana niedostępność procesora → `503 Service Unavailable`.
+
+## Decyzje projektowe
+
+- Autoryzacja nie blokuje transakcji na karcie oznaczonej jako zablokowana — blokada i autoryzacja to niezależne mechanizmy w tej iteracji (do rozważenia w kolejnej sesji, patrz niżej).
+- Brak CORS — serwis jest wywoływany z przeglądarki przez `banking_web`; jeśli w kolejnej iteracji pojawią się problemy z CORS, do rozważenia `app.enableCors()` (bez nowej zależności).
+
+## Do uzupełnienia w innych częściach aplikacji
+
+- `banking_backend` musi wołać `POST /authorizations` przy symulacji transakcji kartowej oraz `POST /cards/{cardId}/block` / `unblock` przy akcjach operatora na karcie (F4).
+- `banking_backend` musi wołać `POST /processor/simulate-outage` (lub serwis testowy) w testach ścieżki alternatywnej F4, a przy otrzymaniu `503` z `/authorizations` — rejestrować incydent ICT w `governance_mock`.
+- Frontend (`banking_web`) — widok KRT-03 (zgłoszenie chargebacku) jest obecnie tylko symulacją-toastem; potrzebuje nowego formularza z wyborem `reasonCode` i wyświetlaniem cyklu statusów (`FILED → UNDER_REVIEW → RESOLVED_*`).
+- Potrzebny trwały storage (baza danych + seeder) w kolejnej iteracji — obecnie cały stan (autoryzacje, blokady, chargebacki, flaga outage) ginie po restarcie procesu.
+- Rozważyć w kolejnej iteracji, czy autoryzacja na zablokowanej karcie powinna być automatycznie odrzucana (obecnie blokada i autoryzacja są niezależne).
