@@ -6,7 +6,7 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { NEUTRAL_TAG_SEVERITY } from '../../shared/utils/status-severity';
-import { CARD_AUTHORIZATIONS, PAYMENT_CARDS } from './cards.data';
+import { CardsStore } from './cards.store';
 import { CARD_STATUS_SEVERITY, PaymentCard } from './cards.model';
 
 @Component({
@@ -17,9 +17,10 @@ import { CARD_STATUS_SEVERITY, PaymentCard } from './cards.model';
 })
 export class CardsPage {
   private readonly notify = inject(NotificationService);
+  private readonly store = inject(CardsStore);
 
-  protected readonly cards = PAYMENT_CARDS;
-  protected readonly authorizations = CARD_AUTHORIZATIONS;
+  protected readonly cards = this.store.cards;
+  protected readonly authorizations = this.store.authorizations;
   protected readonly statusSeverity = CARD_STATUS_SEVERITY;
   protected readonly neutralSeverity = NEUTRAL_TAG_SEVERITY;
 

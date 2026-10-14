@@ -5,7 +5,7 @@ import { TableModule } from 'primeng/table';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
-import { COLLECTIONS_CASES } from './collections.data';
+import { CollectionsStore } from './collections.store';
 import { COLLECTIONS_SEVERITY, CollectionsCase } from './collections.model';
 
 @Component({
@@ -16,8 +16,9 @@ import { COLLECTIONS_SEVERITY, CollectionsCase } from './collections.model';
 })
 export class CollectionsPage {
   private readonly notify = inject(NotificationService);
+  private readonly store = inject(CollectionsStore);
 
-  protected readonly cases = COLLECTIONS_CASES;
+  protected readonly cases = this.store.cases;
   protected readonly severity = COLLECTIONS_SEVERITY;
 
   sendReminder(item: CollectionsCase): void {
@@ -29,7 +30,7 @@ export class CollectionsPage {
   }
 
   proposeSettlement(item: CollectionsCase): void {
-    item.stage = 'settlement';
+    this.store.update(item.id, (c) => ({ ...c, stage: 'settlement' }));
     this.notify.success('toast.saved');
   }
 
@@ -38,7 +39,7 @@ export class CollectionsPage {
       this.notify.warn('toast.actionBlocked');
       return;
     }
-    item.stage = 'external';
+    this.store.update(item.id, (c) => ({ ...c, stage: 'external' }));
     this.notify.success('toast.saved');
   }
 }

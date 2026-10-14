@@ -6,7 +6,7 @@
 </div>
 
 <div class="card-section" id="risk-list-section">
-  <p-table id="risk-table" [value]="entries" [rows]="10">
+  <p-table id="risk-table" [value]="entries()" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>

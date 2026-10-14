@@ -1,8 +1,10 @@
 # banking_backend
 
-Moduł Spring Boot (Spring Boot 4.1, Java 25, Maven) — jedyny moduł zapisujący do PostgreSQL. Na
-obecnym etapie zawiera warstwę danych: encje JPA, repozytoria Spring Data, schemat bazy zarządzany
-przez Liquibase oraz opcjonalny seed danymi mockowymi zgodnymi z `apps/banking_web/src/app/features/**/*.data.ts`.
+Moduł Spring Boot (Spring Boot 4.1, Java 25, Maven) — jedyny moduł zapisujący do PostgreSQL.
+Zawiera warstwę danych (encje JPA, repozytoria Spring Data, schemat bazy zarządzany przez Liquibase,
+opcjonalny seed danymi mockowymi zgodnymi z `apps/banking_web/src/app/features/**/*.data.ts`) oraz
+warstwę REST (kontrolery GET-only + DTO, konsumowaną na żywo przez `banking_web` — zob. sekcja
+"Warstwa REST" niżej).
 
 Szczegółowy opis kolumn, typów i ograniczeń: `docs/banking_backend/data_model.md`.
 
@@ -318,12 +320,34 @@ punktu; status poniżej odzwierciedla wynik.
   przechodzi**, Liquibase: 138 wierszy (bez zmiany liczności, tylko wartości pól w
   `003-card.sql`, `004-risk.sql`, `007-contactcenter.sql`).
 
+## Warstwa REST
+
+Kontrolery `@RestController` (pakiet domenowy, GET-only, bez wiązania akcji/mutacji) wystawiają dane
+frontendowi przez DTO (Java records) — encje JPA nigdy nie są serializowane bezpośrednio. Service
+layer jest `@Transactional(readOnly = true)`, mapuje encje na DTO w ramach transakcji (unika
+`LazyInitializationException`; `spring.jpa.open-in-view=false`). Pełny kontrakt (endpointy, DTO,
+macierz pokrycia pól widok ↔ backend, udokumentowane GAP-y): `docs/banking_backend_contract/api.md`.
+
+CORS: `config/CorsConfig.java`, origin konfigurowalny przez `app.cors.allowed-origin` (zmienna
+środowiskowa `BANKING_WEB_ORIGIN`), domyślnie `http://localhost:10500`, tylko `GET`.
+
+Testowanie kontrolerów wymaga dodatkowego startera `spring-boot-starter-webmvc-test` (test-scoped) —
+Spring Boot 4.1 wymodularyzował `@AutoConfigureMockMvc` poza `spring-boot-starter-test`, analogicznie
+do `spring-boot-starter-liquibase` wyżej; pakiet adnotacji też się przeniósł, do
+`org.springframework.boot.webmvc.test.autoconfigure`.
+
 ## Do uzupełnienia w innych częściach aplikacji
 
-- Kontrolery REST i serwisy domenowe udostępniające dane frontendowi.
 - Integracje z serwisami mockowymi i wypełnianie identyfikatorów referencyjnych: `bureau_inquiry_id`
   (credit_risk_mock), `approval_id` i `governance_audit_event_id` (governance_mock),
   `gateway_submission_id` i `gateway_enforcement_id` (external_institutions_gateway_mock),
   identyfikatory autoryzacji kartowych i chargebacków (card_processor_mock). W seedzie te pola są
   puste lub przykładowe.
-- Podłączenie frontendu (`banking_web`) do API backendu w miejsce danych z `*.data.ts`.
+- Harmonogram rat (`installment`) jest przechowywany tylko dla 2 z 13 wniosków kredytowych
+  (`LN-80231`, `LN-80203`) — pozostałe wnioski zwracają `installments: []` z
+  `GET /loans/{id}`, a `loan-detail.page.ts` spada na lokalnie liczony `buildSchedule()` jak
+  dotychczas. Pełne przechowywanie harmonogramu dla wszystkich wniosków wymagałoby rozszerzenia
+  seeda (zmiana liczności).
+- Mutacje (POST/PATCH) są poza zakresem tej iteracji — wszystkie dzisiejsze akcje UI (blokada karty,
+  eskalacja sprawy, awans etapu kredytu itd.) żyją tylko w pamięci przeglądarki po stronie
+  `banking_web`, backend nie je persystuje.

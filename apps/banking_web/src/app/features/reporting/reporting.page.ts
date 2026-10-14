@@ -8,7 +8,7 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
-import { REGULATORY_REPORTS } from './reporting.data';
+import { ReportingStore } from './reporting.store';
 import { REPORT_SEVERITY } from './reporting.model';
 import { buildReportsCsv } from './reporting.csv';
 
@@ -28,9 +28,10 @@ import { buildReportsCsv } from './reporting.csv';
 export class ReportingPage {
   private readonly notify = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly store = inject(ReportingStore);
   protected readonly i18n = inject(TranslationService);
 
-  protected readonly reports = REGULATORY_REPORTS;
+  protected readonly reports = this.store.reports;
   protected readonly severity = REPORT_SEVERITY;
   protected readonly recipientFilter = signal<string>('all');
 
@@ -43,7 +44,7 @@ export class ReportingPage {
   ];
 
   exportCsv(): void {
-    const csv = buildReportsCsv(this.reports, this.recipientFilter(), (status) =>
+    const csv = buildReportsCsv(this.reports(), this.recipientFilter(), (status) =>
       this.i18n.translate(`reporting.status.${status}`),
     );
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });

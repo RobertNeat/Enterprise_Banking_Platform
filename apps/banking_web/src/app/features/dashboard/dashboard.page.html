@@ -89,7 +89,7 @@
 <div class="panel-grid" id="dashboard-tables-panel-grid">
   <div class="card-section" id="dashboard-recent-cases-section">
     <h2 id="dashboard-recent-cases-title">{{ 'dashboard.recentCases' | translate }}</h2>
-    <p-table id="dashboard-recent-cases-table" [value]="recentCases" [rows]="5">
+    <p-table id="dashboard-recent-cases-table" [value]="recentCases()" [rows]="5">
       <ng-template #header>
         <tr>
           <th>{{ 'common.id' | translate }}</th>
@@ -116,7 +116,7 @@
   </div>
   <div class="card-section" id="dashboard-regulatory-alerts-section">
     <h2 id="dashboard-regulatory-alerts-title">{{ 'dashboard.regulatoryAlerts' | translate }}</h2>
-    <p-table id="dashboard-regulatory-alerts-table" [value]="regulatoryAlerts" [rows]="5">
+    <p-table id="dashboard-regulatory-alerts-table" [value]="regulatoryAlerts()" [rows]="5">
       <ng-template #header>
         <tr>
           <th>{{ 'common.id' | translate }}</th>

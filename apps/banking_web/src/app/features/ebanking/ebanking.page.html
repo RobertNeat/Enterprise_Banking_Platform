@@ -6,7 +6,7 @@
 </div>
 
 <div class="card-section" id="ebanking-users-section">
-  <p-table id="ebanking-users-table" [value]="users" [rows]="10">
+  <p-table id="ebanking-users-table" [value]="users()" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'ebanking.username' | translate }}</th>

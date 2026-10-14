@@ -9,7 +9,7 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
-import { ENFORCEMENT_CASES } from './enforcement.data';
+import { EnforcementStore } from './enforcement.store';
 import { ENFORCEMENT_SEVERITY, EnforcementCase } from './enforcement.model';
 
 /** Domyślna kwota wolna od zajęcia (PLN) — zgodna z istniejącymi danymi demo. */
@@ -34,10 +34,11 @@ const DEFAULT_PROTECTED_AMOUNT = 1631.4;
 export class EnforcementPage {
   private readonly notify = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
+  private readonly store = inject(EnforcementStore);
 
   private readonly wizard = viewChild.required(WizardDialogComponent);
 
-  protected readonly cases = signal<EnforcementCase[]>(ENFORCEMENT_CASES);
+  protected readonly cases = this.store.cases;
   protected readonly severity = ENFORCEMENT_SEVERITY;
 
   protected readonly wizardVisible = signal(false);
@@ -138,7 +139,7 @@ export class EnforcementPage {
       protectedAmount: amounts.protectedAmount,
       status: 'registered',
     };
-    this.cases.update((list) => [newCase, ...list]);
+    this.store.add(newCase);
     this.wizardVisible.set(false);
     this.wizardStep.set(0);
     this.form.reset({

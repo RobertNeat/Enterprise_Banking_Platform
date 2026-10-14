@@ -12,7 +12,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
 import { PRIORITY_SEVERITY, Priority } from '../../shared/utils/status-severity';
-import { CUSTOMER_CASES } from './cases.data';
+import { CasesStore } from './cases.store';
 import { CASE_SEVERITY, CustomerCase } from './cases.model';
 
 /** Formatuje datę lokalnie jako YYYY-MM-DD (bez konwersji do UTC, patrz toISOString). */
@@ -54,8 +54,9 @@ function generateCaseId(existing: readonly CustomerCase[]): string {
 export class CasesPage {
   private readonly notify = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
+  private readonly store = inject(CasesStore);
 
-  protected readonly cases = signal<CustomerCase[]>(CUSTOMER_CASES);
+  protected readonly cases = this.store.cases;
   protected readonly severity = CASE_SEVERITY;
   protected readonly prioritySeverity = PRIORITY_SEVERITY;
 
@@ -163,7 +164,7 @@ export class CasesPage {
       slaRemainingHours: schedule.slaRemainingHours!,
       status: 'new',
     };
-    this.cases.update((list) => [newCase, ...list]);
+    this.store.add(newCase);
     this.wizardVisible.set(false);
     this.wizardStep.set(0);
     this.form.reset();
@@ -178,9 +179,7 @@ export class CasesPage {
     if (item.slaRemainingHours <= 24) {
       this.notify.warn('toast.deadlineClose');
     }
-    this.cases.update((list) =>
-      list.map((c) => (c.id === item.id ? { ...c, status: 'escalated' } : c)),
-    );
+    this.store.update(item.id, (c) => ({ ...c, status: 'escalated' }));
     this.notify.success('toast.saved');
   }
 }

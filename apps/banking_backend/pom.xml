@@ -65,6 +65,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring Boot 4.1 modularized MockMvc autoconfiguration out of spring-boot-starter-test;
+             @AutoConfigureMockMvc is not resolvable without this starter (same modularization
+             pattern as spring-boot-starter-liquibase above / spring-boot-starter-validation in
+             the other mocks of this project). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>

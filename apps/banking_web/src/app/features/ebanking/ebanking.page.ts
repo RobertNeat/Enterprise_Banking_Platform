@@ -6,7 +6,7 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { NEUTRAL_TAG_SEVERITY } from '../../shared/utils/status-severity';
-import { EBANKING_USERS } from './ebanking.data';
+import { EbankingStore } from './ebanking.store';
 import { ACCESS_SEVERITY, EbankingUser } from './ebanking.model';
 
 @Component({
@@ -17,8 +17,9 @@ import { ACCESS_SEVERITY, EbankingUser } from './ebanking.model';
 })
 export class EbankingPage {
   private readonly notify = inject(NotificationService);
+  private readonly store = inject(EbankingStore);
 
-  protected readonly users = EBANKING_USERS;
+  protected readonly users = this.store.users;
   protected readonly accessSeverity = ACCESS_SEVERITY;
   protected readonly neutralSeverity = NEUTRAL_TAG_SEVERITY;
 

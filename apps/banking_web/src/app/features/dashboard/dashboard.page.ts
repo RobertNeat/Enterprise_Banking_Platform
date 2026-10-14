@@ -1,14 +1,16 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { TranslationService } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { KpiCardComponent } from '../../shared/components/kpi-card.component';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { CASE_SEVERITY } from '../cases/cases.model';
 import { REPORT_SEVERITY } from '../reporting/reporting.model';
-import { RECENT_CASES, REGULATORY_ALERTS } from './dashboard.data';
+import { RecentCase, RegulatoryAlert } from './dashboard.data';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -19,11 +21,31 @@ import { RECENT_CASES, REGULATORY_ALERTS } from './dashboard.data';
 export class DashboardPage {
   private readonly theme = inject(ThemeService);
   private readonly i18n = inject(TranslationService);
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(ApiBaseUrlService);
 
-  protected readonly recentCases = RECENT_CASES;
-  protected readonly regulatoryAlerts = REGULATORY_ALERTS;
+  private readonly recentCasesSignal = signal<RecentCase[]>([]);
+  private readonly regulatoryAlertsSignal = signal<RegulatoryAlert[]>([]);
+
+  protected readonly recentCases = this.recentCasesSignal.asReadonly();
+  protected readonly regulatoryAlerts = this.regulatoryAlertsSignal.asReadonly();
   protected readonly caseSeverity = CASE_SEVERITY;
   protected readonly reportSeverity = REPORT_SEVERITY;
+
+  constructor() {
+    this.http
+      .get<RecentCase[]>(`${this.apiBaseUrl.bankingBackend}/dashboard/recent-cases`)
+      .subscribe((cases) => this.recentCasesSignal.set(cases));
+    this.http
+      .get<RegulatoryAlert[]>(`${this.apiBaseUrl.bankingBackend}/dashboard/regulatory-alerts`)
+      .subscribe((alerts) => this.regulatoryAlertsSignal.set(alerts));
+  }
+
+  // KPI kafelki i wykresy niżej pozostają literałami — backend wystawia
+  // /dashboard/kpi-snapshot/latest i /dashboard/portfolio-trend, ale podłączenie
+  // wymagałoby zmiany struktury widoku (inny zestaw kategorii/miesięcy niż migawka),
+  // co wykracza poza zasilenie istniejących widoków danymi w tej iteracji — patrz
+  // docs/banking_backend_contract/api.md, sekcja "dashboard".
 
   private readonly textColor = computed(() =>
     this.theme.mode() === 'dark' ? '#c3c8d1' : '#4c5666',

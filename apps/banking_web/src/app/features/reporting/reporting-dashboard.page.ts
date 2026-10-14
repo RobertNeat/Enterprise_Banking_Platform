@@ -6,7 +6,7 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { TranslationService } from '../../core/services/translation.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { KpiCardComponent } from '../../shared/components/kpi-card.component';
-import { REGULATORY_REPORTS } from './reporting.data';
+import { ReportingStore } from './reporting.store';
 import { ReportStatus, RegulatoryReport } from './reporting.model';
 
 // Fixed "today" reference, consistent with loans.data.ts buildSchedule — keeps
@@ -26,18 +26,19 @@ export class ReportingDashboardPage {
   private readonly router = inject(Router);
   private readonly theme = inject(ThemeService);
   private readonly i18n = inject(TranslationService);
+  private readonly store = inject(ReportingStore);
 
-  protected readonly reports = REGULATORY_REPORTS;
+  protected readonly reports = this.store.reports;
 
-  protected readonly totalCount = computed(() => this.reports.length);
+  protected readonly totalCount = computed(() => this.reports().length);
   protected readonly acceptedCount = computed(
-    () => this.reports.filter((r) => r.status === 'accepted').length,
+    () => this.reports().filter((r) => r.status === 'accepted').length,
   );
   protected readonly overdueCount = computed(
-    () => this.reports.filter((r) => r.status !== 'accepted' && r.dueDate < TODAY).length,
+    () => this.reports().filter((r) => r.status !== 'accepted' && r.dueDate < TODAY).length,
   );
   protected readonly nextDueDate = computed(() => {
-    const upcoming = this.reports
+    const upcoming = this.reports()
       .filter((r) => r.status !== 'accepted' && r.dueDate >= TODAY)
       .map((r) => r.dueDate)
       .sort();
@@ -75,7 +76,7 @@ export class ReportingDashboardPage {
       {
         label: this.i18n.translate('reporting.dashboard.byRecipient'),
         data: RECIPIENTS.map(
-          (recipient) => this.reports.filter((r) => r.recipient === recipient).length,
+          (recipient) => this.reports().filter((r) => r.recipient === recipient).length,
         ),
         backgroundColor: this.barColor(),
         borderRadius: 4,
@@ -100,7 +101,7 @@ export class ReportingDashboardPage {
     labels: STATUSES.map((status) => this.i18n.translate(`reporting.status.${status}`)),
     datasets: [
       {
-        data: STATUSES.map((status) => this.reports.filter((r) => r.status === status).length),
+        data: STATUSES.map((status) => this.reports().filter((r) => r.status === status).length),
         backgroundColor: this.statusColors(),
         borderWidth: 2,
         borderColor: this.surfaceColor(),

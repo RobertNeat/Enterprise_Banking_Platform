@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -8,13 +8,18 @@ import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { CASE_SEVERITY } from '../cases/cases.model';
-import {
-  CONTACT_HISTORY,
-  CUSTOMER_PROFILE,
-  DISPOSITIONS,
-  INITIAL_CHAT,
-} from './contact-center.data';
-import { ChatMessage } from './contact-center.model';
+import { INITIAL_CHAT } from './contact-center.data';
+import { ChatMessage, CustomerProfile } from './contact-center.model';
+import { ContactCenterStore } from './contact-center.store';
+
+const EMPTY_PROFILE: CustomerProfile = {
+  name: '',
+  segment: '',
+  loansCount: 0,
+  cardsCount: 0,
+  riskRating: '',
+  openCases: 0,
+};
 
 @Component({
   selector: 'app-contact-center-page',
@@ -32,10 +37,11 @@ import { ChatMessage } from './contact-center.model';
 export class ContactCenterPage {
   private readonly notify = inject(NotificationService);
   private readonly i18n = inject(TranslationService);
+  private readonly store = inject(ContactCenterStore);
 
-  protected readonly profile = CUSTOMER_PROFILE;
-  protected readonly dispositions = DISPOSITIONS;
-  protected readonly history = CONTACT_HISTORY;
+  protected readonly profile = computed(() => this.store.profile() ?? EMPTY_PROFILE);
+  protected readonly dispositions = this.store.dispositions;
+  protected readonly history = this.store.history;
   protected readonly caseSeverity = CASE_SEVERITY;
 
   protected readonly messages = signal<ChatMessage[]>(INITIAL_CHAT);

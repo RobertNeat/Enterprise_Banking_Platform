@@ -11,27 +11,27 @@
     <div class="field-grid" id="contact-customer360-field-grid">
       <div class="field-grid__item" id="contact-customer360-name">
         <label>{{ 'common.customer' | translate }}</label>
-        <div class="value">{{ profile.name }}</div>
+        <div class="value">{{ profile().name }}</div>
       </div>
       <div class="field-grid__item" id="contact-customer360-segment">
         <label>{{ 'common.segment' | translate }}</label>
-        <div class="value">{{ profile.segment }}</div>
+        <div class="value">{{ profile().segment }}</div>
       </div>
       <div class="field-grid__item" id="contact-customer360-loans-count">
         <label>{{ 'nav.loans' | translate }}</label>
-        <div class="value">{{ profile.loansCount }}</div>
+        <div class="value">{{ profile().loansCount }}</div>
       </div>
       <div class="field-grid__item" id="contact-customer360-cards-count">
         <label>{{ 'nav.cards' | translate }}</label>
-        <div class="value">{{ profile.cardsCount }}</div>
+        <div class="value">{{ profile().cardsCount }}</div>
       </div>
       <div class="field-grid__item" id="contact-customer360-risk-rating">
         <label>{{ 'risk.rating' | translate }}</label>
-        <div class="value">{{ profile.riskRating }}</div>
+        <div class="value">{{ profile().riskRating }}</div>
       </div>
       <div class="field-grid__item" id="contact-customer360-open-cases">
         <label>{{ 'dashboard.kpi.casesOpen' | translate }}</label>
-        <div class="value">{{ profile.openCases }}</div>
+        <div class="value">{{ profile().openCases }}</div>
       </div>
     </div>
   </div>
@@ -78,7 +78,7 @@
 <div class="panel-grid" id="contact-bottom-panel-grid">
   <div class="card-section" id="contact-dispositions-section">
     <h2 id="contact-dispositions-title">{{ 'contact.dispositions' | translate }}</h2>
-    <p-table id="contact-dispositions-table" [value]="dispositions" [rows]="10">
+    <p-table id="contact-dispositions-table" [value]="dispositions()" [rows]="10">
       <ng-template #header>
         <tr>
           <th>{{ 'common.id' | translate }}</th>
@@ -106,7 +106,7 @@
 
   <div class="card-section" id="contact-history-section">
     <h2 id="contact-history-title">{{ 'contact.contactHistory' | translate }}</h2>
-    <p-table id="contact-history-table" [value]="history" [rows]="10">
+    <p-table id="contact-history-table" [value]="history()" [rows]="10">
       <ng-template #header>
         <tr>
           <th>{{ 'common.channel' | translate }}</th>

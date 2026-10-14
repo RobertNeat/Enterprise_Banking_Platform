@@ -6,7 +6,7 @@
 </div>
 
 <div class="card-section" id="collections-list-section">
-  <p-table id="collections-table" [value]="cases" [rows]="10">
+  <p-table id="collections-table" [value]="cases()" [rows]="10">
     <ng-template #header>
       <tr>
         <th>{{ 'common.id' | translate }}</th>
