@@ -1,0 +1,57 @@
+package robert_neat.governance_mock.incident;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+
+/** In-memory ICT incident registry (DORA). No audit coupling per spec — only approvals/SLA auto-audit. */
+@Service
+public class IctIncidentService {
+
+    private final Map<String, IctIncident> incidents = new ConcurrentHashMap<>();
+
+    public IctIncident create(String source, String description, Severity severity) {
+        if (isBlank(source) || isBlank(description) || severity == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "source, description i severity sa wymagane");
+        }
+        String id = UUID.randomUUID().toString();
+        IctIncident incident = new IctIncident(id, source, description, severity, IncidentStatus.OPEN, Instant.now(), null);
+        incidents.put(id, incident);
+        return incident;
+    }
+
+    public List<IctIncident> list() {
+        return incidents.values().stream()
+                .sorted(Comparator.comparing(IctIncident::createdAt))
+                .toList();
+    }
+
+    public IctIncident resolve(String id) {
+        AtomicReference<IctIncident> updated = new AtomicReference<>();
+        incidents.compute(id, (key, existing) -> {
+            if (existing == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Incydent ICT nie znaleziony: " + id);
+            }
+            if (existing.status() == IncidentStatus.RESOLVED) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Incydent ICT juz rozwiazany: " + id);
+            }
+            IctIncident result = existing.resolved(Instant.now());
+            updated.set(result);
+            return result;
+        });
+        return updated.get();
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+}
