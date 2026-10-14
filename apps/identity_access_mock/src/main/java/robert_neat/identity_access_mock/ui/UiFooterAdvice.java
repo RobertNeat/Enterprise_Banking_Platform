@@ -1,0 +1,18 @@
+package robert_neat.identity_access_mock.ui;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ModelAttribute;
+
+/** Injects the server port into every operator-UI view, used by fragments/footer.html. */
+@ControllerAdvice(basePackageClasses = UiController.class)
+public class UiFooterAdvice {
+
+    @Value("${server.port:10525}")
+    private String serverPort;
+
+    @ModelAttribute("serverPort")
+    public String serverPort() {
+        return serverPort;
+    }
+}
