@@ -51,6 +51,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Spring Boot 4.1 modularized Liquibase autoconfig out of spring-boot-autoconfigure;
+             liquibase-core alone is not picked up without this starter (analogous to the
+             spring-boot-starter-validation requirement for @WebMvcTest in the other mocks). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-liquibase</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

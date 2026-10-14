@@ -1,0 +1,26 @@
+# Schema first (FK order), then seed data. Every seed changeset carries context:mock-data and only
+# runs when BANKING_SEED_MOCK_DATA=true (see MockDataContextConfig).
+databaseChangeLog:
+  - include: { file: schema/001-customer.sql, relativeToChangelogFile: true }
+  - include: { file: schema/002-loan.sql, relativeToChangelogFile: true }
+  - include: { file: schema/003-card.sql, relativeToChangelogFile: true }
+  - include: { file: schema/004-risk.sql, relativeToChangelogFile: true }
+  - include: { file: schema/005-ebanking.sql, relativeToChangelogFile: true }
+  - include: { file: schema/006-cases.sql, relativeToChangelogFile: true }
+  - include: { file: schema/007-contactcenter.sql, relativeToChangelogFile: true }
+  - include: { file: schema/008-collections.sql, relativeToChangelogFile: true }
+  - include: { file: schema/009-enforcement.sql, relativeToChangelogFile: true }
+  - include: { file: schema/010-reporting.sql, relativeToChangelogFile: true }
+  - include: { file: schema/011-dashboard.sql, relativeToChangelogFile: true }
+
+  - include: { file: seed/001-customer.sql, relativeToChangelogFile: true }
+  - include: { file: seed/002-loan.sql, relativeToChangelogFile: true }
+  - include: { file: seed/003-card.sql, relativeToChangelogFile: true }
+  - include: { file: seed/004-risk.sql, relativeToChangelogFile: true }
+  - include: { file: seed/005-ebanking.sql, relativeToChangelogFile: true }
+  - include: { file: seed/006-cases.sql, relativeToChangelogFile: true }
+  - include: { file: seed/007-contactcenter.sql, relativeToChangelogFile: true }
+  - include: { file: seed/008-collections.sql, relativeToChangelogFile: true }
+  - include: { file: seed/009-enforcement.sql, relativeToChangelogFile: true }
+  - include: { file: seed/010-reporting.sql, relativeToChangelogFile: true }
+  - include: { file: seed/011-dashboard.sql, relativeToChangelogFile: true }

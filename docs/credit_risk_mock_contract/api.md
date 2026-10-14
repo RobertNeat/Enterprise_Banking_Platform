@@ -25,7 +25,7 @@ Response `200 OK`:
 ```json
 {
   "applicantId": "string",
-  "scoreResult": "int 0-100",
+  "scoreResult": "int 300-850 (skala FICO/BIK)",
   "dsti": "number 0.00-0.99",
   "inquiryId": "string (UUID)",
   "queriedAt": "ISO-8601 instant"
@@ -42,7 +42,7 @@ Response `200 OK` — lista (może być pusta), elementy w formacie identycznym 
 
 ```json
 [
-  { "applicantId": "...", "scoreResult": 0, "dsti": 0.0, "inquiryId": "...", "queriedAt": "..." }
+  { "applicantId": "...", "scoreResult": 300, "dsti": 0.0, "inquiryId": "...", "queriedAt": "..." }
 ]
 ```
 

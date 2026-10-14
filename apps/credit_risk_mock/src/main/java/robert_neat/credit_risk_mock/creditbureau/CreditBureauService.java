@@ -54,10 +54,9 @@ public class CreditBureauService {
         }
     }
 
-    /** Pseudo-random but deterministic 0-100 score derived from applicantId hash. */
+    /** Pseudo-random but deterministic 300-850 (FICO/BIK scale) score derived from applicantId hash. */
     private int deterministicScore(String applicantId) {
-        int hash = Math.abs(applicantId.hashCode());
-        return hash % 101;
+        return 300 + Math.floorMod(applicantId.hashCode(), 551);
     }
 
     /**

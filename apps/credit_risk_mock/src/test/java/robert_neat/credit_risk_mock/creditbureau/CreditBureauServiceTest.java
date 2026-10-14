@@ -22,7 +22,7 @@ class CreditBureauServiceTest {
 
         assertThat(first.scoreResult()).isEqualTo(second.scoreResult());
         assertThat(first.dsti()).isEqualTo(second.dsti());
-        assertThat(first.scoreResult()).isBetween(0, 100);
+        assertThat(first.scoreResult()).isBetween(300, 850);
         assertThat(first.dsti()).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         assertThat(first.dsti()).isLessThanOrEqualTo(BigDecimal.ONE);
     }

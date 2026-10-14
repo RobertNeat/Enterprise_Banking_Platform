@@ -53,3 +53,7 @@ Walidacja ręczna w kontrolerach (bez `class-validator`/`class-transformer` — 
 - Frontend (`banking_web`) — widok KRT-03 (zgłoszenie chargebacku) jest obecnie tylko symulacją-toastem; potrzebuje nowego formularza z wyborem `reasonCode` i wyświetlaniem cyklu statusów (`FILED → UNDER_REVIEW → RESOLVED_*`).
 - Potrzebny trwały storage (baza danych + seeder) w kolejnej iteracji — obecnie cały stan (autoryzacje, blokady, chargebacki, flaga outage) ginie po restarcie procesu.
 - Rozważyć w kolejnej iteracji, czy autoryzacja na zablokowanej karcie powinna być automatycznie odrzucana (obecnie blokada i autoryzacja są niezależne).
+
+## CORS
+
+Serwis jest eksponowany na hoście i wołany bezpośrednio z przeglądarki — dodano `app.enableCors()` w `main.ts` (origin konfigurowalny przez `CARD_PROCESSOR_CORS_ALLOWED_ORIGIN`, domyślnie `http://localhost:10500`, metody `GET`/`POST`), analogicznie do `identity_access_mock`/`external_institutions_gateway_mock`.

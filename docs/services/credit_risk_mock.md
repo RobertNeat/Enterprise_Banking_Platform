@@ -10,7 +10,7 @@ Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap` w singlet
 
 ### Credit bureau (BIK mock)
 
-- `POST /credit-bureau/score` — przyjmuje `{ applicantId, requestedAmount, segment }` (`segment`: `retail`|`business`), zwraca symulowany wynik scoringowy i DSTI. `scoreResult` jest pseudo-losowy, ale deterministyczny (hash z `applicantId`, zakres 0-100). `dsti` jest pseudo-losowy, skorelowany z `requestedAmount` (większa kwota → wyższe DSTI), zakres 0.00-0.99. Każde zapytanie zapisywane do historii per `applicantId`.
+- `POST /credit-bureau/score` — przyjmuje `{ applicantId, requestedAmount, segment }` (`segment`: `retail`|`business`), zwraca symulowany wynik scoringowy i DSTI. `scoreResult` jest pseudo-losowy, ale deterministyczny (hash z `applicantId`, zakres 300-850, skala FICO/BIK). `dsti` jest pseudo-losowy, skorelowany z `requestedAmount` (większa kwota → wyższe DSTI), zakres 0.00-0.99. Każde zapytanie zapisywane do historii per `applicantId`.
 - `GET /credit-bureau/history/{applicantId}` — lista wcześniejszych zapytań dla wnioskodawcy (chronologicznie, może być pusta).
 
 ### ECL engine (IFRS 9)

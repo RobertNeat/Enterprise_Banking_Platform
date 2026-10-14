@@ -66,6 +66,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${BANKING_DB_NAME:-banking}
       SPRING_DATASOURCE_USERNAME: ${BANKING_DB_USER:-banking}
       SPRING_DATASOURCE_PASSWORD: ${BANKING_DB_PASSWORD:-banking}
+      BANKING_SEED_MOCK_DATA: ${BANKING_SEED_MOCK_DATA:-false}
     depends_on:
       postgres:
         condition: service_healthy
