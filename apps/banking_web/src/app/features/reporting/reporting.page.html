@@ -52,6 +52,7 @@
         <th>{{ 'reporting.period' | translate }}</th>
         <th>{{ 'reporting.dueDate' | translate }}</th>
         <th>{{ 'common.status' | translate }}</th>
+        <th>{{ 'common.actions' | translate }}</th>
       </tr>
     </ng-template>
     <ng-template #body let-r>
@@ -68,6 +69,28 @@
               [labelKey]="'reporting.status.' + r.status"
               [severity]="severity[r.status]"
             />
+          </td>
+          <td>
+            @if (r.status === 'draft') {
+              <p-button
+                [id]="'reporting-row-' + r.id + '-submit-btn'"
+                [pt]="{ root: { id: 'reporting-row-' + r.id + '-submit-btn-root' } }"
+                [label]="'reporting.submit' | translate"
+                [text]="true"
+                size="small"
+                (click)="submit(r)"
+              />
+            }
+            @if (r.status === 'submitted') {
+              <p-button
+                [id]="'reporting-row-' + r.id + '-check-status-btn'"
+                [pt]="{ root: { id: 'reporting-row-' + r.id + '-check-status-btn-root' } }"
+                [label]="'reporting.checkStatus' | translate"
+                [text]="true"
+                size="small"
+                (click)="checkStatus(r)"
+              />
+            }
           </td>
         </tr>
       }

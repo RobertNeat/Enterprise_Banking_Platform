@@ -523,6 +523,93 @@ serwisu dodałoby strukturę bez korzyści.
    panelu Thymeleaf `identity_access_mock:10525/otp` (manualny test demo). Pracownik odbiera kod od
    klienta kanałem pozakanałowym (symulowane jako podpowiedź tekstowa w UI, nie realny SMS/telefon).
 
+### F3 — ryzyko (ECL) i windykacja: akcje przeniesione na backend (R4)
+
+`risk/RiskActionsService` dodaje `POST /risk/collateral/{id}/reclassify` — woła `credit_risk_mock`
+`POST /ecl/classify` przez `creditrisk/CreditRiskClient.classifyEcl(...)` (rozszerzenie klienta z
+F2, ten sam `RestClient`/adres). **Decyzja projektowa: proweniencja `daysPastDue`.**
+`CollateralEntry` nie ma własnego pola opóźnienia, a łańcuch `CollateralEntry.customer` →
+`LoanApplication` → `CollectionsCase` nie jest jednoznaczny (klient może mieć wiele kredytów i wiele
+spraw windykacyjnych o różnym opóźnieniu) — automatyczne wyprowadzenie byłoby niejednoznaczne.
+Wybrano opcję (a): `daysPastDue` jest polem formularza wpisywanym przez pracownika w dialogu
+"Przelicz ECL" (`risk.page.ts`) w momencie przeliczania — prostsza i poprawna, operator znający
+sprawę klienta wie, ile dni zwłoki ma uwzględnić. Wynik (`stage`/`provision`/`eclClassifiedAt`)
+zapisywany na encji, audytowany jako `COLLATERAL_RECLASSIFIED`.
+
+`collections/CollectionsActionsService` dodaje trzy endpointy przenoszące na backend walidacje, które
+wcześniej żyły tylko w `collections.page.ts`: `POST /collections/{id}/remind` (bez zmiany `stage`,
+`409` jeśli `stage='legal'`), `POST /collections/{id}/propose-settlement` (`stage→'settlement'`),
+`POST /collections/{id}/transfer-external` (`stage→'external'`, `409` jeśli `stage` to
+`'monitoring'`/`'reminder'`). Każda akcja dopisuje wiersz `CollectionsAction` — `action_type` jest
+ograniczony przez `CHECK` w bazie do `REMINDER_SENT|SETTLEMENT_PROPOSED|EXTERNAL_TRANSFER` (zbiór
+zdefiniowany w R1/seedzie, R4 go nie rozszerza); audyt w `governance_mock` używa osobnych, bardziej
+opisowych nazw akcji (`COLLECTIONS_REMINDER_SENT` itd.) — te dwa słowniki są niezależne.
+
+### F6 — zajęcia komornicze: rejestracja → maker-checker → transfer (R4)
+
+`enforcement/EnforcementActionsService` rozszerza `EnforcementController` o trzy mutujące
+endpointy — zob. `docs/banking_backend_contract/api.md`, sekcja "Enforcement". Nowy
+`reporting/RegulatoryGatewayClient` (pakiet `reporting/`, bo woła tę samą bramę jak F7; wzorzec
+identyczny z `CreditRiskClient`/`CardProcessorClient`: `RestClient`, adres
+`banking.regulatorygateway.base-url`/`BANKING_REGULATORYGATEWAY_BASEURL`, domyślnie
+`http://localhost:10523`) woła `external_institutions_gateway_mock`. Różnica względem innych
+klientów: ten mock zwraca `ProblemDetail` (RFC 9457, pole `detail`), nie `{"message": ...}` —
+`extractMessage()` czyta `detail` najpierw, wzorem `GovernanceClient`, nie `CreditRiskClient`.
+
+1. `POST /enforcement` — woła `POST /enforcement/incoming`, zapisuje `gatewayEnforcementId` z
+   odpowiedzi bramy. **Zamyka otwarty punkt z R1.5**: od teraz NOWO rejestrowane zajęcia mają
+   realne powiązanie z bramą; zajęcia SEEDOWANE (`db/changelog/seed/009-enforcement.sql`) pozostają
+   z `gateway_enforcement_id=NULL` — to świadome, TRWAŁE ograniczenie demo (seedy backendu i seed
+   bramy nie mają wspólnych identyfikatorów, nigdy nie będą połączone retroaktywnie), nie zadanie do
+   zrobienia.
+2. `POST /enforcement/{id}/request-transfer-approval` — otwiera approval w `governance_mock`
+   (`type="ENFORCEMENT_TRANSFER"`), zapisuje `approvalId` na kolumnie `enforcement_case.approval_id`
+   (kolumna istniała od R1.5, nieużywana do teraz — bez potrzeby nowego Liquibase changesetu w R4).
+   `409` jeśli `status != 'registered'` LUB `gatewayEnforcementId=NULL` (sprawa seedowana — bez
+   sensu otwierać approval dla transferu, który i tak nie będzie mógł się wykonać).
+3. `POST /enforcement/{id}/transfer` — wzorzec identyczny z `LoanActionsService.advanceStage()`
+   (F2): wymaga `approvalId` zapisanego i `governance_mock`'s `getApproval(approvalId).status()
+   == "APPROVED"`, inaczej `409`. Dodatkowo wymaga `gatewayEnforcementId` nie-NULL (ta sama logika
+   co w punkcie 2.) — próba transferu zajęcia seedowanego dostaje `409` z komunikatem wyjaśniającym
+   ograniczenie, zamiast wywołania bramy z `null`/pustym id.
+4. **Ścieżka 503 → incydent ICT**: identyczny wzorzec z `CardActionsService.callProcessor()` (F4) —
+   `RegulatoryGatewayUnavailableException` (connection refused) łapana PRZED propagacją do klienta,
+   backend woła `GovernanceClient.createIctIncident(source="EXTERNAL_INSTITUTIONS_GATEWAY",
+   severity="HIGH")`, potem i tak zwraca `503`; podwójna awaria (governance_mock też niedostępny)
+   nie maskuje oryginalnego błędu. Ta sama `callGateway()` jest reużywana przez
+   `ReportingActionsService` (F7) — jeden helper, dwa wołający.
+
+### F7 — raport regulacyjny: złożenie → status przyjęcia/odrzucenia (R4)
+
+`reporting/ReportingActionsService` rozszerza `ReportingController` o `POST
+/reporting/reports/{id}/submit` i `POST /reporting/reports/{id}/refresh-submission-status` — zob.
+`docs/banking_backend_contract/api.md`, sekcja "Reporting". Używa tego samego
+`RegulatoryGatewayClient` co F6.
+
+1. `submit` wymaga `status='draft'` (`409` inaczej), woła `POST /regulatory-gateway/submit`,
+   zapisuje `ReportSubmission` (`gatewayStatus='PENDING'`), `status→'submitted'`.
+2. `refresh-submission-status` wymaga `status='submitted'`, woła `GET
+   /regulatory-gateway/submissions/{gatewaySubmissionId}` na najnowszym `ReportSubmission` tego
+   raportu (`findFirstByRegulatoryReportIdOrderBySubmittedAtDesc`). `validationErrors` (lista z
+   bramy) jest złączana `"; "` i przycinana do 1000 znaków (limit kolumny
+   `report_submission.validation_errors`).
+3. **Decyzja projektowa: status `RegulatoryReport` po `REJECTED`.** `reporting.model.ts` (frontend)
+   ma union `'draft' | 'submitted' | 'accepted'` — brak `'rejected'`, zgodnie z `CHECK` w
+   `regulatory_report.status`. `ACCEPTED` z bramy → `status='accepted'`. `REJECTED` → `status='draft'`
+   (zamiast dodawać nową wartość do unii/CHECK bez wyraźnej potrzeby) — raport wraca do stanu
+   edytowalnego, `validationErrors` z ostatniego `ReportSubmission` pozostają widoczne we
+   frontendzie (`ReportSubmissionDto`/`RefreshSubmissionStatusResponse`) jako wyjaśnienie odrzucenia,
+   mimo że status raportu formalnie wrócił do `'draft'`. Reguła odrzucenia bramy jest deterministyczna
+   per `reportId` (`floorMod(reportId.hashCode(),10)==0`) — raport, który trafia na tę regułę, będzie
+   odrzucany przy KAŻDYM ponownym złożeniu z tym samym `id` (świadoma właściwość mocka, nie błąd).
+4. **Decyzja projektowa: `/fatca-crs/export` nie jest wołany w R4.** Kontrakt bramy wystawia osobny
+   endpoint do generowania XML z rekordów `{customer, taxId, balance}`, ale `RegulatoryReport`/
+   `reporting.page.ts` nie przechowują takich danych na poziomie rekordu, tylko metadane raportu
+   (`recipient`/`name`/`period`/`dueDate`/`status`); `/regulatory-gateway/submit` akceptuje
+   `recipient="FATCA/CRS"` tą samą ścieżką co KNF/NBP/BFG, więc jedna generyczna ścieżka `submit`
+   obsługuje wszystkie cztery. Dodanie `/fatca-crs/export` bez modelu rekordów do wypełnienia byłoby
+   implementowaniem kontraktu mocka bez realnego miejsca w UI.
+
 ### Pułapki Spring Boot 4.1 (do wiedzy przy kolejnych rundach)
 
 - Startery: `spring-boot-starter-security` + `spring-boot-starter-oauth2-resource-server` (główny),
@@ -542,22 +629,24 @@ serwisu dodałoby strukturę bez korzyści.
   `controllerEndpointHandlerMapping` z Actuatora) — wstrzykiwanie wymaga
   `@Qualifier("requestMappingHandlerMapping")` (zob. `EndpointAuthorizationTest`).
 
-## Do uzupełnienia w innych częściach aplikacji
+## Stan bieżący — ograniczenia świadome (nie zadania do wykonania)
 
-- Integracje z serwisami mockowymi i wypełnianie identyfikatorów referencyjnych: `bureau_inquiry_id`
-  (credit_risk_mock), `approval_id` i `governance_audit_event_id` (governance_mock),
-  `gateway_submission_id` i `gateway_enforcement_id` (external_institutions_gateway_mock),
-  identyfikatory autoryzacji kartowych i chargebacków (card_processor_mock). W seedzie te pola są
-  puste lub przykładowe.
+Wszystkie funkcje F2-F8 z `docs/banking_web_functions(concise).md` są podłączone do backendu
+(R1-R4 kompletne). Poniższe punkty są trwałymi właściwościami tej iteracji demo, nie otwartymi
+zadaniami:
+
+- Zajęcia komornicze SEEDOWANE (`db/changelog/seed/009-enforcement.sql`) mają
+  `gateway_enforcement_id=NULL` — nie da się ich transferować (`POST
+  /enforcement/{id}/transfer` zwraca `409`), bo seed backendu i seed
+  `external_institutions_gateway_mock` nie mają wspólnych identyfikatorów. Tylko zajęcia
+  zarejestrowane PRZEZ `POST /enforcement` (R4+) mają realne powiązanie. Zob. sekcja "F6" wyżej.
+  Analogicznie: raporty SEEDOWANE w statusie `submitted` (`RPT-NBP-014`) mają fikcyjny
+  `gateway_submission_id` niepowiązany z żadnym realnym wpisem w bramie — `refresh-submission-status`
+  na takim raporcie dostanie `404` z bramy (passthrough jako `RegulatoryGatewayException` 404), do
+  przetestowania z nowo złożonym raportem, nie z danymi seed.
 - Harmonogram rat (`installment`) jest przechowywany tylko dla 2 z 13 wniosków kredytowych
   (`LN-80231`, `LN-80203`) — pozostałe wnioski zwracają `installments: []` z
-  `GET /loans/{id}`, a `loan-detail.page.ts` spada na lokalnie liczony `buildSchedule()` jak
-  dotychczas. Pełne przechowywanie harmonogramu dla wszystkich wniosków wymagałoby rozszerzenia
-  seeda (zmiana liczności).
-- Mutacje dla egzekucji/raportowania (`external_institutions_gateway_mock`, F6/F7, R4) są poza
-  zakresem R3 — te akcje UI (rejestracja zajęcia, złożenie raportu itd.) wciąż żyją tylko w pamięci
-  przeglądarki. F2 (kredyty), F8 (sprawy klientów), F4 (karty) i F5 (e-banking/OTP) są już podłączone
-  do backendu — zob. sekcje "F2"/"F4"/"F5"/"F8" wyżej.
+  `GET /loans/{id}`, a `loan-detail.page.ts` spada na lokalnie liczony `buildSchedule()`.
 - **Rozjazd nawigacji vs permissions `identity_access_mock`**: `RolePermissions.java` w
   `identity_access_mock` nie ma wartości `reporting` ani `cases` (żadna rola ich nie ma), a `admin` nie
   ma `enforcement` (mają je tylko `collections`). `banking_web`'s `nav.model.ts` dla R1 mapuje

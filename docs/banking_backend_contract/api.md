@@ -7,11 +7,15 @@ konfigurowalny przez property `app.cors.allowed-origin` / zmienną środowiskow�
 domyślnie `http://localhost:10500`; metody `GET, POST, PUT, PATCH, DELETE, OPTIONS`, nagłówki
 `Authorization, Content-Type`).
 
-Większość endpointów to GET-only (21 encji z R1). Od R2: `POST /loans`, `POST /loans/{id}/submit-for-approval`,
-`POST /loans/{id}/advance-stage`, `POST /cases`, `POST /cases/{id}/escalate` mutują dane (F2/F8,
-zob. sekcje "Loans"/"Cases" niżej). Serializacja JSON przez Jackson (transytywnie z
-`spring-boot-starter-web`, bez nowej zależności). DTO to Java records; encje JPA nigdy nie są
-serializowane bezpośrednio.
+Większość endpointów GET-only. Mutujące endpointy wprowadzone etapami: R2 — `POST /loans`,
+`POST /loans/{id}/submit-for-approval`, `POST /loans/{id}/advance-stage`, `POST /cases`,
+`POST /cases/{id}/escalate` (F2/F8); R3 — `POST /cards/{cardId}/block|unblock`,
+`POST /cards/{cardId}/chargebacks`, `POST /cards/chargebacks/{id}/advance` (F4); R4 —
+`POST /risk/collateral/{id}/reclassify` (F3), `POST /collections/{id}/remind|propose-settlement|
+transfer-external` (F3), `POST /enforcement` + `/request-transfer-approval` + `/transfer` (F6),
+`POST /reporting/reports/{id}/submit|refresh-submission-status` (F7) — zob. sekcje niżej.
+Serializacja JSON przez Jackson (transytywnie z `spring-boot-starter-web`, bez nowej zależności).
+DTO to Java records; encje JPA nigdy nie są serializowane bezpośrednio.
 
 Odpowiedzi błędów (404 i inne):
 
@@ -415,6 +419,15 @@ miało i nie ma formularza do ręcznego tworzenia autoryzacji.
 
 - `GET /collections` → `CollectionsCaseDto[]`
 - `GET /collections/{id}/actions` → `CollectionsActionDto[]` (404 jeśli sprawa nieznana)
+- `POST /collections/{id}/remind` (F3) → `CollectionsCaseDto`. Bez zmiany `stage` — tylko audyt
+  (`COLLECTIONS_REMINDER_SENT`) i wpis `CollectionsAction` (`action_type='REMINDER_SENT'`). `409`
+  jeśli `stage='legal'` (walidacja przeniesiona z frontendu, R4).
+- `POST /collections/{id}/propose-settlement` (F3) → `CollectionsCaseDto`. `stage→'settlement'`,
+  audytuje `COLLECTIONS_SETTLEMENT_PROPOSED`, wpis `CollectionsAction`
+  (`action_type='SETTLEMENT_PROPOSED'`).
+- `POST /collections/{id}/transfer-external` (F3) → `CollectionsCaseDto`. `stage→'external'`, `409`
+  jeśli `stage` to `'monitoring'`/`'reminder'` (walidacja przeniesiona z frontendu, R4). Audytuje
+  `COLLECTIONS_TRANSFERRED_EXTERNAL`, wpis `CollectionsAction` (`action_type='EXTERNAL_TRANSFER'`).
 
 ### Contact center
 
@@ -452,15 +465,54 @@ przekazuje kod klientowi kanałem pozakanałowym (symulowane w UI jako podpowied
 ### Enforcement
 
 - `GET /enforcement` → `EnforcementCaseDto[]`
+- `POST /enforcement` (F6) → `EnforcementCaseDto`. Request: `{ "bailiff", "caseNumber", "customer",
+  "blockedAmount", "protectedAmount"? }` (BEZ `transferredAmount` — nic nie jest przekazane w
+  momencie rejestracji). Woła `external_institutions_gateway_mock` `POST /enforcement/incoming`,
+  zapisuje `EnforcementCase` z `status='registered'` i `gatewayEnforcementId` z odpowiedzi bramy
+  (realne powiązanie dla nowo tworzonych zajęć — zamyka otwarty punkt z R1.5; zajęcia seedowane
+  pozostają z `gatewayEnforcementId=NULL`, to trwały stan demo, nie TODO). Audytuje
+  `ENFORCEMENT_REGISTERED`. `503` + incydent ICT (`source="EXTERNAL_INSTITUTIONS_GATEWAY"`) jeśli
+  brama nieosiągalna — ścieżka analogiczna do F4 (`card_processor_mock`).
+- `POST /enforcement/{id}/request-transfer-approval` (F6, maker-checker) →
+  `{ "enforcementCase": EnforcementCaseDto, "approvalId" }`. Otwiera approval w `governance_mock`
+  (`type="ENFORCEMENT_TRANSFER"`), zapisuje `approvalId` na encji (kolumna `approval_id`, już
+  istniała od R1.5 jako zmiana na encji, bez potrzeby nowej migracji w R4), `status→'active'`. `409`
+  jeśli `status != 'registered'` lub `gatewayEnforcementId=NULL` (zajęcie seedowane — nie można
+  zażądać transferu bez powiązania z bramą).
+- `POST /enforcement/{id}/transfer` (F6) → `EnforcementCaseDto`. Request: `{ "transferredAmount" }`.
+  Wymaga `status='active'`, `gatewayEnforcementId` nie-NULL, oraz approval zapisany w `approvalId`
+  w statusie `APPROVED` w `governance_mock` (wzorzec identyczny z `LoanActionsService.advanceStage`,
+  F2) — `409` w każdym innym przypadku. Woła bramę `POST /enforcement/{gatewayEnforcementId}/transfer`,
+  `status→'settled'`. Audytuje `ENFORCEMENT_FUNDS_TRANSFERRED`. `503`+incydent ICT jak przy rejestracji.
 
 ### Reporting
 
 - `GET /reporting/reports` → `RegulatoryReportDto[]`
 - `GET /reporting/reports/{id}/submissions` → `ReportSubmissionDto[]` (404 jeśli raport nieznany)
+- `POST /reporting/reports/{id}/submit` (F7) → `RegulatoryReportDto`. Wymaga `status='draft'` (`409`
+  inaczej). Woła `external_institutions_gateway_mock` `POST /regulatory-gateway/submit`, zapisuje
+  `ReportSubmission` (`gatewayStatus='PENDING'`), `status→'submitted'`. Audytuje `REPORT_SUBMITTED`.
+  `503`+incydent ICT jeśli brama nieosiągalna.
+- `POST /reporting/reports/{id}/refresh-submission-status` (F7) →
+  `{ "report": RegulatoryReportDto, "submission": ReportSubmissionDto }`. Wymaga `status='submitted'`
+  (`409` inaczej). Woła `GET /regulatory-gateway/submissions/{gatewaySubmissionId}` na najnowszym
+  `ReportSubmission` tego raportu, aktualizuje `gatewayStatus`/`validationErrors`/`resolvedAt`.
+  `ACCEPTED` → `RegulatoryReport.status='accepted'`. `REJECTED` → `status='draft'` (model TS
+  `reporting.model.ts` nie ma statusu `'rejected'`; `validationErrors` z bramy pozostają widoczne we
+  frontendzie nawet po powrocie do `draft` — zob. decyzja projektowa w
+  `docs/services/banking_backend.md`). Audytuje `REPORT_SUBMISSION_STATUS_REFRESHED`. Brak endpointu
+  `POST /fatca-crs/export` — `/regulatory-gateway/submit` obsługuje `recipient=FATCA/CRS` tą samą
+  ścieżką, a `reporting.page.ts` nie rozróżnia FATCA/CRS od innych odbiorców poza filtrem listy.
 
 ### Risk
 
 - `GET /risk/collateral` → `CollateralEntryDto[]`
+- `POST /risk/collateral/{id}/reclassify` (F3) → `CollateralEntryDto`. Request:
+  `{ "daysPastDue" }` (wpisywane przez pracownika — `CollateralEntry` nie ma własnego pola
+  opóźnienia i nie ma jednoznacznego łańcucha FK do `CollectionsCase`, zob. decyzja projektowa w
+  `docs/services/banking_backend.md`). Woła `credit_risk_mock` `POST /ecl/classify` z
+  `positionId=id`, `customerRating=entry.rating`, `exposureAmount=entry.valuation`, zapisuje
+  `stage`/`provision`/`eclClassifiedAt`. Audytuje `COLLATERAL_RECLASSIFIED`.
 
 ### Dashboard
 

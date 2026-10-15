@@ -28,4 +28,21 @@ describe('RiskStore', () => {
 
     expect(store.entries()).toEqual(COLLATERAL_ENTRIES);
   });
+
+  it('reclassify() posts to /risk/collateral/{id}/reclassify and updates the signal', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/risk/collateral`).flush(COLLATERAL_ENTRIES);
+    const entry = COLLATERAL_ENTRIES[0];
+    const updated = { ...entry, stage: 'stage2' as const, provision: 31000 };
+
+    const promise = store.reclassify(entry.id, 45);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/risk/collateral/${entry.id}/reclassify`,
+    );
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ daysPastDue: 45 });
+    req.flush(updated);
+    await promise;
+
+    expect(store.entries().find((e) => e.id === entry.id)).toEqual(updated);
+  });
 });

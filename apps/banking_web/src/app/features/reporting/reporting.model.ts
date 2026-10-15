@@ -16,3 +16,19 @@ export interface RegulatoryReport {
   dueDate: string;
   status: ReportStatus;
 }
+
+export type GatewaySubmissionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
+export interface ReportSubmission {
+  gatewaySubmissionId: string;
+  gatewayStatus: GatewaySubmissionStatus;
+  validationErrors: string | null;
+  submittedAt: string;
+  resolvedAt: string | null;
+}
+
+/** POST /reporting/reports/{id}/refresh-submission-status response. */
+export interface RefreshSubmissionStatusResponse {
+  report: RegulatoryReport;
+  submission: ReportSubmission;
+}

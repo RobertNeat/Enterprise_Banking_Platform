@@ -28,4 +28,49 @@ describe('CollectionsStore', () => {
 
     expect(store.cases()).toEqual(COLLECTIONS_CASES);
   });
+
+  it('remind() posts to /collections/{id}/remind and updates the signal', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/collections`).flush(COLLECTIONS_CASES);
+    const item = COLLECTIONS_CASES[4]; // DBT-6580, stage 'monitoring'
+
+    const promise = store.remind(item.id);
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/collections/${item.id}/remind`);
+    expect(req.request.method).toBe('POST');
+    req.flush(item);
+    await promise;
+
+    expect(store.cases().find((c) => c.id === item.id)).toEqual(item);
+  });
+
+  it('proposeSettlement() posts to /collections/{id}/propose-settlement and updates the signal', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/collections`).flush(COLLECTIONS_CASES);
+    const item = COLLECTIONS_CASES[4];
+    const updated = { ...item, stage: 'settlement' as const };
+
+    const promise = store.proposeSettlement(item.id);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/collections/${item.id}/propose-settlement`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(updated);
+    await promise;
+
+    expect(store.cases().find((c) => c.id === item.id)?.stage).toBe('settlement');
+  });
+
+  it('transferExternal() posts to /collections/{id}/transfer-external and updates the signal', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/collections`).flush(COLLECTIONS_CASES);
+    const item = COLLECTIONS_CASES[5]; // DBT-6572, stage 'restructuring'
+    const updated = { ...item, stage: 'external' as const };
+
+    const promise = store.transferExternal(item.id);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/collections/${item.id}/transfer-external`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(updated);
+    await promise;
+
+    expect(store.cases().find((c) => c.id === item.id)?.stage).toBe('external');
+  });
 });

@@ -46,14 +46,26 @@
           />
         </td>
         <td>
-          <p-button
-            [id]="'enforcement-row-' + item.id + '-transfer-btn'"
-            [pt]="{ root: { id: 'enforcement-row-' + item.id + '-transfer-btn-root' } }"
-            [label]="'enforcement.transferToAuthority' | translate"
-            [text]="true"
-            size="small"
-            (click)="transfer(item)"
-          />
+          @if (item.status === 'registered') {
+            <p-button
+              [id]="'enforcement-row-' + item.id + '-request-approval-btn'"
+              [pt]="{ root: { id: 'enforcement-row-' + item.id + '-request-approval-btn-root' } }"
+              [label]="'enforcement.requestTransferApproval' | translate"
+              [text]="true"
+              size="small"
+              (click)="requestTransferApproval(item)"
+            />
+          }
+          @if (item.status === 'active') {
+            <p-button
+              [id]="'enforcement-row-' + item.id + '-transfer-btn'"
+              [pt]="{ root: { id: 'enforcement-row-' + item.id + '-transfer-btn-root' } }"
+              [label]="'enforcement.transferToAuthority' | translate"
+              [text]="true"
+              size="small"
+              (click)="openTransferDialog(item)"
+            />
+          }
         </td>
       </tr>
     </ng-template>
@@ -80,13 +92,17 @@
           class="wizard-field-group"
         >
           <div class="field" id="enforcement-wizard-customer-field">
-            <label for="enforcement-wizard-customer-input" class="required">
+            <label for="enforcement-wizard-customer-select" class="required">
               {{ 'enforcement.wizard.customer' | translate }}
             </label>
-            <input
-              pInputText
-              id="enforcement-wizard-customer-input"
+            <p-select
+              id="enforcement-wizard-customer-select"
+              [pt]="{ dropdown: { id: 'enforcement-wizard-customer-select-dropdown-btn' } }"
               formControlName="customer"
+              [options]="customerOptions()"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
               [fluid]="true"
             />
             @if (detailsGroup.controls.customer.invalid && detailsGroup.controls.customer.touched) {
@@ -167,29 +183,6 @@
             }
           </div>
 
-          <div class="field" id="enforcement-wizard-transferred-amount-field">
-            <label for="enforcement-wizard-transferred-amount-input" class="required">
-              {{ 'enforcement.wizard.transferredAmount' | translate }}
-            </label>
-            <p-inputnumber
-              inputId="enforcement-wizard-transferred-amount-input"
-              formControlName="transferredAmount"
-              mode="decimal"
-              [minFractionDigits]="0"
-              [maxFractionDigits]="2"
-              suffix=" PLN"
-              [fluid]="true"
-            />
-            @if (
-              amountsGroup.controls.transferredAmount.invalid &&
-              amountsGroup.controls.transferredAmount.touched
-            ) {
-              <small id="enforcement-wizard-transferred-amount-error" class="error">
-                {{ 'wizard.validation.min' | translate: { min: 0 } }}
-              </small>
-            }
-          </div>
-
           <div class="field" id="enforcement-wizard-protected-amount-field">
             <label for="enforcement-wizard-protected-amount-input" class="required">
               {{ 'enforcement.wizard.protectedAmount' | translate }}
@@ -240,11 +233,6 @@
               {{ amountsGroup.controls.blockedAmount.value | number: '1.0-2' }} PLN
             </dd>
 
-            <dt>{{ 'enforcement.wizard.transferredAmount' | translate }}</dt>
-            <dd id="enforcement-wizard-summary-transferred-amount">
-              {{ amountsGroup.controls.transferredAmount.value | number: '1.0-2' }} PLN
-            </dd>
-
             <dt>{{ 'enforcement.wizard.protectedAmount' | translate }}</dt>
             <dd id="enforcement-wizard-summary-protected-amount">
               {{ amountsGroup.controls.protectedAmount.value | number: '1.2-2' }} PLN
@@ -255,3 +243,50 @@
     }
   </div>
 </app-wizard-dialog>
+
+<p-dialog
+  id="enforcement-transfer-dialog"
+  [pt]="{ pcCloseButton: { root: { id: 'enforcement-transfer-dialog-close-btn' } } }"
+  [visible]="transferDialogOpen()"
+  (visibleChange)="$event ? null : closeTransferDialog()"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '28rem', maxWidth: '95vw' }"
+  [header]="'enforcement.transferDialog.title' | translate"
+>
+  <form [formGroup]="transferForm" class="wizard-field-group" id="enforcement-transfer-form">
+    <div class="field" id="enforcement-transfer-amount-field">
+      <label for="enforcement-transfer-amount-input" class="required">{{
+        'enforcement.wizard.transferredAmount' | translate
+      }}</label>
+      <p-inputnumber
+        inputId="enforcement-transfer-amount-input"
+        formControlName="transferredAmount"
+        mode="decimal"
+        [minFractionDigits]="0"
+        [maxFractionDigits]="2"
+        suffix=" PLN"
+        [fluid]="true"
+      />
+    </div>
+  </form>
+
+  <div class="wizard-dialog__actions" id="enforcement-transfer-dialog-actions">
+    <p-button
+      id="enforcement-transfer-cancel-btn"
+      [pt]="{ root: { id: 'enforcement-transfer-cancel-btn-root' } }"
+      [label]="'wizard.cancel' | translate"
+      severity="secondary"
+      [text]="true"
+      (click)="closeTransferDialog()"
+    />
+    <p-button
+      id="enforcement-transfer-submit-btn"
+      [pt]="{ root: { id: 'enforcement-transfer-submit-btn-root' } }"
+      [label]="'wizard.submit' | translate"
+      icon="pi pi-check"
+      [disabled]="!transferFormValid() || transferring()"
+      (click)="submitTransfer()"
+    />
+  </div>
+</p-dialog>

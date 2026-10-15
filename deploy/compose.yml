@@ -72,6 +72,7 @@ services:
       BANKING_GOVERNANCE_BASEURL: http://governance-mock:${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}
       BANKING_CREDITRISK_BASEURL: http://credit-risk-mock:${CREDIT_RISK_MOCK_CONTAINER_PORT:-10522}
       BANKING_CARDPROCESSOR_BASEURL: http://card-processor-mock:${CARD_PROCESSOR_MOCK_CONTAINER_PORT:-10521}
+      BANKING_REGULATORYGATEWAY_BASEURL: http://external-institutions-gateway-mock:${EXTERNAL_INSTITUTIONS_GATEWAY_MOCK_CONTAINER_PORT:-10523}
     depends_on:
       postgres:
         condition: service_healthy

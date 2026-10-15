@@ -60,4 +60,40 @@ export class ReportingPage {
   viewDashboard(): void {
     this.router.navigate(['/reporting/dashboard']);
   }
+
+  /** F7 — submits a 'draft' report to KNF/NBP/BFG/FATCA-CRS via the gateway. */
+  async submit(report: { id: string; status: string }): Promise<void> {
+    if (report.status !== 'draft') {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    try {
+      await this.store.submit(report.id);
+      this.notify.success('toast.saved');
+    } catch {
+      this.notify.error('reporting.error.generic');
+    }
+  }
+
+  /** F7 — checks the gateway's accept/reject outcome for a 'submitted' report. */
+  async checkStatus(report: { id: string; status: string }): Promise<void> {
+    if (report.status !== 'submitted') {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    try {
+      const response = await this.store.refreshSubmissionStatus(report.id);
+      if (response.submission.gatewayStatus === 'PENDING') {
+        this.notify.info('reporting.statusStillPending');
+      } else if (response.submission.gatewayStatus === 'REJECTED') {
+        this.notify.warn('reporting.statusRejected', {
+          reason: response.submission.validationErrors ?? '',
+        });
+      } else {
+        this.notify.success('toast.saved');
+      }
+    } catch {
+      this.notify.error('reporting.error.generic');
+    }
+  }
 }

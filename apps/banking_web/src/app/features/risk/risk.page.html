@@ -17,6 +17,7 @@
         <th>{{ 'risk.rating' | translate }}</th>
         <th>{{ 'risk.stage' | translate }}</th>
         <th>{{ 'risk.provision' | translate }}</th>
+        <th>{{ 'common.actions' | translate }}</th>
       </tr>
     </ng-template>
     <ng-template #body let-row>
@@ -43,7 +44,63 @@
           />
         </td>
         <td>{{ row.provision | number: '1.0-0' }} PLN</td>
+        <td>
+          <p-button
+            [id]="'risk-row-' + row.id + '-reclassify-btn'"
+            [pt]="{ root: { id: 'risk-row-' + row.id + '-reclassify-btn-root' } }"
+            [label]="'risk.reclassify' | translate"
+            [text]="true"
+            size="small"
+            (click)="openReclassifyDialog(row)"
+          />
+        </td>
       </tr>
     </ng-template>
   </p-table>
 </div>
+
+<p-dialog
+  id="risk-reclassify-dialog"
+  [pt]="{ pcCloseButton: { root: { id: 'risk-reclassify-dialog-close-btn' } } }"
+  [visible]="reclassifyDialogOpen()"
+  (visibleChange)="$event ? null : closeReclassifyDialog()"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '28rem', maxWidth: '95vw' }"
+  [header]="'risk.reclassifyDialog.title' | translate"
+>
+  <form [formGroup]="reclassifyForm" class="wizard-field-group" id="risk-reclassify-form">
+    <div class="field" id="risk-reclassify-days-past-due-field">
+      <label for="risk-reclassify-days-past-due-input" class="required">{{
+        'risk.reclassifyDialog.daysPastDue' | translate
+      }}</label>
+      <p-inputnumber
+        inputId="risk-reclassify-days-past-due-input"
+        formControlName="daysPastDue"
+        mode="decimal"
+        [min]="0"
+        [showButtons]="true"
+        [fluid]="true"
+      />
+    </div>
+  </form>
+
+  <div class="wizard-dialog__actions" id="risk-reclassify-dialog-actions">
+    <p-button
+      id="risk-reclassify-cancel-btn"
+      [pt]="{ root: { id: 'risk-reclassify-cancel-btn-root' } }"
+      [label]="'wizard.cancel' | translate"
+      severity="secondary"
+      [text]="true"
+      (click)="closeReclassifyDialog()"
+    />
+    <p-button
+      id="risk-reclassify-submit-btn"
+      [pt]="{ root: { id: 'risk-reclassify-submit-btn-root' } }"
+      [label]="'wizard.submit' | translate"
+      icon="pi pi-check"
+      [disabled]="!reclassifyFormValid() || submitting()"
+      (click)="submitReclassify()"
+    />
+  </div>
+</p-dialog>

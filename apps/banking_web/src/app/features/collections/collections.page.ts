@@ -21,25 +21,30 @@ export class CollectionsPage {
   protected readonly cases = this.store.cases;
   protected readonly severity = COLLECTIONS_SEVERITY;
 
-  sendReminder(item: CollectionsCase): void {
-    if (item.stage === 'legal') {
+  async sendReminder(item: CollectionsCase): Promise<void> {
+    try {
+      await this.store.remind(item.id);
+      this.notify.success('toast.saved');
+    } catch {
       this.notify.warn('toast.actionBlocked');
-      return;
     }
-    this.notify.success('toast.saved');
   }
 
-  proposeSettlement(item: CollectionsCase): void {
-    this.store.update(item.id, (c) => ({ ...c, stage: 'settlement' }));
-    this.notify.success('toast.saved');
+  async proposeSettlement(item: CollectionsCase): Promise<void> {
+    try {
+      await this.store.proposeSettlement(item.id);
+      this.notify.success('toast.saved');
+    } catch {
+      this.notify.warn('toast.actionBlocked');
+    }
   }
 
-  transferExternal(item: CollectionsCase): void {
-    if (item.stage === 'monitoring' || item.stage === 'reminder') {
+  async transferExternal(item: CollectionsCase): Promise<void> {
+    try {
+      await this.store.transferExternal(item.id);
+      this.notify.success('toast.saved');
+    } catch {
       this.notify.warn('toast.actionBlocked');
-      return;
     }
-    this.store.update(item.id, (c) => ({ ...c, stage: 'external' }));
-    this.notify.success('toast.saved');
   }
 }

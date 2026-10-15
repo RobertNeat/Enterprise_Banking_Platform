@@ -17,6 +17,8 @@ import robert_neat.banking_backend.card.CardProcessorException;
 import robert_neat.banking_backend.card.CardProcessorUnavailableException;
 import robert_neat.banking_backend.ebanking.OtpNotVerifiedException;
 import robert_neat.banking_backend.common.InvalidStageTransitionException;
+import robert_neat.banking_backend.reporting.RegulatoryGatewayException;
+import robert_neat.banking_backend.reporting.RegulatoryGatewayUnavailableException;
 
 @RestControllerAdvice(annotations = RestController.class)
 public class RestExceptionHandler {
@@ -97,5 +99,17 @@ public class RestExceptionHandler {
     @ExceptionHandler(OtpNotVerifiedException.class)
     public ResponseEntity<ApiError> handleOtpNotVerified(OtpNotVerifiedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiError(ex.getMessage()));
+    }
+
+    /** Passes external_institutions_gateway_mock's own status/message through unchanged (400/404/409). */
+    @ExceptionHandler(RegulatoryGatewayException.class)
+    public ResponseEntity<ApiError> handleRegulatoryGateway(RegulatoryGatewayException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(new ApiError(ex.getMessage()));
+    }
+
+    @ExceptionHandler(RegulatoryGatewayUnavailableException.class)
+    public ResponseEntity<ApiError> handleRegulatoryGatewayUnavailable(RegulatoryGatewayUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiError("external_institutions_gateway_mock unavailable"));
     }
 }

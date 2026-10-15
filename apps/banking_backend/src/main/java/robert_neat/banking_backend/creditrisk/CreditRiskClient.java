@@ -15,8 +15,8 @@ import java.util.function.Supplier;
 
 /**
  * Thin client for credit_risk_mock — mirrors GovernanceClient's structure/error mapping
- * (see approvals/GovernanceClient.java). Only the scoring endpoint is needed for F2; ecl/classify
- * is out of scope for R2 (F3, a later round) and not wired here.
+ * (see approvals/GovernanceClient.java). Scoring (F2) and ECL classification (F3, R4) both live
+ * here since both hit the same mock service.
  */
 @Component
 public class CreditRiskClient {
@@ -38,6 +38,20 @@ public class CreditRiskClient {
                 .body(body)
                 .retrieve()
                 .body(CreditScoreResult.class));
+    }
+
+    /** F3 — classifies a collateral position into an IFRS 9 stage/provision bucket. */
+    public EclClassificationResult classifyEcl(
+            String positionId, int daysPastDue, String customerRating, BigDecimal exposureAmount) {
+        Map<String, Object> body = Map.of(
+                "positionId", positionId, "daysPastDue", daysPastDue,
+                "customerRating", customerRating, "exposureAmount", exposureAmount);
+        return exchange(() -> restClient.post()
+                .uri("/ecl/classify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(EclClassificationResult.class));
     }
 
     private <T> T exchange(Supplier<T> call) {

@@ -28,4 +28,45 @@ describe('ReportingStore', () => {
 
     expect(store.reports()).toEqual(REGULATORY_REPORTS);
   });
+
+  it('submit() posts to /reporting/reports/{id}/submit and updates the signal', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/reporting/reports`).flush(REGULATORY_REPORTS);
+    const report = REGULATORY_REPORTS[0]; // RPT-KNF-001, 'draft'
+    const updated = { ...report, status: 'submitted' as const };
+
+    const promise = store.submit(report.id);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/reporting/reports/${report.id}/submit`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(updated);
+    await promise;
+
+    expect(store.reports().find((r) => r.id === report.id)?.status).toBe('submitted');
+  });
+
+  it('refreshSubmissionStatus() posts to /reporting/reports/{id}/refresh-submission-status and updates the signal', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/reporting/reports`).flush(REGULATORY_REPORTS);
+    const report = REGULATORY_REPORTS[1]; // RPT-NBP-014, 'submitted'
+    const updatedReport = { ...report, status: 'accepted' as const };
+
+    const promise = store.refreshSubmissionStatus(report.id);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/reporting/reports/${report.id}/refresh-submission-status`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush({
+      report: updatedReport,
+      submission: {
+        gatewaySubmissionId: 'sub-1',
+        gatewayStatus: 'ACCEPTED',
+        validationErrors: null,
+        submittedAt: '2026-10-03T11:00:00Z',
+        resolvedAt: '2026-10-03T11:05:00Z',
+      },
+    });
+    await promise;
+
+    expect(store.reports().find((r) => r.id === report.id)?.status).toBe('accepted');
+  });
 });

@@ -1,12 +1,17 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
+import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
 import { EnforcementStore } from './enforcement.store';
@@ -15,6 +20,11 @@ import { ENFORCEMENT_SEVERITY, EnforcementCase } from './enforcement.model';
 /** Domyślna kwota wolna od zajęcia (PLN) — zgodna z istniejącymi danymi demo. */
 const DEFAULT_PROTECTED_AMOUNT = 1631.4;
 
+interface CustomerOption {
+  id: string;
+  fullName: string;
+}
+
 @Component({
   selector: 'app-enforcement-page',
   standalone: true,
@@ -22,9 +32,11 @@ const DEFAULT_PROTECTED_AMOUNT = 1631.4;
     DecimalPipe,
     ReactiveFormsModule,
     ButtonModule,
+    DialogModule,
     TableModule,
     InputTextModule,
     InputNumberModule,
+    SelectModule,
     TranslatePipe,
     StatusTagComponent,
     WizardDialogComponent,
@@ -35,14 +47,29 @@ export class EnforcementPage {
   private readonly notify = inject(NotificationService);
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(EnforcementStore);
+  private readonly http = inject(HttpClient);
+  private readonly apiBaseUrl = inject(ApiBaseUrlService);
 
   private readonly wizard = viewChild.required(WizardDialogComponent);
 
   protected readonly cases = this.store.cases;
   protected readonly severity = ENFORCEMENT_SEVERITY;
 
+  protected readonly customers = signal<CustomerOption[]>([]);
+
+  protected readonly customerOptions = computed(() =>
+    this.customers().map((c) => ({ label: `${c.fullName} (${c.id})`, value: c.id })),
+  );
+
+  constructor() {
+    this.http
+      .get<CustomerOption[]>(`${this.apiBaseUrl.bankingBackend}/customers`)
+      .subscribe((list) => this.customers.set(list));
+  }
+
   protected readonly wizardVisible = signal(false);
   protected readonly wizardStep = signal(0);
+  protected readonly registering = signal(false);
 
   protected readonly wizardSteps: WizardStep[] = [
     { labelKey: 'enforcement.wizard.step1' },
@@ -52,19 +79,20 @@ export class EnforcementPage {
 
   protected readonly form = this.fb.nonNullable.group({
     details: this.fb.nonNullable.group({
-      customer: this.fb.nonNullable.control('', [Validators.required]),
+      customer: this.fb.nonNullable.control<string | null>(null, [Validators.required]),
       bailiff: this.fb.nonNullable.control('', [Validators.required]),
       caseNumber: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(5)]),
     }),
     amounts: this.fb.nonNullable.group({
       blockedAmount: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0)]),
-      transferredAmount: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0)]),
       protectedAmount: this.fb.nonNullable.control(DEFAULT_PROTECTED_AMOUNT, [
         Validators.required,
         Validators.min(0),
       ]),
     }),
   });
+
+  private readonly formTick = toSignal(this.form.valueChanges, { initialValue: null });
 
   protected get detailsGroup() {
     return this.form.controls.details;
@@ -75,14 +103,7 @@ export class EnforcementPage {
   }
 
   openWizard(): void {
-    this.form.reset({
-      details: { customer: '', bailiff: '', caseNumber: '' },
-      amounts: {
-        blockedAmount: 0,
-        transferredAmount: 0,
-        protectedAmount: DEFAULT_PROTECTED_AMOUNT,
-      },
-    });
+    this.resetForm();
     this.wizardStep.set(0);
     this.wizard().reset();
     this.wizardVisible.set(true);
@@ -100,6 +121,7 @@ export class EnforcementPage {
   }
 
   isStepValid(): boolean {
+    this.formTick();
     switch (this.wizardStep()) {
       case 0:
         return this.detailsGroup.valid;
@@ -113,61 +135,112 @@ export class EnforcementPage {
   cancelWizard(): void {
     this.wizardVisible.set(false);
     this.wizardStep.set(0);
-    this.form.reset({
-      details: { customer: '', bailiff: '', caseNumber: '' },
-      amounts: {
-        blockedAmount: 0,
-        transferredAmount: 0,
-        protectedAmount: DEFAULT_PROTECTED_AMOUNT,
-      },
-    });
+    this.resetForm();
   }
 
-  submitWizard(): void {
+  async submitWizard(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
     const { details, amounts } = this.form.getRawValue();
-    const newCase: EnforcementCase = {
-      id: this.generateCaseId(),
-      customer: details.customer,
-      bailiff: details.bailiff,
-      caseNumber: details.caseNumber,
-      blockedAmount: amounts.blockedAmount,
-      transferredAmount: amounts.transferredAmount,
-      protectedAmount: amounts.protectedAmount,
-      status: 'registered',
-    };
-    this.store.add(newCase);
-    this.wizardVisible.set(false);
-    this.wizardStep.set(0);
-    this.form.reset({
-      details: { customer: '', bailiff: '', caseNumber: '' },
-      amounts: {
-        blockedAmount: 0,
-        transferredAmount: 0,
-        protectedAmount: DEFAULT_PROTECTED_AMOUNT,
-      },
-    });
-    this.notify.success('toast.saved');
+    this.registering.set(true);
+    try {
+      await this.store.register({
+        bailiff: details.bailiff,
+        caseNumber: details.caseNumber,
+        customer: details.customer!,
+        blockedAmount: amounts.blockedAmount,
+        protectedAmount: amounts.protectedAmount,
+      });
+      this.notify.success('toast.saved');
+      this.wizardVisible.set(false);
+      this.wizardStep.set(0);
+      this.resetForm();
+    } catch {
+      this.notify.error('enforcement.error.generic');
+    } finally {
+      this.registering.set(false);
+    }
   }
 
-  transfer(item: EnforcementCase): void {
+  // --- F6: wysłanie do zatwierdzenia (maker-checker) ---
+
+  async requestTransferApproval(item: EnforcementCase): Promise<void> {
+    if (item.status !== 'registered') {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    try {
+      await this.store.requestTransferApproval(item.id);
+      this.notify.success('toast.saved');
+    } catch {
+      this.notify.error('enforcement.error.generic');
+    }
+  }
+
+  // --- F6: wykonanie transferu (po zatwierdzeniu) ---
+
+  protected readonly transferDialogOpen = signal(false);
+  protected readonly transferCase = signal<EnforcementCase | null>(null);
+  protected readonly transferring = signal(false);
+
+  protected readonly transferForm = this.fb.nonNullable.group({
+    transferredAmount: this.fb.nonNullable.control<number | null>(null, [
+      Validators.required,
+      Validators.min(0.01),
+    ]),
+  });
+
+  private readonly transferFormTick = toSignal(this.transferForm.valueChanges, {
+    initialValue: null,
+  });
+
+  protected readonly transferFormValid = computed(() => {
+    this.transferFormTick();
+    return this.transferForm.valid;
+  });
+
+  openTransferDialog(item: EnforcementCase): void {
     if (item.status !== 'active') {
       this.notify.warn('toast.actionBlocked');
       return;
     }
-    this.notify.success('toast.saved');
+    this.transferCase.set(item);
+    this.transferForm.reset();
+    this.transferDialogOpen.set(true);
   }
 
-  private generateCaseId(): string {
-    const existingIds = new Set(this.cases().map((c) => c.id));
-    let id: string;
-    do {
-      const digits = Math.floor(1000 + Math.random() * 9000);
-      id = `EN-${digits}`;
-    } while (existingIds.has(id));
-    return id;
+  closeTransferDialog(): void {
+    this.transferDialogOpen.set(false);
+    this.transferCase.set(null);
+    this.transferForm.reset();
+  }
+
+  async submitTransfer(): Promise<void> {
+    const item = this.transferCase();
+    if (!item || this.transferForm.invalid) {
+      return;
+    }
+    const { transferredAmount } = this.transferForm.getRawValue();
+    this.transferring.set(true);
+    try {
+      await this.store.transfer(item.id, transferredAmount!);
+      this.notify.success('toast.saved');
+      this.closeTransferDialog();
+    } catch {
+      // Most likely 409 (approval not APPROVED yet / no gateway linkage) — see
+      // EnforcementActionsService.transfer() preconditions.
+      this.notify.error('enforcement.error.transferRejected');
+    } finally {
+      this.transferring.set(false);
+    }
+  }
+
+  private resetForm(): void {
+    this.form.reset({
+      details: { customer: null, bailiff: '', caseNumber: '' },
+      amounts: { blockedAmount: 0, protectedAmount: DEFAULT_PROTECTED_AMOUNT },
+    });
   }
 }

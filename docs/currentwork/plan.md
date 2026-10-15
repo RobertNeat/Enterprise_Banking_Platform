@@ -4,18 +4,11 @@ Cel: `banking_web` w pełni funkcjonalny (akcje mutujące przechodzą przez `ban
 serwisów mockowych), zabezpieczony JWT (wydawanym przez `banking_backend`, role z
 `identity_access_mock`).
 
-Każda runda = agent implementujący → PAUZA (przegląd użytkownika) → agent weryfikujący (tylko
-raport, nie modyfikuje kodu) → PAUZA (decyzja użytkownika o następnej rundzie).
+Plan wieloetapowy R1→R4 jest KOMPLETNY (R1 auth/JWT, R1.5 approvals + prerequisites, R2 F2/F8, R3
+F4/F5, R4 F3/F6/F7). Wszystkie funkcje F2-F8 z `docs/banking_web_functions(concise).md` są podłączone
+do backendu. Brak aktywnych pozycji planowanych.
 
-## Decyzje użytkownika (rozstrzygnięte przed R2)
-
-- **Trasa ruchu**: potwierdzone — `banking_backend` jest wyłącznym pośrednikiem między `banking_web`
-  i 5 serwisami mockowymi. `banking_web` nie woła mocków bezpośrednio nigdzie (R1 już to ustawiło
-  dla auth, R1.5 dla approvals; R2+ kontynuuje dla pozostałych flow).
-
-## R4 — F3 (ryzyko/windykacja) + F6 (zajęcia komornicze) + F7 (raportowanie)
-
-- F3: przeliczenie ECL (`credit_risk_mock`), zmiana etapu windykacji + audyt.
-- F6: rejestracja zajęcia, zatwierdzenie (maker-checker) + przekazanie środków
-  (`external_institutions_gateway_mock`).
-- F7: generowanie i złożenie raportu regulacyjnego, status przyjęcia/odrzucenia.
+Świadome, trwałe ograniczenia demo pozostające poza zakresem (nie zadania "do zrobienia") — opisane
+jako stan bieżący w `docs/services/banking_backend.md`, sekcja "Stan bieżący — ograniczenia
+świadome": brak powiązania z bramą dla zajęć/raportów seedowanych, harmonogram rat tylko dla 2 z 13
+kredytów, rozjazd nawigacji vs permissions `identity_access_mock`.

@@ -19,3 +19,17 @@ export interface EnforcementCase {
   protectedAmount: number;
   status: EnforcementStatus;
 }
+
+/** POST /enforcement body — no transferredAmount: nothing is transferred yet at registration. */
+export interface RegisterEnforcementRequest {
+  bailiff: string;
+  caseNumber: string;
+  customer: string;
+  blockedAmount: number;
+  protectedAmount?: number;
+}
+
+export interface RequestTransferApprovalResponse {
+  enforcementCase: EnforcementCase;
+  approvalId: string;
+}
