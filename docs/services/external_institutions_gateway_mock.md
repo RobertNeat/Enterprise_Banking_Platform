@@ -49,7 +49,6 @@ src/main/java/robert_neat/external_institutions_gateway_mock/
 ## Do uzupełnienia w innych częściach aplikacji
 
 - `banking_backend` musi odpytywać `GET /enforcement` okresowo (polling), aby wykrywać nowe przychodzące zajęcia komornicze — serwis nie wysyła żadnych webhooków/powiadomień push.
-- Powiązanie seedowanych zajęć z `enforcement_case` w `banking_backend` jest obecnie tylko "po danych" (ten sam `caseNumber`/`customer`), nie po id — `enforcement_case.gateway_enforcement_id` zostaje `NULL` w seedzie backendu. Wypełnienie tej kolumny (np. przy R4, F6) wymaga zdecydowania, czy backend importuje gateway id przy starcie, czy odwrotnie.
 - Docelowy XSD dla eksportu FATCA/CRS nie został ustalony — obecny XML jest uproszczonym mockiem strukturalnym (korzeń `FatcaCrsReport`), nie odwzorowuje żadnego konkretnego standardu IRS/OECD. Do uzgodnienia przed integracją produkcyjną.
 - Prawdziwa integracja z systemem Ognivo (e-zajęcia komornicze) jest poza zakresem — obecny endpoint `/enforcement/incoming` tylko symuluje odebranie tytułu wykonawczego.
 - Reguła deterministyczna `REJECTED`/`ACCEPTED` bramy sprawozdawczej (`hash(reportId) mod 10 == 0`) jest mockiem — prawdziwa walidacja KNF/NBP/BFG nie jest tu implementowana.

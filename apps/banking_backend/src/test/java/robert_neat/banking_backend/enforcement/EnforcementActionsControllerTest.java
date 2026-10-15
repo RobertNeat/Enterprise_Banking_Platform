@@ -33,8 +33,12 @@ import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 
 /**
  * RegulatoryGatewayClient and GovernanceClient are mocked (@MockitoBean) — no real HTTP calls.
- * Seed: EN-2205 'registered' (gatewayEnforcementId NULL), EN-2201 'active' (gatewayEnforcementId
- * NULL, seeded — no gateway linkage), EN-2198 'settled' — see db/changelog/seed/009-enforcement.sql.
+ * Seed (db/changelog/seed/009-enforcement.sql, R5): EN-2205 'registered' with gatewayEnforcementId
+ * NULL (no linkage — a brand-new incoming case, not yet registered with the gateway); EN-2201
+ * 'active' with both gatewayEnforcementId and approvalId populated (linked to
+ * external_institutions_gateway_mock's and governance_mock's own seeded records, see their
+ * respective seed()/ApprovalService.seed() — so the full maker-checker transfer works against it
+ * without creating a new case); EN-2198 'settled'.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
@@ -91,20 +95,57 @@ class EnforcementActionsControllerTest {
     }
 
     @Test
-    void requestTransferApprovalOnSeededRegisteredCaseWithoutLinkageIsConflict() throws Exception {
-        // EN-2205 is seeded 'registered' with gatewayEnforcementId=NULL.
+    void requestTransferApprovalOnSeededRegisteredCaseWithSeededLinkageSucceeds() throws Exception {
+        // EN-2205 is seeded 'registered' with gatewayEnforcementId populated (R5) — request can
+        // proceed to governance_mock even though the case predates the demo's own registration flow.
+        given(governanceClient.createApproval(eq("ENFORCEMENT_TRANSFER"), eq("PRC-00001"), anyString()))
+                .willReturn(new ApprovalRecord("appr-en2205", "ENFORCEMENT_TRANSFER", "PRC-00001", "payload",
+                        "PENDING", Instant.now(), null, null, null, null));
+
         mockMvc.perform(post("/enforcement/EN-2205/request-transfer-approval").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enforcementCase.status").value("active"))
+                .andExpect(jsonPath("$.approvalId").value("appr-en2205"));
+    }
+
+    @Test
+    void requestTransferApprovalOnNonRegisteredSeededCaseIsConflict() throws Exception {
+        // EN-2198 is seeded 'settled' — wrong status short-circuits before any gateway/governance call.
+        mockMvc.perform(post("/enforcement/EN-2198/request-transfer-approval").with(testJwt()))
                 .andExpect(status().isConflict());
 
         verify(governanceClient, never()).createApproval(anyString(), anyString(), anyString());
     }
 
     @Test
-    void transferOnSeededActiveCaseWithoutLinkageIsConflict() throws Exception {
-        // EN-2201 is seeded 'active' with gatewayEnforcementId=NULL (no gateway linkage).
+    void transferOnSeededActiveCaseWithSeededLinkageSucceeds() throws Exception {
+        // EN-2201 is seeded 'active' with both gatewayEnforcementId and approvalId populated
+        // (linked to external_institutions_gateway_mock's and governance_mock's own seeds) —
+        // transfer must resolve the approval via a live lookup, not trust a cached status.
+        given(governanceClient.getApproval("44444444-4444-4444-8444-444444444001")).willReturn(
+                new ApprovalRecord("44444444-4444-4444-8444-444444444001", "ENFORCEMENT_TRANSFER",
+                        "PRC-30678", "payload", "APPROVED", Instant.now(), "PRC-00001", Instant.now(), null, null));
+        given(gatewayClient.transferEnforcement(eq("33333333-3333-4333-8333-333333333001"), eq(new BigDecimal("6200.00"))))
+                .willReturn(new EnforcementTransferResponse(
+                        "33333333-3333-4333-8333-333333333001", "settled", Instant.now()));
+
         mockMvc.perform(post("/enforcement/EN-2201/transfer").with(testJwt())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"transferredAmount\":100.00}"))
+                        .content("{\"transferredAmount\":6200.00}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("settled"));
+    }
+
+    @Test
+    void transferOnSeededActiveCaseWithPendingApprovalIsConflict() throws Exception {
+        // Same seeded linkage as above, but the governance approval isn't APPROVED yet.
+        given(governanceClient.getApproval("44444444-4444-4444-8444-444444444001")).willReturn(
+                new ApprovalRecord("44444444-4444-4444-8444-444444444001", "ENFORCEMENT_TRANSFER",
+                        "PRC-30678", "payload", "PENDING", Instant.now(), null, null, null, null));
+
+        mockMvc.perform(post("/enforcement/EN-2201/transfer").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"transferredAmount\":6200.00}"))
                 .andExpect(status().isConflict());
 
         verify(gatewayClient, never()).transferEnforcement(anyString(), any());

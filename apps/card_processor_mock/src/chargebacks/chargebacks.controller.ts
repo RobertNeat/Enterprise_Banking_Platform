@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Query,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   ChargebacksService,
@@ -18,6 +19,7 @@ import type {
   ChargebackStatus,
 } from './chargeback.model.js';
 import { AuthorizationsService } from '../authorizations/authorizations.service.js';
+import { ProcessorService } from '../processor/processor.service.js';
 
 const REASON_CODES: ChargebackReasonCode[] = ['4855', '4837', '4853', '4863'];
 const ADVANCE_STATUSES: ChargebackStatus[] = [
@@ -31,6 +33,7 @@ export class ChargebacksController {
   constructor(
     private readonly chargebacksService: ChargebacksService,
     private readonly authorizationsService: AuthorizationsService,
+    private readonly processorService: ProcessorService,
   ) {}
 
   @Post()
@@ -38,6 +41,9 @@ export class ChargebacksController {
     const input = this.parseCreateInput(body);
     // Validates existence; throws 404 via AuthorizationsService if missing.
     this.authorizationsService.findById(input.authorizationId);
+    if (this.processorService.isOutageSimulated()) {
+      throw new ServiceUnavailableException('Processor unavailable');
+    }
     return this.chargebacksService.create(input);
   }
 
@@ -55,6 +61,9 @@ export class ChargebacksController {
   @HttpCode(200)
   advance(@Param('id') id: string, @Body() body: unknown): Chargeback {
     const status = this.parseAdvanceStatus(body);
+    if (this.processorService.isOutageSimulated()) {
+      throw new ServiceUnavailableException('Processor unavailable');
+    }
     return this.chargebacksService.advance(id, status);
   }
 

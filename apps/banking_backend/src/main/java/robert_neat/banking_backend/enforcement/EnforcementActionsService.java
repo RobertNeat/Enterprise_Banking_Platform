@@ -26,12 +26,12 @@ import java.math.BigDecimal;
  * - Approval-gated transition, mirroring LoanActionsService.advanceStage() (F2): transfer requires
  *   the linked governance_mock approval to already be APPROVED.
  *
- * gatewayEnforcementId linkage (R1.5 open point, closed here): newly registered cases get a real
- * gatewayEnforcementId from the gateway's response. Seeded cases (see
- * db/changelog/seed/009-enforcement.sql) keep gatewayEnforcementId=NULL — they predate this round
- * and have no corresponding gateway record (the gateway only seeds its own fictitious registry,
- * unrelated to banking_backend's seed ids). transfer() rejects with 409 when the linkage is
- * missing instead of calling the gateway with a null id — a permanent demo limitation, not a TODO.
+ * gatewayEnforcementId linkage: newly registered cases get a real gatewayEnforcementId from the
+ * gateway's response. Seeded cases (see db/changelog/seed/009-enforcement.sql) are linked to
+ * external_institutions_gateway_mock's own fixed-UUID seed (see EnforcementService.seed() there),
+ * so actions on seeded cases resolve against the mock the same way as on newly registered ones.
+ * transfer()/requestTransferApproval() still reject with 409 if gatewayEnforcementId is ever null
+ * (defensive — should not happen with the current seed, but guards any future unlinked case).
  */
 @Service
 @Transactional

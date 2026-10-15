@@ -19,9 +19,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class EnforcementService {
 
     // Fixed gateway-side ids matching apps/banking_backend's enforcement_case seed
-    // (db/changelog/seed/009-enforcement.sql) by case/customer so demo lookups line up; the
-    // backend's own enforcement_case.gateway_enforcement_id column is NULL in that seed (no link
-    // wired up yet — out of scope for R1.5, see docs/services/external_institutions_gateway_mock.md).
+    // (db/changelog/seed/009-enforcement.sql) by case/customer — the backend's own
+    // enforcement_case.gateway_enforcement_id column is populated with these same ids, so demo
+    // lookups resolve correctly without creating a new case.
     private static final String SEED_EN_2201 = "33333333-3333-4333-8333-333333333001";
     private static final String SEED_EN_2198 = "33333333-3333-4333-8333-333333333002";
     private static final String SEED_EN_2190 = "33333333-3333-4333-8333-333333333003";

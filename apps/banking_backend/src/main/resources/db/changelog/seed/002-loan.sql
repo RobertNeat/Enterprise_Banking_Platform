@@ -43,6 +43,16 @@ INSERT INTO loan_stage_transition (loan_application_id, from_stage, to_stage, ap
 ('LN-80203', 'contract', 'disbursement', NULL, TIMESTAMP WITH TIME ZONE '2026-03-28 12:00:00+01:00', 'PRC-10234'),
 ('LN-80203', 'schedule', 'collections', NULL, TIMESTAMP WITH TIME ZONE '2026-07-06 08:30:00+02:00', 'PRC-30678');
 
+--changeset robert_neat:seed-loan_stage_transition-002 context:mock-data
+-- LN-80255's 'decision' transition is added here (new changeset, not editing -001 in place —
+-- Liquibase checksums the already-run -001 on persistent Postgres deployments) with
+-- governance_mock's seeded PENDING approval (22222222-2222-4222-8222-222222222002) so
+-- advance-stage's live governance lookup resolves against a real seed, correctly 409ing until
+-- that approval is decided.
+INSERT INTO loan_stage_transition (loan_application_id, from_stage, to_stage, approval_id,
+                                   transitioned_at, transitioned_by) VALUES
+('LN-80255', 'scoring', 'decision', '22222222-2222-4222-8222-222222222002', TIMESTAMP WITH TIME ZONE '2026-09-18 12:00:00+02:00', 'PRC-20456');
+
 --changeset robert_neat:seed-installment-001 context:mock-data
 -- Partial proof-of-concept schedules (12 rows each, equal principal, declining interest at 7.9%).
 -- LN-80231 has term 240; only its first 12 installments are seeded.

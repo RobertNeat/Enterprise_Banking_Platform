@@ -468,17 +468,18 @@ przekazuje kod klientowi kanałem pozakanałowym (symulowane w UI jako podpowied
 - `POST /enforcement` (F6) → `EnforcementCaseDto`. Request: `{ "bailiff", "caseNumber", "customer",
   "blockedAmount", "protectedAmount"? }` (BEZ `transferredAmount` — nic nie jest przekazane w
   momencie rejestracji). Woła `external_institutions_gateway_mock` `POST /enforcement/incoming`,
-  zapisuje `EnforcementCase` z `status='registered'` i `gatewayEnforcementId` z odpowiedzi bramy
-  (realne powiązanie dla nowo tworzonych zajęć — zamyka otwarty punkt z R1.5; zajęcia seedowane
-  pozostają z `gatewayEnforcementId=NULL`, to trwały stan demo, nie TODO). Audytuje
-  `ENFORCEMENT_REGISTERED`. `503` + incydent ICT (`source="EXTERNAL_INSTITUTIONS_GATEWAY"`) jeśli
-  brama nieosiągalna — ścieżka analogiczna do F4 (`card_processor_mock`).
+  zapisuje `EnforcementCase` z `status='registered'` i `gatewayEnforcementId` z odpowiedzi bramy.
+  Zajęcia seedowane (`db/changelog/seed/009-enforcement.sql`) mają `gatewayEnforcementId` wypełniony
+  fixed UUID-ami zgodnymi z bramy własnym seedem (`EnforcementService.seed()`), więc akcje na nich
+  działają identycznie jak na nowo zarejestrowanych. Audytuje `ENFORCEMENT_REGISTERED`. `503` +
+  incydent ICT (`source="EXTERNAL_INSTITUTIONS_GATEWAY"`) jeśli brama nieosiągalna — ścieżka
+  analogiczna do F4 (`card_processor_mock`).
 - `POST /enforcement/{id}/request-transfer-approval` (F6, maker-checker) →
   `{ "enforcementCase": EnforcementCaseDto, "approvalId" }`. Otwiera approval w `governance_mock`
   (`type="ENFORCEMENT_TRANSFER"`), zapisuje `approvalId` na encji (kolumna `approval_id`, już
   istniała od R1.5 jako zmiana na encji, bez potrzeby nowej migracji w R4), `status→'active'`. `409`
-  jeśli `status != 'registered'` lub `gatewayEnforcementId=NULL` (zajęcie seedowane — nie można
-  zażądać transferu bez powiązania z bramą).
+  jeśli `status != 'registered'` lub `gatewayEnforcementId=NULL` (defensywna gałąź — brak takiego
+  przypadku w bieżącym seedzie).
 - `POST /enforcement/{id}/transfer` (F6) → `EnforcementCaseDto`. Request: `{ "transferredAmount" }`.
   Wymaga `status='active'`, `gatewayEnforcementId` nie-NULL, oraz approval zapisany w `approvalId`
   w statusie `APPROVED` w `governance_mock` (wzorzec identyczny z `LoanActionsService.advanceStage`,

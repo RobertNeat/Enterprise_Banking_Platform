@@ -15,7 +15,10 @@ Serwis jest czystym REST API — brak UI/panelu operatorskiego (Thymeleaf jest t
 - `POST /authorizations` — przyjmuje `{ cardId, merchant, amount, mcc, processor? }`. `processor` (`Visa`|`Mastercard`) jest opcjonalny — jeśli nie podany, wyznaczany deterministycznie z hasha `cardId`. Reguła decyzji: `amount <= 5000` → zatwierdzona (`responseCode: "00"`), `amount > 5000` → odrzucona (`responseCode: "05"`). Zwraca pełny rekord `CardAuthorization` rozszerzony o `mcc`, `responseCode`, `processorId`.
 - `GET /authorizations?cardId=...` — lista autoryzacji, filtr po `cardId` opcjonalny.
 - `GET /authorizations/{id}` — pojedyncza autoryzacja; 404 jeśli nieznana.
-- Gdy symulowana jest niedostępność procesora (patrz niżej), `POST /authorizations` zwraca `503`.
+- Gdy symulowana jest niedostępność procesora (patrz niżej), `POST /authorizations` zwraca `503` —
+  jak również `POST /cards/{cardId}/block`/`unblock` i `POST /chargebacks`/`{id}/advance` (R5): te
+  cztery są akcje, które `banking_backend` faktycznie wywołuje dla F4, więc ścieżka 503→incydent ICT
+  musi być osiągalna przez nie, nie tylko przez `/authorizations` (którego `banking_backend` nie woła).
 
 ### Blokada karty
 
@@ -33,7 +36,7 @@ Serwis jest czystym REST API — brak UI/panelu operatorskiego (Thymeleaf jest t
 
 - `POST /processor/simulate-outage` — `{ enabled: boolean }`, przełącza globalną flagę w pamięci.
 - `GET /processor/status` — `{ outageSimulated: boolean }`.
-- Służy do testowania przez `banking_backend` ścieżki alternatywnej F4 (procesor niedostępny → rejestracja incydentu ICT w `governance_mock`). Ten serwis **nie** wywołuje `governance_mock` — tylko ułatwia test tej ścieżki.
+- Służy do testowania przez `banking_backend` ścieżki alternatywnej F4 (procesor niedostępny → rejestracja incydentu ICT w `governance_mock`). Ten serwis **nie** wywołuje `governance_mock` — tylko ułatwia test tej ścieżki. Flaga wpływa na block/unblock/chargeback (nie tylko `/authorizations`, patrz wyżej).
 
 Pełny kontrakt request/response: `docs/card_processor_mock_contract/api.md`.
 
@@ -58,9 +61,6 @@ Walidacja ręczna w kontrolerach (bez `class-validator`/`class-transformer` — 
 
 ## Do uzupełnienia w innych częściach aplikacji
 
-- `banking_backend` musi wołać `POST /authorizations` przy symulacji transakcji kartowej oraz `POST /cards/{cardId}/block` / `unblock` przy akcjach operatora na karcie (F4).
-- `banking_backend` musi wołać `POST /processor/simulate-outage` (lub serwis testowy) w testach ścieżki alternatywnej F4, a przy otrzymaniu `503` z `/authorizations` — rejestrować incydent ICT w `governance_mock`.
-- Frontend (`banking_web`) — widok KRT-03 (zgłoszenie chargebacku) jest obecnie tylko symulacją-toastem; potrzebuje nowego formularza z wyborem `reasonCode` i wyświetlaniem cyklu statusów (`FILED → UNDER_REVIEW → RESOLVED_*`).
 - Potrzebny trwały storage (baza danych + seeder) w kolejnej iteracji — obecnie cały stan (autoryzacje, blokady, chargebacki, flaga outage) ginie po restarcie procesu.
 - Rozważyć w kolejnej iteracji, czy autoryzacja na zablokowanej karcie powinna być automatycznie odrzucana (obecnie blokada i autoryzacja są niezależne).
 

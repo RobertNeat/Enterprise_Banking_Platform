@@ -635,15 +635,6 @@ Wszystkie funkcje F2-F8 z `docs/banking_web_functions(concise).md` są podłącz
 (R1-R4 kompletne). Poniższe punkty są trwałymi właściwościami tej iteracji demo, nie otwartymi
 zadaniami:
 
-- Zajęcia komornicze SEEDOWANE (`db/changelog/seed/009-enforcement.sql`) mają
-  `gateway_enforcement_id=NULL` — nie da się ich transferować (`POST
-  /enforcement/{id}/transfer` zwraca `409`), bo seed backendu i seed
-  `external_institutions_gateway_mock` nie mają wspólnych identyfikatorów. Tylko zajęcia
-  zarejestrowane PRZEZ `POST /enforcement` (R4+) mają realne powiązanie. Zob. sekcja "F6" wyżej.
-  Analogicznie: raporty SEEDOWANE w statusie `submitted` (`RPT-NBP-014`) mają fikcyjny
-  `gateway_submission_id` niepowiązany z żadnym realnym wpisem w bramie — `refresh-submission-status`
-  na takim raporcie dostanie `404` z bramy (passthrough jako `RegulatoryGatewayException` 404), do
-  przetestowania z nowo złożonym raportem, nie z danymi seed.
 - Harmonogram rat (`installment`) jest przechowywany tylko dla 2 z 13 wniosków kredytowych
   (`LN-80231`, `LN-80203`) — pozostałe wnioski zwracają `installments: []` z
   `GET /loans/{id}`, a `loan-detail.page.ts` spada na lokalnie liczony `buildSchedule()`.

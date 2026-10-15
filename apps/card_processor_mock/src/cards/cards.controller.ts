@@ -5,8 +5,10 @@ import {
   HttpCode,
   Param,
   Post,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { CardsService } from './cards.service.js';
+import { ProcessorService } from '../processor/processor.service.js';
 
 interface BlockStatus {
   cardId: string;
@@ -15,12 +17,18 @@ interface BlockStatus {
 
 @Controller('cards')
 export class CardsController {
-  constructor(private readonly cardsService: CardsService) {}
+  constructor(
+    private readonly cardsService: CardsService,
+    private readonly processorService: ProcessorService,
+  ) {}
 
   @Post(':cardId/block')
   @HttpCode(200)
   block(@Param('cardId') cardId: string): BlockStatus {
     this.validateCardId(cardId);
+    if (this.processorService.isOutageSimulated()) {
+      throw new ServiceUnavailableException('Processor unavailable');
+    }
     this.cardsService.block(cardId);
     return { cardId, blocked: true };
   }
@@ -29,6 +37,9 @@ export class CardsController {
   @HttpCode(200)
   unblock(@Param('cardId') cardId: string): BlockStatus {
     this.validateCardId(cardId);
+    if (this.processorService.isOutageSimulated()) {
+      throw new ServiceUnavailableException('Processor unavailable');
+    }
     this.cardsService.unblock(cardId);
     return { cardId, blocked: false };
   }

@@ -41,9 +41,14 @@ public class ApprovalService {
      * governance_mock's own four-eyes check) to keep an audit trail consistent with "decided by
      * someone other than the maker".
      *
-     * LN-80255 is still sitting in stage='decision' in the backend seed with NO transition row
-     * yet (nobody has decided it) — seeded here as PENDING, requested by PRC-20456 (the credit
-     * risk analyst who scored it), so the approvals queue demo has something left to act on.
+     * LN-80255 is still sitting in stage='decision' in the backend seed, linked via its
+     * loan_stage_transition.approval_id (db/changelog/seed/002-loan.sql) — seeded here as PENDING,
+     * requested by PRC-20456 (the credit risk analyst who scored it), so the approvals queue demo
+     * has something left to act on.
+     *
+     * EN-2201 is 'active' in the backend's enforcement_case seed (db/changelog/seed/009-enforcement.sql),
+     * linked via its approval_id — seeded here already APPROVED (decided by PRC-00001, admin) so
+     * "Wykonaj transfer" on this seeded case can succeed without first requesting a new approval.
      */
     @PostConstruct
     void seed() {
@@ -55,6 +60,9 @@ public class ApprovalService {
                 "PRC-00001", Instant.parse("2026-09-02T07:45:00Z"));
         seedPending("22222222-2222-4222-8222-222222222002", "LOAN_STAGE_TRANSITION", "PRC-20456",
                 "LN-80255: scoring -> decision (2200000.00 PLN, business investment, score 655)");
+        seedDecided("44444444-4444-4444-8444-444444444001", "ENFORCEMENT_TRANSFER", "PRC-30678",
+                "Enforcement case EN-2201 blocked amount 18400.00",
+                "PRC-00001", Instant.parse("2026-07-15T10:00:00Z"));
     }
 
     private void seedPending(String id, String type, String requestedBy, String payload) {

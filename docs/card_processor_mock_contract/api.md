@@ -65,6 +65,9 @@ Response `200 OK`:
 { "cardId": "string", "blocked": true }
 ```
 
+`503 Service Unavailable` z `{ "message": "Processor unavailable" }` gdy aktywna jest symulacja
+niedostępności procesora (patrz `POST /processor/simulate-outage`).
+
 ## POST /cards/{cardId}/unblock
 
 Response `200 OK`:
@@ -72,6 +75,8 @@ Response `200 OK`:
 ```json
 { "cardId": "string", "blocked": false }
 ```
+
+`503 Service Unavailable` jak przy `/block`, gdy aktywna jest symulacja niedostępności procesora.
 
 ## GET /cards/{cardId}/block-status
 
@@ -117,7 +122,7 @@ Response `201 Created`:
 }
 ```
 
-Błędy: `400 Bad Request` przy brakującym `authorizationId`/`description` lub nieznanym `reasonCode`. `404 Not Found` jeśli `authorizationId` nie istnieje.
+Błędy: `400 Bad Request` przy brakującym `authorizationId`/`description` lub nieznanym `reasonCode`. `404 Not Found` jeśli `authorizationId` nie istnieje. `503 Service Unavailable` gdy aktywna jest symulacja niedostępności procesora (patrz `POST /processor/simulate-outage`).
 
 ## POST /chargebacks/{id}/advance
 
@@ -137,7 +142,7 @@ Dozwolone przejścia cyklu:
 | `UNDER_REVIEW`   | `RESOLVED_CUSTOMER`, `RESOLVED_MERCHANT` |
 | `RESOLVED_*`      | (brak — stan końcowy)                  |
 
-Błędy: `400 Bad Request` przy nieznanej wartości `status`. `404 Not Found` jeśli chargeback nieznany. `409 Conflict` przy niedozwolonym przejściu (np. pominięcie `UNDER_REVIEW`, zmiana ze stanu `RESOLVED_*`).
+Błędy: `400 Bad Request` przy nieznanej wartości `status`. `404 Not Found` jeśli chargeback nieznany. `409 Conflict` przy niedozwolonym przejściu (np. pominięcie `UNDER_REVIEW`, zmiana ze stanu `RESOLVED_*`). `503 Service Unavailable` gdy aktywna jest symulacja niedostępności procesora.
 
 ## GET /chargebacks?authorizationId=...
 

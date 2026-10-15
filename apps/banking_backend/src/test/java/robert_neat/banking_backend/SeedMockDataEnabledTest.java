@@ -30,7 +30,7 @@ class SeedMockDataEnabledTest {
         EXPECTED_COUNTS.put("employee", 9);
         EXPECTED_COUNTS.put("bank_account", 12);
         EXPECTED_COUNTS.put("loan_application", 13);
-        EXPECTED_COUNTS.put("loan_stage_transition", 7);
+        EXPECTED_COUNTS.put("loan_stage_transition", 8);
         EXPECTED_COUNTS.put("installment", 24);
         EXPECTED_COUNTS.put("payment_card", 5);
         EXPECTED_COUNTS.put("card_authorization_ref", 4);
