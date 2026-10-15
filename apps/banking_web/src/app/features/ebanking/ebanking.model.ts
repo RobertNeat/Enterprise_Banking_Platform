@@ -18,3 +18,16 @@ export interface EbankingUser {
   lastLogin: string;
   permissions: string[];
 }
+
+export interface EbankingDevice {
+  deviceId: string;
+  ownerId: string;
+  model: string;
+  lastSeenAt: string;
+  trusted: boolean;
+}
+
+export interface OtpChallenge {
+  otpId: string;
+  expiresAt: string;
+}

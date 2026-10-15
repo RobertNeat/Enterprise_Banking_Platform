@@ -23,17 +23,19 @@ public class EbankingService {
     }
 
     public List<EbankingUserDto> findAll() {
-        return ebankingUsers.findAll().stream()
-                .map(u -> new EbankingUserDto(
-                        u.getId(),
-                        u.getUsername(),
-                        u.getCustomer().getFullName(),
-                        u.getChannel(),
-                        u.getAccessStatus(),
-                        u.getDailyLimit(),
-                        u.getLastLogin() == null ? null : LAST_LOGIN_FORMAT.format(u.getLastLogin()),
-                        splitPermissions(u.getPermissions())))
-                .toList();
+        return ebankingUsers.findAll().stream().map(this::toDto).toList();
+    }
+
+    public EbankingUserDto toDto(EbankingUser u) {
+        return new EbankingUserDto(
+                u.getId(),
+                u.getUsername(),
+                u.getCustomer().getFullName(),
+                u.getChannel(),
+                u.getAccessStatus(),
+                u.getDailyLimit(),
+                u.getLastLogin() == null ? null : LAST_LOGIN_FORMAT.format(u.getLastLogin()),
+                splitPermissions(u.getPermissions()));
     }
 
     private static List<String> splitPermissions(String csv) {

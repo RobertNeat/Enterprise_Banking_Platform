@@ -456,6 +456,73 @@ teraz zduplikowana trzy razy (`GovernanceClient`, `CreditRiskClient`) z identycz
 nowego — ale jeśli liczba klientów urośnie dalej, warto rozważyć wspólną klasę bazową/helper zamiast
 kopiowania `exchange()` po raz czwarty.
 
+### F4 — karty: blokada, odblokowanie, chargeback, 503→incydent ICT (R3)
+
+`card/CardActionsService` rozszerza `CardController`/`CardService` (GET-only z R1) o cztery mutujące
+endpointy — zob. `docs/banking_backend_contract/api.md`, sekcja "Cards", dla kształtu
+request/response. Nowy `card/CardProcessorClient` (wzorzec identyczny z `CreditRiskClient`/
+`GovernanceClient`: `RestClient`, adres `banking.cardprocessor.base-url`/`BANKING_CARDPROCESSOR_BASEURL`,
+domyślnie `http://localhost:10521`) woła `card_processor_mock`.
+
+1. Walidacja stanu PRZED wywołaniem mocka (ten sam wzorzec co `LoanActionsService`/`CaseActionsService`
+   — żaden efekt uboczny u mocka dla encji w złym stanie): blokada wymaga `status='active'` (`409`
+   inaczej), odblokowanie wymaga `status='blocked'`. Ta walidacja była dotąd TYLKO we frontendzie
+   (`cards.page.ts`) — przeniesiona na backend, frontend zachowuje swój UX-guard jako dodatkową warstwę
+   (nieszkodliwe duplikowanie, nie usunięte).
+2. **Ścieżka 503 → incydent ICT** (F4's "Procesor niedostępny" z `docs/banking_web_functions(concise).md`):
+   `CardProcessorUnavailableException` (connection refused LUB `503` realnie zwrócony przez mocka —
+   dziś tylko `POST /authorizations` sprawdza flagę `simulate-outage`, `block`/`unblock`/`chargebacks`
+   w `card_processor_mock` jej nie sprawdzają, więc tam 503 wystąpi tylko przy connection failure, nie
+   przy przełączniku demo) jest łapany w `CardActionsService` PRZED propagacją do klienta: backend woła
+   `GovernanceClient.createIctIncident(source="CARD_PROCESSOR", severity="HIGH", description=...)`,
+   potem i tak zwraca `503`. Jeśli samo zgłoszenie incydentu zawiedzie (podwójna awaria, governance_mock
+   też niedostępny) — błąd jest logowany i **nie maskuje** oryginalnego `503` z `card_processor_mock`
+   (sprawdzone testem `blockReturns503EvenWhenGovernanceAlsoUnavailable`). Ten wzorzec (mock
+   niedostępny → ICT incident → rethrow oryginału) jest reużywalny w R4 dla
+   `external_institutions_gateway_mock` (F6/F7) — `GovernanceClient.createIctIncident(...)` jest już
+   ogólnego przeznaczenia, nie specyficzne dla kart.
+3. Chargeback shape: `POST /cards/{cardId}/chargebacks` (nie `/cards/chargebacks` z `cardId` w body) —
+   wybrano REST shape z `cardId` w path, bo akcja jest inicjowana z widoku konkretnej karty
+   (`cards.page.ts`); `authorizationId`/`reasonCode`/`description` w body. Backend sprawdza, że
+   `authorizationId` istnieje LOKALNIE (w `card_authorization_ref`) i należy do `cardId` z path (`404`
+   inaczej) PRZED wywołaniem mocka — podwójna referencja (lokalna FK + mock) musi się zgadzać.
+   `POST /cards/chargebacks/{id}/advance` (bez `cardId` w path — chargeback ma jednoznaczny `id`
+   niezależny od karty, podobnie jak `GET /cards/chargebacks/{id}` w kontrakcie mocka).
+4. Brak endpointu `POST /cards/{cardId}/authorize` — **decyzja R3**: autoryzacja kartowa jest
+   transakcją klienta (terminal płatniczy/e-commerce), nie akcją pracownika w tym UI.
+   `cards.page.ts` nigdy nie miało formularza do ręcznego tworzenia autoryzacji (tylko listę
+   read-only) — dodanie tego endpointu bez naturalnego miejsca w UI byłoby implementowaniem kontraktu
+   mocka "na wszelki wypadek", nie realizacją zakresu F4.
+
+### F5 — e-banking: odblokowanie dostępu i reset urządzenia (OTP/SCA, R3)
+
+`ebanking/EbankingActionsService` rozszerza `EbankingController`/`EbankingService` o pięć endpointów
+(dwuetapowy flow OTP dla unlock + dwuetapowy flow dla reset-device + proxy listy urządzeń) — zob.
+`docs/banking_backend_contract/api.md`, sekcja "Ebanking". `auth/IdentityAccessClient` (już istniejący
+od R1 dla `/auth/*`) rozszerzony o metody OTP/devices/ebanking-access, NIE osobny klient — ten sam
+`identity_access_mock`, ten sam base-url/mapowanie błędów, rozdzielenie na dwa kliencki do jednego
+serwisu dodałoby strukturę bez korzyści.
+
+1. Walidacja `accessStatus` PRZED jakimkolwiek wywołaniem OTP (ten sam wzorzec co F4): unlock wymaga
+   `accessStatus` w `{'locked','pendingReset'}` (`409` jeśli już `'active'`) — sprawdzana zarówno w
+   `request-otp` jak i w `confirm` (frontend może wywołać confirm bez ponownego sprawdzenia stanu po
+   czasie).
+2. `POST /otp/verify` z identity_access_mock'a ZAWSZE zwraca `200` (`{"verified": boolean}`, nigdy
+   kod błędu) — `verified:false` jest tłumaczone lokalnie na `OtpNotVerifiedException` → `403`, osobny
+   typ wyjątku od `IdentityAccessException` (ten reprezentuje realny status HTTP z mocka, to nie jest
+   taki przypadek).
+3. OTP jest faktycznie konsumowany dopiero w `POST /ebanking-access/{userId}/unlock` lub
+   `POST /devices/{deviceId}/reset` (nie w `/otp/verify` samym) — backend woła `verify` NAJPIERW (gate),
+   potem dopiero `unlock`/`reset` (który realnie zużywa `otpId`), zgodnie z kontraktem
+   `identity_access_mock`.
+4. `GET /ebanking/{userId}/devices` i walidacja własności urządzenia w reset-flow: `deviceId` z path
+   jest zawsze zweryfikowany przez `GET /devices/{userId}` PRZED jakąkolwiek akcją (`404` jeśli
+   `deviceId` nie jest na liście tego `userId`) — bez tego sprawdzenia pracownik mógłby zresetować
+   cudze urządzenie, podając poprawny `deviceId` innego właściciela.
+5. Kod OTP nigdy nie przechodzi przez `banking_backend` ani przez przeglądarkę — widoczny wyłącznie w
+   panelu Thymeleaf `identity_access_mock:10525/otp` (manualny test demo). Pracownik odbiera kod od
+   klienta kanałem pozakanałowym (symulowane jako podpowiedź tekstowa w UI, nie realny SMS/telefon).
+
 ### Pułapki Spring Boot 4.1 (do wiedzy przy kolejnych rundach)
 
 - Startery: `spring-boot-starter-security` + `spring-boot-starter-oauth2-resource-server` (główny),
@@ -487,10 +554,10 @@ kopiowania `exchange()` po raz czwarty.
   `GET /loans/{id}`, a `loan-detail.page.ts` spada na lokalnie liczony `buildSchedule()` jak
   dotychczas. Pełne przechowywanie harmonogramu dla wszystkich wniosków wymagałoby rozszerzenia
   seeda (zmiana liczności).
-- Mutacje dla kart (`card_processor_mock`, R3) i egzekucji/raportowania (`external_institutions_gateway_mock`,
-  R4) są poza zakresem R2 — te akcje UI (blokada karty, zgłoszenie chargebacku, złożenie raportu
-  itd.) wciąż żyją tylko w pamięci przeglądarki. F2 (kredyty) i F8 (sprawy klientów) są już
-  podłączone do backendu od R2 — zob. sekcje "F2"/"F8" niżej.
+- Mutacje dla egzekucji/raportowania (`external_institutions_gateway_mock`, F6/F7, R4) są poza
+  zakresem R3 — te akcje UI (rejestracja zajęcia, złożenie raportu itd.) wciąż żyją tylko w pamięci
+  przeglądarki. F2 (kredyty), F8 (sprawy klientów), F4 (karty) i F5 (e-banking/OTP) są już podłączone
+  do backendu — zob. sekcje "F2"/"F4"/"F5"/"F8" wyżej.
 - **Rozjazd nawigacji vs permissions `identity_access_mock`**: `RolePermissions.java` w
   `identity_access_mock` nie ma wartości `reporting` ani `cases` (żadna rola ich nie ma), a `admin` nie
   ma `enforcement` (mają je tylko `collections`). `banking_web`'s `nav.model.ts` dla R1 mapuje

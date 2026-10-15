@@ -99,6 +99,25 @@ public class GovernanceClient {
                 .body(SlaCheckResult.class));
     }
 
+    /**
+     * Mirrors POST /ict-incidents (DORA ICT incident registry) — used by F4's "processor
+     * unavailable" alt-flow (see card/CardActionsService.java) to record a HIGH-severity incident
+     * before propagating a 503 to the frontend. Reusable by any future round hitting the same
+     * "mock unavailable -> ICT incident" pattern (see docs/services/banking_backend.md).
+     */
+    public void createIctIncident(String source, String description, String severity) {
+        Map<String, String> body = Map.of("source", source, "description", description, "severity", severity);
+        exchange(() -> {
+            restClient.post()
+                    .uri("/ict-incidents")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
+            return null;
+        });
+    }
+
     private <T> T exchange(Supplier<T> call) {
         try {
             return call.get();

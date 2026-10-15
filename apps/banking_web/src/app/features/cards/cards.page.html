@@ -75,6 +75,7 @@
         <th>{{ 'common.date' | translate }}</th>
         <th>{{ 'cards.processor' | translate }}</th>
         <th>{{ 'common.status' | translate }}</th>
+        <th>{{ 'cards.chargebackStatus' | translate }}</th>
       </tr>
     </ng-template>
     <ng-template #body let-auth>
@@ -97,7 +98,93 @@
             [severity]="statusSeverity[auth.approved ? 'active' : 'blocked']"
           />
         </td>
+        <td>
+          @for (cb of chargebacksForAuthorization(auth.id); track cb.id) {
+            <app-status-tag
+              [tagId]="'cards-authorizations-row-' + auth.id + '-chargeback-' + cb.id"
+              [labelKey]="'cards.chargebackStatusValue.' + cb.status"
+              [severity]="chargebackStatusSeverity[cb.status]"
+            />
+          } @empty {
+            —
+          }
+        </td>
       </tr>
     </ng-template>
   </p-table>
 </div>
+
+<p-dialog
+  id="cards-chargeback-dialog"
+  [pt]="{ pcCloseButton: { root: { id: 'cards-chargeback-dialog-close-btn' } } }"
+  [visible]="chargebackDialogOpen()"
+  (visibleChange)="$event ? null : closeChargebackDialog()"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '32rem', maxWidth: '95vw' }"
+  [header]="'cards.chargebackDialog.title' | translate"
+>
+  <form [formGroup]="chargebackForm" class="wizard-field-group" id="cards-chargeback-form">
+    <div class="field" id="cards-chargeback-authorization-field">
+      <label for="cards-chargeback-authorization-select" class="required">{{
+        'cards.chargebackDialog.authorization' | translate
+      }}</label>
+      <p-select
+        id="cards-chargeback-authorization-select"
+        [pt]="{ dropdown: { id: 'cards-chargeback-authorization-select-dropdown-btn' } }"
+        formControlName="authorizationId"
+        [options]="authorizationOptionsForCard()"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        [fluid]="true"
+      />
+    </div>
+    <div class="field" id="cards-chargeback-reason-field">
+      <label for="cards-chargeback-reason-select" class="required">{{
+        'cards.chargebackReason' | translate
+      }}</label>
+      <p-select
+        id="cards-chargeback-reason-select"
+        [pt]="{ dropdown: { id: 'cards-chargeback-reason-select-dropdown-btn' } }"
+        formControlName="reasonCode"
+        [options]="reasonCodeOptions()"
+        optionLabel="label"
+        optionValue="value"
+        appendTo="body"
+        [fluid]="true"
+      />
+    </div>
+    <div class="field" id="cards-chargeback-description-field">
+      <label for="cards-chargeback-description-input" class="required">{{
+        'cards.chargebackDialog.description' | translate
+      }}</label>
+      <textarea
+        id="cards-chargeback-description-input"
+        pTextarea
+        formControlName="description"
+        rows="3"
+        [fluid]="true"
+      ></textarea>
+    </div>
+  </form>
+
+  <div class="wizard-dialog__actions" id="cards-chargeback-dialog-actions">
+    <p-button
+      id="cards-chargeback-cancel-btn"
+      [pt]="{ root: { id: 'cards-chargeback-cancel-btn-root' } }"
+      [label]="'wizard.cancel' | translate"
+      severity="secondary"
+      [text]="true"
+      (click)="closeChargebackDialog()"
+    />
+    <p-button
+      id="cards-chargeback-submit-btn"
+      [pt]="{ root: { id: 'cards-chargeback-submit-btn-root' } }"
+      [label]="'wizard.submit' | translate"
+      icon="pi pi-check"
+      [disabled]="!chargebackFormValid() || submitting()"
+      (click)="submitChargeback()"
+    />
+  </div>
+</p-dialog>

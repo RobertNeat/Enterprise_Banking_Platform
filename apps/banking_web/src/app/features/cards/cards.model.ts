@@ -31,3 +31,29 @@ export interface CardAuthorization {
   processor: CardNetwork;
   approved: boolean;
 }
+
+export type ChargebackReasonCode = '4855' | '4837' | '4853' | '4863';
+export type ChargebackStatus = 'FILED' | 'UNDER_REVIEW' | 'RESOLVED_CUSTOMER' | 'RESOLVED_MERCHANT';
+
+export const CHARGEBACK_REASON_CODES: ChargebackReasonCode[] = ['4855', '4837', '4853', '4863'];
+
+export const CHARGEBACK_STATUS_SEVERITY: Record<ChargebackStatus, StatusSeverity> = {
+  FILED: 'info',
+  UNDER_REVIEW: 'warn',
+  RESOLVED_CUSTOMER: 'success',
+  RESOLVED_MERCHANT: 'success',
+};
+
+export interface Chargeback {
+  id: string;
+  cardAuthorizationId: string;
+  reasonCode: ChargebackReasonCode;
+  status: ChargebackStatus;
+  filedAt: string;
+}
+
+export interface FileChargebackRequest {
+  authorizationId: string;
+  reasonCode: ChargebackReasonCode;
+  description: string;
+}

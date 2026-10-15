@@ -372,6 +372,30 @@ widoku frontendowego dziś.
 - `GET /cards` → `PaymentCardDto[]`
 - `GET /cards/authorizations` → `CardAuthorizationDto[]`
 - `GET /cards/chargebacks` → `ChargebackDto[]`
+- `POST /cards/{cardId}/block` (F4) → `PaymentCardDto`. Woła `card_processor_mock` `POST
+  /cards/{cardId}/block`, zapisuje `status='blocked'`. `409` jeśli obecny `status != 'active'`.
+  Audytuje `CARD_BLOCKED` w `governance_mock`.
+- `POST /cards/{cardId}/unblock` (F4) → `PaymentCardDto`. Analogicznie, `status='active'`, `409`
+  jeśli obecny `status != 'blocked'`. Audytuje `CARD_UNBLOCKED`.
+- `POST /cards/{cardId}/chargebacks` (F4) → `ChargebackDto`. Request: `{ "authorizationId",
+  "reasonCode", "description" }`. Woła `card_processor_mock` `POST /chargebacks`, zapisuje
+  `ChargebackRef` (id z odpowiedzi mocka). `404` jeśli `authorizationId` nieznane lub nie należy do
+  `cardId`. Audytuje `CARD_CHARGEBACK_FILED`.
+- `POST /cards/chargebacks/{id}/advance` (F4) → `ChargebackDto`. Request: `{ "status" }`
+  (`UNDER_REVIEW|RESOLVED_CUSTOMER|RESOLVED_MERCHANT`). Woła `card_processor_mock` `POST
+  /chargebacks/{id}/advance`, aktualizuje `status` lokalnie. `404` jeśli chargeback nieznany, `409`
+  przekazane 1:1 z mocka przy niedozwolonym przejściu. Audytuje `CARD_CHARGEBACK_ADVANCED`.
+
+**Ścieżka 503 → incydent ICT (F4 alt-flow):** jeśli `card_processor_mock` jest nieosiągalny
+(connection failure) LUB zwraca `503` (symulowany outage, tylko `POST /authorizations` w mocku to
+dziś wystawia realnie — `block`/`unblock`/`chargebacks` dostają 503 tylko przy connection failure,
+nie przy przełączniku `simulate-outage`, bo te endpointy mocka nie sprawdzają flagi outage) — przed
+zwróceniem `503` do `banking_web`, backend zgłasza incydent ICT do `governance_mock` (`POST
+/ict-incidents`, `source="CARD_PROCESSOR"`, `severity="HIGH"`). Jeśli to zgłoszenie też zawiedzie
+(podwójna awaria), oryginalny błąd `503` i tak wraca do klienta (błąd zgłoszenia logowany, nie
+maskuje oryginału). Brak endpointu `POST /cards/{cardId}/authorize` — ocena R3: autoryzacja karty
+jest transakcją klienta (terminal/e-commerce), nie akcją pracownika w tym UI; `cards.page.ts` nie
+miało i nie ma formularza do ręcznego tworzenia autoryzacji.
 
 ### Cases
 
@@ -401,6 +425,29 @@ widoku frontendowego dziś.
 ### Ebanking
 
 - `GET /ebanking/users` → `EbankingUserDto[]`
+- `POST /ebanking/{userId}/unlock/request-otp` (F5, krok 1) → `{ "otpId", "expiresAt" }`. Woła
+  `identity_access_mock` `POST /otp/request` z `{employeeId: <jwt.sub>, purpose: "UNLOCK_ACCESS"}`.
+  `409` jeśli `accessStatus` już `'active'` (walidacja PRZED wywołaniem OTP).
+- `POST /ebanking/{userId}/unlock/confirm` (F5, krok 2) → `EbankingUserDto`. Request: `{ "otpId",
+  "code" }`. Weryfikuje przez `POST /otp/verify`; `403` jeśli `verified:false` (kod
+  błędny/wygasły/zużyty). Jeśli zweryfikowany, woła `POST /ebanking-access/{userId}/unlock`
+  (faktycznie konsumuje OTP), ustawia `accessStatus='active'`. `409` jeśli już `'active'` (ta sama
+  walidacja jak w request-otp, sprawdzana PRZED weryfikacją kodu). Audytuje
+  `EBANKING_ACCESS_UNLOCKED`.
+- `GET /ebanking/{userId}/devices` → `EbankingDeviceDto[]`. Proxy do `identity_access_mock` `GET
+  /devices/{ownerId}` (`ownerId=userId`, np. `EB-1001`) — pozwala frontendowi wybrać urządzenie do
+  resetu.
+- `POST /ebanking/{userId}/devices/{deviceId}/reset/request-otp` (F5, reset urządzenia krok 1) →
+  `{ "otpId", "expiresAt" }`. Jak unlock, ale `purpose="RESET_DEVICE"`. `404` jeśli `deviceId` nie
+  jest na liście urządzeń tego `userId` (walidacja własności przed trustowaniem path param).
+- `POST /ebanking/{userId}/devices/{deviceId}/reset/confirm` (F5, reset urządzenia krok 2) → `204`.
+  Request: `{ "otpId", "code" }`. Weryfikuje OTP (`403` jeśli `verified:false`), woła `POST
+  /devices/{deviceId}/reset` (konsumuje OTP, oznacza urządzenie `trusted:false`). Audytuje
+  `DEVICE_RESET`.
+
+OTP/SCA (PSD2) — kod nigdy nie przechodzi przez `banking_backend` ani `banking_web`: widoczny
+wyłącznie w panelu Thymeleaf `identity_access_mock:10525/otp` do manualnego testu demo. Pracownik
+przekazuje kod klientowi kanałem pozakanałowym (symulowane w UI jako podpowiedź, nie realny SMS).
 
 ### Enforcement
 

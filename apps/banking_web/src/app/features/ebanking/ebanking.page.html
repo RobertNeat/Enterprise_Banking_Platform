@@ -75,3 +75,107 @@
     </ng-template>
   </p-table>
 </div>
+
+<p-dialog
+  id="ebanking-otp-dialog"
+  [pt]="{ pcCloseButton: { root: { id: 'ebanking-otp-dialog-close-btn' } } }"
+  [visible]="otpDialogOpen()"
+  (visibleChange)="$event ? null : closeOtpDialog()"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '32rem', maxWidth: '95vw' }"
+  [header]="otpTitleKey() | translate"
+>
+  @if (otpPurpose() === 'resetDevice') {
+    <div class="field" id="ebanking-otp-device-field">
+      <label for="ebanking-otp-device-select" class="required">{{
+        'ebanking.otp.deviceLabel' | translate
+      }}</label>
+      @if (otpDevices().length > 0) {
+        <p-select
+          id="ebanking-otp-device-select"
+          [pt]="{ dropdown: { id: 'ebanking-otp-device-select-dropdown-btn' } }"
+          [options]="deviceOptions()"
+          [ngModel]="otpSelectedDeviceId()"
+          (ngModelChange)="otpSelectedDeviceId.set($event)"
+          optionLabel="label"
+          optionValue="value"
+          appendTo="body"
+          [fluid]="true"
+        />
+      } @else {
+        <p id="ebanking-otp-no-devices">{{ 'ebanking.otp.noDevices' | translate }}</p>
+      }
+    </div>
+  }
+
+  @if (otpStep() === 1) {
+    <div id="ebanking-otp-step1">
+      <p id="ebanking-otp-step1-hint">{{ 'ebanking.otp.step1Hint' | translate }}</p>
+      <div class="wizard-dialog__actions" id="ebanking-otp-step1-actions">
+        <p-button
+          id="ebanking-otp-cancel-btn"
+          [pt]="{ root: { id: 'ebanking-otp-cancel-btn-root' } }"
+          [label]="'wizard.cancel' | translate"
+          severity="secondary"
+          [text]="true"
+          (click)="closeOtpDialog()"
+        />
+        <p-button
+          id="ebanking-otp-send-btn"
+          [pt]="{ root: { id: 'ebanking-otp-send-btn-root' } }"
+          [label]="'ebanking.otp.sendCode' | translate"
+          icon="pi pi-send"
+          [disabled]="otpSending() || (otpPurpose() === 'resetDevice' && !otpSelectedDeviceId())"
+          (click)="sendOtp()"
+        />
+      </div>
+    </div>
+  } @else {
+    <div id="ebanking-otp-step2">
+      <p id="ebanking-otp-challenge-issued">
+        {{
+          'ebanking.otp.challengeIssued'
+            | translate: { otpId: otpId() ?? '', expiresAt: otpExpiresAt() ?? '' }
+        }}
+      </p>
+      <p id="ebanking-otp-demo-hint" class="hint">{{ 'ebanking.otp.demoHint' | translate }}</p>
+      <div class="field" id="ebanking-otp-code-field">
+        <label for="ebanking-otp-code-input" class="required">{{
+          'ebanking.otp.codeLabel' | translate
+        }}</label>
+        <input
+          id="ebanking-otp-code-input"
+          pInputText
+          type="text"
+          [ngModel]="otpCode()"
+          (ngModelChange)="otpCode.set($event)"
+          [fluid]="true"
+        />
+        @if (otpError()) {
+          <small id="ebanking-otp-code-error" class="error">{{
+            'ebanking.otp.wrongCode' | translate
+          }}</small>
+        }
+      </div>
+      <div class="wizard-dialog__actions" id="ebanking-otp-step2-actions">
+        <p-button
+          id="ebanking-otp-cancel-confirm-btn"
+          [pt]="{ root: { id: 'ebanking-otp-cancel-confirm-btn-root' } }"
+          [label]="'wizard.cancel' | translate"
+          severity="secondary"
+          [text]="true"
+          (click)="closeOtpDialog()"
+        />
+        <p-button
+          id="ebanking-otp-confirm-btn"
+          [pt]="{ root: { id: 'ebanking-otp-confirm-btn-root' } }"
+          [label]="'ebanking.otp.confirm' | translate"
+          icon="pi pi-check"
+          [disabled]="otpConfirming() || !otpCode()"
+          (click)="confirmOtp()"
+        />
+      </div>
+    </div>
+  }
+</p-dialog>

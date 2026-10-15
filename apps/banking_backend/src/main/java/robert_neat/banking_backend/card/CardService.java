@@ -25,18 +25,20 @@ public class CardService {
     }
 
     public List<PaymentCardDto> findAllCards() {
-        return paymentCards.findAll().stream()
-                .map(card -> new PaymentCardDto(
-                        card.getId(),
-                        card.getCustomer().getFullName(),
-                        card.getMaskedNumber(),
-                        card.getNetwork(),
-                        card.getProduct(),
-                        card.getStatus(),
-                        card.getExpiry(),
-                        card.getLimitDaily(),
-                        card.getLimitAtm()))
-                .toList();
+        return paymentCards.findAll().stream().map(CardService::toDto).toList();
+    }
+
+    public static PaymentCardDto toDto(PaymentCard card) {
+        return new PaymentCardDto(
+                card.getId(),
+                card.getCustomer().getFullName(),
+                card.getMaskedNumber(),
+                card.getNetwork(),
+                card.getProduct(),
+                card.getStatus(),
+                card.getExpiry(),
+                card.getLimitDaily(),
+                card.getLimitAtm());
     }
 
     public List<CardAuthorizationDto> findAllAuthorizations() {
@@ -53,13 +55,15 @@ public class CardService {
     }
 
     public List<ChargebackDto> findAllChargebacks() {
-        return chargebacks.findAll().stream()
-                .map(cb -> new ChargebackDto(
-                        cb.getId(),
-                        cb.getCardAuthorizationRef().getId(),
-                        cb.getReasonCode(),
-                        cb.getStatus(),
-                        cb.getFiledAt()))
-                .toList();
+        return chargebacks.findAll().stream().map(CardService::toDto).toList();
+    }
+
+    public static ChargebackDto toDto(ChargebackRef cb) {
+        return new ChargebackDto(
+                cb.getId(),
+                cb.getCardAuthorizationRef().getId(),
+                cb.getReasonCode(),
+                cb.getStatus(),
+                cb.getFiledAt());
     }
 }

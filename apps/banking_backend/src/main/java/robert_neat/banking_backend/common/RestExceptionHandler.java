@@ -13,6 +13,9 @@ import robert_neat.banking_backend.approvals.GovernanceUnavailableException;
 import robert_neat.banking_backend.approvals.InsufficientSeniorityException;
 import robert_neat.banking_backend.creditrisk.CreditRiskException;
 import robert_neat.banking_backend.creditrisk.CreditRiskUnavailableException;
+import robert_neat.banking_backend.card.CardProcessorException;
+import robert_neat.banking_backend.card.CardProcessorUnavailableException;
+import robert_neat.banking_backend.ebanking.OtpNotVerifiedException;
 import robert_neat.banking_backend.common.InvalidStageTransitionException;
 
 @RestControllerAdvice(annotations = RestController.class)
@@ -75,5 +78,24 @@ public class RestExceptionHandler {
     @ExceptionHandler(InvalidStageTransitionException.class)
     public ResponseEntity<ApiError> handleInvalidStageTransition(InvalidStageTransitionException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiError(ex.getMessage()));
+    }
+
+    /** Passes card_processor_mock's own status/message through unchanged (400/404/409). */
+    @ExceptionHandler(CardProcessorException.class)
+    public ResponseEntity<ApiError> handleCardProcessor(CardProcessorException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(new ApiError(ex.getMessage()));
+    }
+
+    /** Covers both a real connection failure and the processor's own simulated outage (503). */
+    @ExceptionHandler(CardProcessorUnavailableException.class)
+    public ResponseEntity<ApiError> handleCardProcessorUnavailable(CardProcessorUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiError("card_processor_mock unavailable"));
+    }
+
+    /** OTP code was wrong/expired/already used (identity_access_mock returned verified:false). */
+    @ExceptionHandler(OtpNotVerifiedException.class)
+    public ResponseEntity<ApiError> handleOtpNotVerified(OtpNotVerifiedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiError(ex.getMessage()));
     }
 }
