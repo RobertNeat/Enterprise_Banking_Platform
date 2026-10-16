@@ -26,7 +26,7 @@
   <div class="shell__body" id="app-shell-body">
     <nav class="sidebar" id="app-sidebar">
       <ul class="sidebar__list" id="app-sidebar-list">
-        @for (item of navItems; track item.route) {
+        @for (item of navItems(); track item.route) {
           <li [id]="'app-nav-item-' + item.route.slice(1)">
             <a
               [id]="'app-nav-link-' + item.route.slice(1)"

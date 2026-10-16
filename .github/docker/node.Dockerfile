@@ -13,24 +13,21 @@ ENV npm_config_store_dir=/pnpm/store
 # Install dependencies before copying the rest of the source so this layer
 # (and the pnpm store cache mount below) stays valid across source-only
 # commits, avoiding a full cold reinstall of every package on every build.
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY .npmrc pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/banking_web/package.json ./apps/banking_web/package.json
 COPY apps/card_processor_mock/package.json ./apps/card_processor_mock/package.json
-# pnpm 11 only reads auth/registry settings from .npmrc; minimum-release-age and the
-# fetch-retry settings below must be passed as CLI --config overrides instead (.npmrc
-# or ENV vars are silently ignored for them). --config.minimum-release-age=0 disables
-# pnpm 11's default supply-chain age check for this install only: that check fetches
-# publish-time metadata for every lockfile entry, which is unreliable from inside a
-# Docker build; the real policy gate already runs on the runner in check_node.sh
-# (_job_check.yaml), a dependency of the image build. The fetch-retry overrides widen
-# tolerance for the registry's slow/flaky responses seen from Docker Desktop on Windows.
+# Registry (.npmrc) and fetch-timeout/fetch-retries (pnpm-workspace.yaml) come from
+# the committed config files. --config.fetch-timeout as a CLI override crashes on
+# pnpm 11.17.0: the string value reaches AbortSignal.timeout() unconverted, throwing
+# "The 'delay' argument must be of type number" on the first retry without rejecting
+# the pending install, so the build hangs instead of failing - keep these as file
+# settings, not CLI --config flags. --config.minimum-release-age=0 disables pnpm 11's
+# default supply-chain age check for this install only: that check fetches publish-time
+# metadata for every lockfile entry, which is unreliable from inside a Docker build; the
+# real policy gate already runs on the runner in check_node.sh (_job_check.yaml), a
+# dependency of the image build.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --config.minimum-release-age=0 \
-         --config.fetch-timeout=300000 \
-         --config.fetch-retries=5 \
-         --config.fetch-retry-mintimeout=10000 \
-         --config.fetch-retry-maxtimeout=120000 \
-         --config.registry=http://192.168.1.163 \
          install --frozen-lockfile
 
 COPY . .

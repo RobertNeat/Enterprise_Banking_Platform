@@ -2,8 +2,9 @@
 #   pnpm --filter banking-web build  (wymagane przed --build, zob. banking-web poniżej)
 #   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml --env-file .env up -d --build
 # Budowanie odwzorowuje .github/steps/create_docker_image.sh (te same build-args).
-# Lokalne buildy aplikacji (pnpm/mvnw bez `-s`) używają rejestrów publicznych —
-# rejestry prywatne (ZOT/Verdaccio/Reposilite) są używane tylko w pipeline CI.
+# Lokalne buildy (docker build, pnpm, mvnw) używają tych samych lokalnych rejestrów
+# (ZOT/Verdaccio/Reposilite) co pipeline CI — konfiguracja w .npmrc i .mvn/settings.xml
+# jest wspólna dla obu środowisk.
 
 x-spring-build: &spring-build
   context: ..

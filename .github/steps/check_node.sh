@@ -27,7 +27,7 @@ run_node corepack enable
 
 case "$PACKAGE_MANAGER" in
   pnpm)
-    run_node pnpm --config.registry=http://192.168.1.163 install --frozen-lockfile
+    run_node pnpm install --frozen-lockfile
     # Resolve and build workspace dependencies from the package graph. The check
     # remains independent of application-specific package and dependency names.
     run_node pnpm --filter "${PACKAGE_NAME}..." --filter "!${PACKAGE_NAME}" run --if-present build

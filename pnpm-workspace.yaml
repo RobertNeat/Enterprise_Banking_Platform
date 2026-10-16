@@ -1,6 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+# Tolerancja na wolne/niestabilne odpowiedzi lokalnego rejestru Verdaccio (pnpm 11
+# ignoruje te ustawienia z .npmrc/ENV, więc muszą być tutaj).
+fetchTimeout: 300000
+fetchRetries: 5
+fetchRetryMintimeout: 10000
+fetchRetryMaxtimeout: 120000
 allowBuilds:
   "@parcel/watcher": true
   esbuild: true

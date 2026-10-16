@@ -43,8 +43,11 @@ Runner i obrazy Docker korzystają z lokalnych rejestrów zamiast publicznych,
   bez tego prefiksu;
 - zależności npm/pnpm — Verdaccio (adres w `ENV COREPACK_NPM_REGISTRY` w
   `.github/docker/angular.Dockerfile` i `node.Dockerfile`, przez nginx na
-  porcie 80; aplikacja nasłuchuje tylko na `127.0.0.1:4873`), docelowo
-  skonfigurowany w `.npmrc` w katalogu głównym repozytorium; corepack również
-  kieruje się tam przez `COREPACK_NPM_REGISTRY`;
+  porcie 80; aplikacja nasłuchuje tylko na `127.0.0.1:4873`), skonfigurowany
+  w `.npmrc` w katalogu głównym repozytorium (kopiowany do stage'u `build` w
+  Dockerfile, nieobecny w finalnym obrazie); corepack kieruje się tam przez
+  `COREPACK_NPM_REGISTRY`; fetch-timeout/fetch-retries dla pnpm 11 są w
+  `pnpm-workspace.yaml` (ustawienia CLI `--config.fetch-*` powodują crash w
+  pnpm 11.17.0);
 - zależności Maven — Reposilite, przez nginx na porcie 80 (aplikacja nasłuchuje
   tylko na `127.0.0.1:8080`), konfigurowany jako mirror w `.mvn/settings.xml`.
