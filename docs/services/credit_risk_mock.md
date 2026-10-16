@@ -20,6 +20,10 @@ Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap` w singlet
 
 Pełny kontrakt request/response: `docs/credit_risk_mock_contract/api.md`.
 
+## Panel operatorski
+
+Pod `/` dostępna jest minimalna strona placeholder (Thymeleaf, `spring-boot-starter-thymeleaf`), bez pełnego panelu operatorskiego jak w `identity_access_mock`/`external_institutions_gateway_mock`. Współdzielony styl: `theme.css` + `theme-vars.css` (zmienna CSS `--primary-color` do rozróżnienia kolorystyki per serwis).
+
 ## Walidacja
 
 Walidacja ręczna w warstwie serwisowej (bez `spring-boot-starter-validation` — nie jest zależnością projektu). Błędy walidacji → HTTP 400 z body `{ "message": "..." }`. Brak zasobu (np. nieznana pozycja ECL) → HTTP 404 z tym samym formatem.

@@ -32,7 +32,7 @@ public class UiController {
 
     @GetMapping("/")
     public String home() {
-        return "redirect:/ui/enforcement";
+        return "index";
     }
 
     @GetMapping("/ui/enforcement")

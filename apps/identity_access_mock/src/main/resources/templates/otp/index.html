@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>OTP — identity_access_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+    <div class="card">
+        <h2>Aktywne kody OTP</h2>
+        <p>Jedyne miejsce, w którym kod jest widoczny — API go nigdy nie zwraca.</p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                <tr>
+                    <th>otpId</th>
+                    <th>employeeId</th>
+                    <th>Cel</th>
+                    <th>Kod</th>
+                    <th>Wygasa</th>
+                    <th>Zweryfikowany</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="otp : ${otps}">
+                    <td th:text="${otp.getOtpId()}"></td>
+                    <td th:text="${otp.getEmployeeId()}"></td>
+                    <td th:text="${otp.getPurpose()}"></td>
+                    <td th:text="${otp.getCode()}"></td>
+                    <td th:text="${otp.getExpiresAt()}"></td>
+                    <td th:text="${otp.isVerified()}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

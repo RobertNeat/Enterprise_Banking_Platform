@@ -33,12 +33,19 @@ uwierzytelnieniem) z `docs/banking_web_functions(concise).md`.
 
 ### Panel operatorski (Thymeleaf)
 
-Strony `@Controller` (nie REST) pod `/`, `/accounts`, `/otp`, `/devices` — czytają z tych samych
-serwisów w pamięci co REST API. Natywne fragmenty Thymeleaf (`th:replace`/`th:insert`), bez Layout
-Dialect. Panel `/otp` to jedyne miejsce, gdzie widoczny jest wygenerowany kod OTP — służy do manualnego
-testowania integracji (tester odczytuje kod i wpisuje go przez `POST /otp/verify`). Panel `/devices` ma
-formularz "Unbind" (POST/redirect/GET na `/devices/{deviceId}/unbind-ui`, osobno od REST-owego
-`/devices/{deviceId}/unbind`).
+Strony `@Controller` (nie REST) pod `/`, `/accounts`, `/otp`, `/devices`, `/ebanking` — czytają z tych
+samych serwisów w pamięci co REST API. Wspólny layout (`templates/fragments/layout.html`) z natywnymi
+fragmentami Thymeleaf (`th:replace`, parametryzowany fragment `head(title)`), bez Layout Dialect.
+Stylowanie: `static/css/theme-vars.css` (zmienna `--primary-color`, osobna per-serwis, do ręcznego
+dostrojenia) + `static/css/theme.css` (wspólny bazowy wygląd — nagłówek, tabele, formularze, karty
+`.card`) wspólne dla wszystkich mocków platformy. Panel `/otp` to jedyne miejsce, gdzie widoczny jest
+wygenerowany kod OTP — służy do manualnego testowania integracji. Panel `/devices` ma formularz "Unbind"
+(POST/redirect/GET na `/devices/{deviceId}/unbind-ui`, osobno od REST-owego `/devices/{deviceId}/unbind`).
+Panel `/ebanking` udostępnia formularz odblokowania dostępu (userId, otpId, kod OTP) — wywołuje
+weryfikację i konsumpcję OTP w jednym kroku (POST/redirect/GET na `/ebanking/unlock-ui`, osobno od
+REST-owego `POST /ebanking-access/{userId}/unlock`, który wymaga już zweryfikowanego OTP). Panel nie
+pokrywa jeszcze `/auth/**`, `/otp/request`, `/otp/verify` ani `/devices/{deviceId}/reset` — te funkcje są
+dostępne tylko przez REST.
 
 ### CORS
 

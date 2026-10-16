@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>Konta — identity_access_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+    <div class="card">
+        <h2>Konta demo i zarejestrowane</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                <tr>
+                    <th>employeeId</th>
+                    <th>Rola</th>
+                    <th>Status</th>
+                    <th>Imię i nazwisko</th>
+                    <th>E-mail</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="account : ${accounts}">
+                    <td th:text="${account.employeeId()}"></td>
+                    <td th:text="${account.role()}"></td>
+                    <td th:text="${account.status()}"></td>
+                    <td th:text="${account.firstName() != null ? account.firstName() + ' ' + account.lastName() : '-'}"></td>
+                    <td th:text="${account.email()}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

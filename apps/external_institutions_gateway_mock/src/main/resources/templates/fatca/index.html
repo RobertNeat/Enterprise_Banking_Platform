@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>external_institutions_gateway_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+
+<h2>Wygenerowane eksporty FATCA/CRS</h2>
+<div class="card" th:each="e : ${exports}">
+    <h3 th:text="'Report ' + ${e.reportId} + ' (' + ${e.period} + ')'"></h3>
+    <p><small th:text="'Wygenerowano: ' + ${e.generatedAt}"></small></p>
+    <pre th:text="${e.xml}"></pre>
+</div>
+
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

@@ -85,7 +85,7 @@ class ExternalInstitutionsGatewayMockApplicationTests {
                 // th:text escapes "&amp;" produced by the hand-built XML into "&amp;amp;" for HTML display.
                 .andExpect(content().string(containsString("Kowalski &amp;amp; Sons")));
 
-        mockMvc.perform(get("/")).andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/")).andExpect(status().isOk());
     }
 
     @Test

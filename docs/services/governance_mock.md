@@ -2,7 +2,11 @@
 
 Serwis Spring Boot 4.1.1 (Java 25), wewnętrzny (bez portu na hoście), wołany wyłącznie przez `banking_backend`. Port wewnętrzny: `10524` (`server.port` w `application.properties`, nadpisywalny przez env `SERVER_PORT` — zmienna środowiskowa ma priorytet nad plikiem properties, więc `deploy/compose.yml` działa bez zmian w kodzie).
 
-Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap` w komponentach `@Service`) — brak bazy danych, brak Spring Data JPA/Security/State Machine w tej iteracji. Zależności pom.xml bez zmian: `spring-boot-starter-web`, `spring-boot-starter-actuator`, `spring-boot-starter-test`.
+Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap` w komponentach `@Service`) — brak bazy danych, brak Spring Data JPA/Security/State Machine w tej iteracji. Zależności pom.xml: `spring-boot-starter-web`, `spring-boot-starter-actuator`, `spring-boot-starter-thymeleaf`, `spring-boot-starter-test`.
+
+## Panel operatorski (`/`)
+
+Serwis ma minimalną stronę placeholder pod `GET /` (Thymeleaf, `ui/UiController`), z współdzielonym stylem (`/css/theme.css` + `/css/theme-vars.css`, zmienna CSS `--primary-color` do odróżnienia kolorystyki per-serwis) — ten sam wzorzec fragmentów co `identity_access_mock`/`external_institutions_gateway_mock`. Strona informuje, że pełny panel operatorski (jak w `identity_access_mock`/`external_institutions_gateway_mock`) jeszcze nie istnieje, i wskazuje dostępne REST API.
 
 ## Zaimplementowane endpointy
 

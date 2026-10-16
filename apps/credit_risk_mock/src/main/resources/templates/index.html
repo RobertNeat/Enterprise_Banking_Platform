@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>credit_risk_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+    <div class="card">
+        <p>Panel operatorski dla credit_risk_mock jest w przygotowaniu.</p>
+        <p>Dostępne REST API: <code>/credit-bureau/score</code>, <code>/credit-bureau/history/{applicantId}</code>, <code>/ecl/classify</code>, <code>/ecl/positions/{positionId}</code>.</p>
+    </div>
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

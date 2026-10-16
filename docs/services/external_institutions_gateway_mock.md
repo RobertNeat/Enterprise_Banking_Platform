@@ -22,14 +22,14 @@ Zmienna `GATEWAY_SEED_MOCK_DATA` (domyślnie `true`, patrz `.env.example`/`deplo
 
 ## UI operatorski (Thymeleaf)
 
-Natywne fragmenty (`th:replace`/`th:insert`), bez Layout Dialect.
+Natywne fragmenty Thymeleaf (`th:replace`), bez Layout Dialect — wspólny layout w `fragments/layout.html` (head/header/footer w jednym pliku, wzorzec "Basic inclusion" z thymeleaf.org). Stylowanie przez `static/css/theme.css` (bazowe style panelu operatorskiego) i `static/css/theme-vars.css` (zmienna `--primary-color` tego serwisu). Nawigacja w nagłówku korzysta z `th:href`.
 
-- `GET /` — przekierowanie na `/ui/enforcement`.
+- `GET /` — realna strona startowa (`index.html`) z opisem i linkami do trzech sekcji (nie przekierowanie).
 - `GET /ui/enforcement` + formularz `POST /ui/enforcement` — ręczna symulacja przychodzącego zajęcia komorniczego.
 - `GET /ui/reports` — lista zgłoszeń do bramy sprawozdawczej ze statusami.
 - `GET /ui/fatca` — lista wygenerowanych eksportów FATCA/CRS z podglądem XML (`<pre th:text>`, bez `th:utext` — unikanie XSS).
 
-Kontrolery UI (`UiController`, `@Controller`) są osobne od REST API i czytają z tych samych serwisów w pamięci. Formularz HTML wysyła dane jako `x-www-form-urlencoded`, więc nie reużywa kontrolerów REST (`@RequestBody` JSON) — ma własny handler `@RequestParam`.
+Kontrolery UI (`UiController`, `@Controller`) są osobne od REST API i czytają z tych samych serwisów w pamięci. Formularz HTML wysyła dane jako `x-www-form-urlencoded`, więc nie reużywa kontrolerów REST (`@RequestBody` JSON) — ma własny handler `@RequestParam`. `UiFooterAdvice` (`@ControllerAdvice`) wstrzykuje `serverPort` do modelu widoków UI, używane w stopce layoutu.
 
 ## Struktura kodu
 
@@ -39,12 +39,14 @@ src/main/java/robert_neat/external_institutions_gateway_mock/
   fatca/         — FatcaCrsRecord, FatcaCrsExport(Request), FatcaCrsService, FatcaCrsController
   regulatory/    — RegulatorySubmission, SubmissionStatus, RegulatoryGatewayService, RegulatoryGatewayController
   config/        — CorsConfig
-  ui/            — UiController
+  ui/            — UiController, UiFooterAdvice
 ```
 
 ## Testy
 
 `ExternalInstitutionsGatewayMockApplicationTests.java` — `@SpringBootTest` z manualnym `MockMvc` (jak w `governance_mock`), `gateway.submission.delay-ms=50` w test properties dla szybkości. Pokrywa: cykl zajęcia (incoming → list → transfer → powtórny transfer = 409), 404 dla nieznanego zajęcia, 400 dla niekompletnego żądania, eksport FATCA/CRS z escapowaniem `&`, 400 dla błędnego `recipient`, rozstrzygnięcie zgłoszenia przez polling (ACCEPTED/REJECTED), deterministyczny przypadek REJECTED, 400 dla nieznanego `recipient` bramy, 404 dla nieznanego `submissionId`, render wszystkich stron `/ui/**`.
+
+`UiControllerTest.java` — weryfikuje render stron UI przez layout (`class="app-header"`/`class="app-footer"`), obecność linków do `/css/theme.css`/`/css/theme-vars.css`, serwowanie obu plików CSS pod `/css/**` (z zawartością `.card`/`--primary-color`) oraz przekierowanie formularza zajęć bez przecieku atrybutów modelu do URL.
 
 ## Do uzupełnienia w innych częściach aplikacji
 

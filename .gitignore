@@ -49,8 +49,9 @@ apps/video-service-hub/storage/
 *~
 docs/TMP*
 docs/tmp*
-temp*/
-tmp*/
+/temp*/
+/tmp*/
+!**/src/main/resources/templates/
 
 # Certificates
 .certs/

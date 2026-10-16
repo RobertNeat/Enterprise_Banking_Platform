@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>external_institutions_gateway_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+    <p>Lekki panel do manualnego testowania external_institutions_gateway_mock (zajęcia komornicze, raporty, FATCA/CRS).</p>
+    <ul>
+        <li><a th:href="@{/ui/enforcement}">Zajęcia komornicze</a></li>
+        <li><a th:href="@{/ui/reports}">Raporty</a></li>
+        <li><a th:href="@{/ui/fatca}">FATCA/CRS</a></li>
+    </ul>
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

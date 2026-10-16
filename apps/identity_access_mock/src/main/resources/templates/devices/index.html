@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>Urządzenia — identity_access_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+    <div class="card">
+        <h2>Rejestr urządzeń mobilnych</h2>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                <tr>
+                    <th>deviceId</th>
+                    <th>Właściciel (employeeId/customerId)</th>
+                    <th>Model</th>
+                    <th>Ostatnio widziany</th>
+                    <th>Zaufany</th>
+                    <th>Akcja</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="device : ${devices}">
+                    <td th:text="${device.getDeviceId()}"></td>
+                    <td th:text="${device.getOwnerId()}"></td>
+                    <td th:text="${device.getModel()}"></td>
+                    <td th:text="${device.getLastSeenAt()}"></td>
+                    <td th:text="${device.isTrusted()}"></td>
+                    <td>
+                        <form class="inline" th:action="@{/devices/{id}/unbind-ui(id=${device.getDeviceId()})}" method="post">
+                            <button type="submit">Unbind</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

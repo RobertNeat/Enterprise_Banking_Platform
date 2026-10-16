@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>external_institutions_gateway_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+
+<div class="card">
+    <h2>Zgloszenia do bramy sprawozdawczej KNF/NBP/BFG/FATCA-CRS</h2>
+    <p><small>Lista odswiezana przy przeladowaniu strony (brak auto-polling w UI).</small></p>
+    <div class="table-responsive">
+        <table>
+            <thead>
+            <tr>
+                <th>Submission Id</th><th>Report Id</th><th>Odbiorca</th><th>Nazwa</th><th>Okres</th>
+                <th>Status</th><th>Bledy walidacji</th><th>Zlozono</th><th>Rozstrzygnieto</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${submissions}">
+                <td th:text="${s.submissionId}"></td>
+                <td th:text="${s.reportId}"></td>
+                <td th:text="${s.recipient}"></td>
+                <td th:text="${s.name}"></td>
+                <td th:text="${s.period}"></td>
+                <td th:text="${s.status}"></td>
+                <td th:text="${s.validationErrors}"></td>
+                <td th:text="${s.submittedAt}"></td>
+                <td th:text="${s.resolvedAt}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

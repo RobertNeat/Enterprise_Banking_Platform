@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-/** Injects the server port into every operator-UI view, used by fragments/footer.html. */
+/** Injects the server port into every operator-UI view, used by fragments/layout.html's footer fragment. */
 @ControllerAdvice(basePackageClasses = UiController.class)
 public class UiFooterAdvice {
 

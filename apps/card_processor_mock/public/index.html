@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>card_processor_mock</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link rel="stylesheet" href="/css/theme-vars.css" />
+    <style>
+      header.app-header {
+        background: var(--primary-color, #2c3e50);
+        color: #ffffff;
+        padding: 1rem 1.5rem;
+      }
+      header.app-header h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <header class="app-header">
+      <h1>card_processor_mock — panel operatorski</h1>
+    </header>
+    <main class="container my-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="card-text">
+            Panel operatorski dla card_processor_mock jest w przygotowaniu.
+          </p>
+          <p class="card-text">
+            Dostępne REST API: <code>/authorizations</code>,
+            <code>/cards/:cardId/block</code>,
+            <code>/cards/:cardId/unblock</code>,
+            <code>/cards/:cardId/block-status</code>, <code>/chargebacks</code>,
+            <code>/processor/simulate-outage</code>,
+            <code>/processor/status</code>.
+          </p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

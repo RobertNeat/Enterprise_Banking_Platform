@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <title th:replace="${title}">governance_mock</title>
+    <link rel="stylesheet" th:href="@{/css/theme-vars.css}"/>
+    <link rel="stylesheet" th:href="@{/css/theme.css}"/>
+</head>
+<body>
+<header class="app-header" th:fragment="header">
+    <h1>governance_mock — panel operatorski</h1>
+</header>
+<footer class="app-footer" th:fragment="footer">
+    <span th:text="'governance_mock · port ' + ${serverPort}">governance_mock</span>
+</footer>
+</body>
+</html>

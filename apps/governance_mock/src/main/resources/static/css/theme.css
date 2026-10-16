@@ -1,0 +1,143 @@
+/* Shared base styles for Enterprise Banking Platform mock-service operator panels.
+   Each service also loads its own theme-vars.css which defines --primary-color
+   before this file, so the header/footer picks up a per-service color. */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1f2328;
+  background: #f5f6f8;
+  line-height: 1.5;
+}
+
+header.app-header {
+  background: var(--primary-color, #2c3e50);
+  color: #ffffff;
+  padding: 1rem 1.5rem;
+}
+
+header.app-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+header.app-header nav a {
+  color: #ffffff;
+  text-decoration: none;
+  margin-right: 1.25rem;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+header.app-header nav a:hover,
+header.app-header nav a.active {
+  border-bottom-color: #ffffff;
+}
+
+main {
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1.5rem;
+}
+
+main h2 {
+  font-size: 1.1rem;
+  margin-top: 1.75rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+table caption {
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e1e4e8;
+  font-size: 0.9rem;
+}
+
+th {
+  background: #f0f1f3;
+  font-weight: 600;
+}
+
+form.inline {
+  display: inline;
+}
+
+form .field {
+  margin-bottom: 0.75rem;
+}
+
+form label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+input, select, textarea {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #c9ccd1;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 420px;
+}
+
+button, input[type="submit"] {
+  font: inherit;
+  background: var(--primary-color, #2c3e50);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+
+button:hover, input[type="submit"]:hover {
+  filter: brightness(1.1);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  background: #e1e4e8;
+}
+
+footer.app-footer {
+  max-width: 1100px;
+  margin: 2rem auto 1.5rem auto;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid #e1e4e8;
+  color: #6b7280;
+  font-size: 0.8rem;
+}

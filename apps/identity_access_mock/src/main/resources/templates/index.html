@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(~{::title})}">
+    <title>identity_access_mock</title>
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header}"></div>
+<main>
+    <div class="card">
+        <p>Lekki panel do manualnego testowania identity_access_mock (RBAC, OTP/SCA, rejestr urządzeń).</p>
+        <ul>
+            <li><a th:href="@{/accounts}">Konta demo i zarejestrowane</a></li>
+            <li><a th:href="@{/otp}">Aktywne kody OTP</a></li>
+            <li><a th:href="@{/devices}">Rejestr urządzeń</a></li>
+            <li><a th:href="@{/ebanking}">Odblokowanie dostępu e-banking</a></li>
+        </ul>
+    </div>
+</main>
+<div th:replace="~{fragments/layout :: footer}"></div>
+</body>
+</html>

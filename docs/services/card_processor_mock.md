@@ -6,7 +6,15 @@ Konsoliduje dwa mocki: procesor płatności (autoryzacje kart w konwencji zbliż
 
 Stan przechowywany wyłącznie w pamięci procesu (`Map`/`Set` w singletonach `@Injectable()`) — brak bazy danych, brak ORM. Dane nie przetrwają restartu procesu.
 
-Serwis jest czystym REST API — brak UI/panelu operatorskiego (Thymeleaf jest technologią Spring/Java, niekompatybilną z NestJS; decyzja użytkownika).
+Pod `/` serwis wystawia statyczną stronę placeholder (Bootstrap 5 wczytywany przez CDN, bez żadnej nowej zależności npm — `@nestjs/platform-express`, już obecny w zależnościach, wystarcza do `useStaticAssets`). Strona znajduje się w `public/index.html`, serwowana z `dist/public` w zbudowanym obrazie. To jeszcze nie pełny panel operatorski — tylko statyczna informacja o dostępnych endpointach. Tekstowy endpoint `getHello()` (zwracający `"Hello World!"`) został przeniesiony z `/` na `/hello`.
+
+Kolor nagłówka strony konfigurowany jest przez zmienną CSS `--primary-color` w `public/css/theme-vars.css` — ta sama konwencja nazewnicza co w 4 siostrzanych serwisach Spring Boot (Thymeleaf), tylko inny mechanizm dostawy (statyczny plik CSS, nie template engine).
+
+Poza stroną placeholder serwis jest czystym REST API — brak pełnego UI/panelu operatorskiego (Thymeleaf jest technologią Spring/Java, niekompatybilną z NestJS; decyzja użytkownika).
+
+### Konfiguracja budowania statycznych assetów
+
+`nest-cli.json` kopiuje `public/**/*` do `dist/public/**/*` przez `compilerOptions.assets`. Katalog `public/` leży poza `src/` (nie jest kodem TypeScript), więc wpis `include` używa `../public/**/*` (względnie do `sourceRoot: src`) z `outDir: dist/public` — bez jawnego `outDir: dist/public` kopiowanie spłaszczyłoby pliki do `dist/` (głębokość ścieżki do odcięcia jest liczona względem `src`, nie względem rzeczywistego położenia `public/`).
 
 ## Zaimplementowane endpointy
 
