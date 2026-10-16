@@ -61,6 +61,22 @@ describe('LoanDetailPage', () => {
     expect((component as any).schedule()).toEqual(seededInstallments);
   });
 
+  it('shows an empty schedule (not a synthetic one) when the backend returns no installments yet', () => {
+    configure('LN-80288');
+
+    const fixture = TestBed.createComponent(LoanDetailPage);
+    const component = fixture.componentInstance;
+
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80288`).flush({
+      ...LOAN_APPLICATIONS.find((l) => l.id === 'LN-80288'),
+      installments: [],
+      stageTransitions: [],
+    });
+
+    expect((component as any).schedule()).toEqual([]);
+  });
+
   it('falls back to EMPTY_LOAN / locally-generated schedule when the backend has no such loan', () => {
     configure('LN-99999');
 

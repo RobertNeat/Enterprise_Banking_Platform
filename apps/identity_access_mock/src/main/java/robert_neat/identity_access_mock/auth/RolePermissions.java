@@ -19,7 +19,7 @@ public final class RolePermissions {
     // this map (see class javadoc). Not a breaking change to existing demo accounts' other values.
     private static final Map<String, List<String>> PERMISSIONS_BY_ROLE = Map.of(
             ADMIN, List.of("dashboard", "loans", "risk", "collections", "contact", "compliance",
-                    "ebanking", "cards", "accounts-admin", "audit", "approvals"),
+                    "ebanking", "cards", "accounts-admin", "audit", "approvals", "enforcement"),
             LOANS, List.of("dashboard", "loans", "ebanking"),
             RISK, List.of("dashboard", "risk", "loans"),
             COLLECTIONS, List.of("dashboard", "collections", "enforcement"),

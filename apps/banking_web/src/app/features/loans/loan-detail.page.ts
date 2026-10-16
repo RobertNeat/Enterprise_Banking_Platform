@@ -69,7 +69,10 @@ export class LoanDetailPage {
 
   protected readonly schedule = computed(() => {
     const fetched = this.fetchedInstallments();
-    if (fetched && fetched.length > 0) {
+    if (fetched) {
+      // Backend answered — even an empty array is authoritative (e.g. a loan still in
+      // 'application' stage genuinely has no schedule yet). Only fall back to a locally
+      // generated schedule before the backend has responded at all (see constructor).
       return fetched;
     }
     const amount = this.loan().approvedAmount ?? this.loan().requestedAmount;

@@ -27,7 +27,9 @@ export class ShellPage {
     return NAV_ITEMS.filter((item) => !item.permission || granted.has(item.permission));
   });
 
-  protected readonly userMenuLabel = computed(() => this.i18n.translate('user.mockName'));
+  protected readonly userMenuLabel = computed(
+    () => this.auth.employeeId() ?? this.i18n.translate('user.mockName'),
+  );
 
   protected readonly userMenuItems = computed<MenuItem[]>(() => {
     const isDark = this.theme.mode() === 'dark';
