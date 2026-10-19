@@ -9,6 +9,7 @@
 
 <div class="card">
     <h2>Symulacja przychodzacego zajecia komorniczego</h2>
+    <!--/* nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -- Thymeleaf form, not Django; rule has no Spring equivalent. Mock has no Spring Security/session on classpath, so there is no CSRF token to emit. */-->
     <form method="post" th:action="@{/ui/enforcement}">
         <div class="field"><label>Komornik: <input type="text" name="bailiff" required="required"/></label></div>
         <div class="field"><label>Numer sprawy: <input type="text" name="caseNumber" required="required"/></label></div>
