@@ -22,5 +22,4 @@
 
 ## Do zrobienia
 
-- [ ] Pełne testy integracyjne przepływów między systemami (osobny, późniejszy etap
-      — poza zakresem tej rundy UI)
+- [ ] Pełne testy integracyjne przepływów między systemami
