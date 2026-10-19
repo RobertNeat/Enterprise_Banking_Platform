@@ -28,6 +28,10 @@
     </scm>
     <properties>
         <java.version>25</java.version>
+        <!-- CVE-2026-65182/65905/68525 (Tomcat) fixed in 11.0.25; parent BOM still ships 11.0.24 -->
+        <tomcat.version>11.0.25</tomcat.version>
+        <!-- CVE-2026-89407/89425/68497/91776/91777 (Jackson) fixed in 3.1.7; parent BOM still ships 3.1.5 -->
+        <jackson-bom.version>3.1.7</jackson-bom.version>
     </properties>
     <dependencies>
         <dependency>

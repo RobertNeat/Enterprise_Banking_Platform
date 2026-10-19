@@ -23,3 +23,4 @@
 ## Do zrobienia
 
 - [ ] Pełne testy integracyjne przepływów między systemami
+
