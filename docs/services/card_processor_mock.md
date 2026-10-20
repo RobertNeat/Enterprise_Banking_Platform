@@ -74,4 +74,4 @@ Walidacja ręczna w kontrolerach (bez `class-validator`/`class-transformer` — 
 
 ## CORS
 
-Serwis jest eksponowany na hoście i wołany bezpośrednio z przeglądarki — dodano `app.enableCors()` w `main.ts` (origin konfigurowalny przez `CARD_PROCESSOR_CORS_ALLOWED_ORIGIN`, domyślnie `http://localhost:10500`, metody `GET`/`POST`), analogicznie do `identity_access_mock`/`external_institutions_gateway_mock`.
+Serwis jest eksponowany na hoście i wołany bezpośrednio z przeglądarki — dodano `app.enableCors()` w `main.ts` (origin konfigurowalny przez `CARD_PROCESSOR_CORS_ALLOWED_ORIGIN`, domyślnie `http://localhost:10500`, metody `GET`/`POST`; w `deploy/compose.yml` ustawiany ze wspólnej zmiennej `BANKING_WEB_ORIGIN`), analogicznie do `identity_access_mock`/`external_institutions_gateway_mock`.

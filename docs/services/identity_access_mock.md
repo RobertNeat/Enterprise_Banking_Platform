@@ -52,15 +52,9 @@ dostępne tylko przez REST.
 Serwis jest wołany bezpośrednio z przeglądarki na innym porcie (banking_web, domyślnie 10500), więc
 endpointy REST (`/auth/**`, `/otp/**`, `/devices/**`, `/ebanking-access/**`) mają skonfigurowany CORS
 (właściwość `app.cors.allowed-origin`, domyślnie `http://localhost:10500`; nadpisywalna przez zmienną
-środowiskową `APP_CORS_ALLOWEDORIGIN` dzięki relaxed binding Springa).
-
-## Do uzupełnienia w innych częściach aplikacji
-
-- **deploy/compose.yml**: w środowisku innym niż lokalny `localhost` (produkcja) origin przeglądarki nie
-  będzie równy domyślnemu `http://localhost:10500` — należy ustawić zmienną środowiskową
-  `APP_CORS_ALLOWEDORIGIN` na rzeczywisty adres `banking_web`, inaczej CORS zablokuje wywołania. Decyzja
-  o konkretnej wartości i miejscu jej zdefiniowania (config.env/projects.env) wymaga działania poza
-  zakresem tej sesji (plik `deploy/**` nie jest w zakresie zmian).
+środowiskową `BANKING_WEB_ORIGIN`, przekazywaną w `deploy/compose.yml`). Na produkcji/LAN musi być
+ustawiona na rzeczywisty origin `banking_web` (np. `http://192.168.1.160:10500`), inaczej CORS
+zablokuje wywołania z przeglądarki — wartość ustawiana w `config.env` na hoście.
 - **banking_backend**: integracja `POST /auth/login` jako źródło tokenu/uprawnień dla sesji pracownika;
   obecnie frontend nawiguje lokalnie bez wołania żadnego backendu auth.
 - **banking_backend / EbankingUser**: po pozytywnym `POST /ebanking-access/{userId}/unlock` backend

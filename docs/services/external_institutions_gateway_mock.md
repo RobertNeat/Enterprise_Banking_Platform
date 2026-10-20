@@ -13,7 +13,7 @@ Pełny kontrakt JSON: `docs/external_institutions_gateway_mock_contract/api.md`.
 - **E-zajęcia (F6)**: `POST /enforcement/incoming` (rejestracja, status `registered`), `GET /enforcement` (skrzynka odbiorcza), `POST /enforcement/{id}/transfer` (rozliczenie, status `settled`, 409 jeśli już rozliczone, 404 jeśli nieznane).
 - **FATCA/CRS export**: `POST /fatca-crs/export` — generuje XML (korzeń `<FatcaCrsReport>`, `<Period>`, `<Records><Record>`), zapisuje w pamięci do podglądu w UI.
 - **Brama sprawozdawcza KNF/NBP/BFG (F7)**: `POST /regulatory-gateway/submit` — natychmiastowy `202 PENDING`, po `gateway.submission.delay-ms` (domyślnie 2500 ms) status zmienia się w tle na `ACCEPTED`/`REJECTED` (reguła deterministyczna: `hash(reportId) mod 10 == 0` → `REJECTED`). `GET /regulatory-gateway/submissions/{id}` — polling statusu.
-- **CORS**: endpointy REST mają włączony CORS (`gateway.cors.allowed-origin-patterns`, domyślnie `localhost`/`127.0.0.1` na każdym porcie) — wymagane, bo serwis jest wołany z innego originu przez przeglądarkę.
+- **CORS**: endpointy REST mają włączony CORS (`gateway.cors.allowed-origin-patterns`, domyślnie `http://localhost:10500`, nadpisywalne przez zmienną `BANKING_WEB_ORIGIN` przekazywaną w `deploy/compose.yml`) — wymagane, bo serwis jest wołany z innego originu przez przeglądarkę; na produkcji/LAN musi wskazywać rzeczywisty origin `banking_web`.
 - **Health**: `GET /actuator/health`.
 
 ### Seedowanie startowe
