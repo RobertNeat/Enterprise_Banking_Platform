@@ -37,6 +37,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 FROM 192.168.1.162:5000/library/node:${RUNTIME_VERSION}-alpine
 RUN apk upgrade --no-cache
+# npm ships its own vendored node_modules (undici, brace-expansion, ...) that lag behind
+# upstream fixes and trip Trivy; the runtime only needs `node`, never npm/npx, so remove them.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 ARG APP_PORT
 ARG START_COMMAND
 ARG PROJECT_PATH
