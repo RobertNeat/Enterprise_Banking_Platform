@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
-import { RECENT_CASES, REGULATORY_ALERTS } from './dashboard.data';
+import { ICT_INCIDENTS, RECENT_CASES, REGULATORY_ALERTS } from './dashboard.data';
 import { DashboardPage } from './dashboard.page';
 
 describe('DashboardPage', () => {
@@ -20,7 +20,7 @@ describe('DashboardPage', () => {
 
   afterEach(() => httpMock.verify());
 
-  it('fetches recent cases and regulatory alerts from banking_backend', () => {
+  it('fetches recent cases, regulatory alerts and ICT incidents from banking_backend', () => {
     const fixture = TestBed.createComponent(DashboardPage);
     const component = fixture.componentInstance;
 
@@ -28,8 +28,10 @@ describe('DashboardPage', () => {
     httpMock
       .expectOne(`${apiBaseUrl.bankingBackend}/dashboard/regulatory-alerts`)
       .flush(REGULATORY_ALERTS);
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/dashboard/ict-incidents`).flush(ICT_INCIDENTS);
 
     expect((component as any).recentCases()).toEqual(RECENT_CASES);
     expect((component as any).regulatoryAlerts()).toEqual(REGULATORY_ALERTS);
+    expect((component as any).ictIncidents()).toEqual(ICT_INCIDENTS);
   });
 });

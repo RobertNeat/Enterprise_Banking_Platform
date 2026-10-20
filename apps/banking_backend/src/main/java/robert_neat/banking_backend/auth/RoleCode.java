@@ -15,6 +15,11 @@ import java.util.Arrays;
  * second-level checker over the 4 frontline roles), LOANS/RISK/COLLECTIONS/CONTACT=1 (maker-only,
  * cannot decide each other's approvals). This is flat on purpose for the 4 frontline roles —
  * no business reason found to rank a credit analyst above a loan advisor or vice versa.
+ *
+ * ADMIN holds the highest seniorityLevel in the system, so no role can ever check an approval
+ * ADMIN requested (hasHigherSeniorityRole() is false for it) — see ApprovalsService.requireCheckerExists(),
+ * which blocks ADMIN from initiating a maker-checker approval in the first place rather than
+ * letting it get stuck PENDING forever.
  */
 public enum RoleCode {
 
@@ -40,6 +45,11 @@ public enum RoleCode {
     /** Higher = can decide (maker-checker) approvals requested by lower-seniority roles. */
     public int seniorityLevel() {
         return seniorityLevel;
+    }
+
+    /** False means no role in the system could ever check an approval this role requests. */
+    public boolean hasHigherSeniorityRole() {
+        return Arrays.stream(values()).anyMatch(role -> role.seniorityLevel > this.seniorityLevel);
     }
 
     /** Stable lowercase code matching the demo account `id` (admin, loans, risk, ...). */

@@ -301,6 +301,12 @@ listy/kolejności co statyczny `dashboard.data.ts` (`RECENT_CASES` tam to `CS-10
 — zestaw z frontendu niezwiązany z `registered_at`) — backend zwraca realny TOP N z bazy, co jest
 zgodne z intencją „zapytanie agregujące”, a nie z przepisaniem zawartości fixture'a 1:1.
 
+`GET /dashboard/ict-incidents` → `IctIncidentAlertDto[]` — proxy do governance_mock's
+`GET /ict-incidents` (DORA), TOP 5 najnowszych incydentów ze statusem `OPEN` (filtrowanie i sortowanie
+po `createdAt` desc robi `DashboardService`, nie governance_mock). Pola: `id`, `source`, `description`,
+`severity` (`LOW|MEDIUM|HIGH`), `createdAt`. `GovernanceUnavailableException` → `503` (jak w `/approvals`).
+Konsumowane przez `dashboard.page.ts` w osobnej karcie "Incydenty ICT (DORA)" obok Alertów regulacyjnych.
+
 KPI kafelki (`app-kpi-card`) i wykresy (`trendData`, `productData`) są dziś hardkodowanymi literałami
 w `dashboard.page.ts` bez importu z `.data.ts` i bez żadnego konsumenta backendu obecnie. Backend
 wystawia `GET /dashboard/kpi-snapshot/latest` (najnowszy wiersz `dashboard_kpi_snapshot` po
@@ -327,11 +333,15 @@ widoku frontendowego dziś.
   (bez `scoreResult`/`dsti` — pochodzą z `credit_risk_mock` POST `/credit-bureau/score`, wołane
   przed zapisem; outage mocka → `503`, brak zapisanego wiersza). Zapisuje `stage='application'`,
   `interestRate` = stała 0.0790 (brak tabeli stawek per produkt), `termMonths` domyślnie 36 gdy
-  nie podano.
+  nie podano. `400` jeśli `segment` nie jest `retail`/`business` lub `product` nie jest jednym z
+  `cash`/`mortgage`/`overdraft`/`investment`/`creditLine` — walidacja następuje przed wywołaniem
+  `credit_risk_mock`, więc błędny request nie zużywa bureau inquiry.
 - `POST /loans/{id}/submit-for-approval` (F2, `application`→`decision`) → `{ "loan": LoanDetailDto, "approvalId" }`.
   Otwiera wpis w `governance_mock` (`type=LOAN_STAGE_TRANSITION`, `requestedBy`=employeeId z JWT),
   zapisuje `LoanStageTransition` z `approvalId`, woła `recordAuditEvent(LOAN_STAGE_CHANGED)`. `409`
-  jeśli wniosek nie jest w `application`.
+  jeśli wniosek nie jest w `application`. `403` jeśli wnioskodawca ma najwyższy `seniorityLevel`
+  w systemie (`RoleCode.hasHigherSeniorityRole()` = false, dziś tylko `ADMIN`) — nikt nie mógłby
+  tego approvala zatwierdzić.
 - `POST /loans/{id}/advance-stage` (F2, `decision`→`contract`) → `LoanDetailDto`. Odczytuje
   `approvalId` z ostatniego przejścia do `decision`, wymaga `governance_mock` approval w statusie
   `APPROVED` (`409` jeśli `PENDING`/`REJECTED`). Ustawia `approvedAmount=requestedAmount`, generuje
@@ -383,7 +393,9 @@ widoku frontendowego dziś.
   jeśli obecny `status != 'blocked'`. Audytuje `CARD_UNBLOCKED`.
 - `POST /cards/{cardId}/chargebacks` (F4) → `ChargebackDto`. Request: `{ "authorizationId",
   "reasonCode", "description" }`. Woła `card_processor_mock` `POST /chargebacks`, zapisuje
-  `ChargebackRef` (id z odpowiedzi mocka). `404` jeśli `authorizationId` nieznane lub nie należy do
+  `ChargebackRef` (id z odpowiedzi mocka). `400` jeśli `reasonCode` poza `4855|4837|4853|4863`
+  (walidacja PRZED wywołaniem `card_processor_mock`, zgodna z CHECK constraint na
+  `chargeback_ref.reason_code`). `404` jeśli `authorizationId` nieznane lub nie należy do
   `cardId`. Audytuje `CARD_CHARGEBACK_FILED`.
 - `POST /cards/chargebacks/{id}/advance` (F4) → `ChargebackDto`. Request: `{ "status" }`
   (`UNDER_REVIEW|RESOLVED_CUSTOMER|RESOLVED_MERCHANT`). Woła `card_processor_mock` `POST
@@ -391,10 +403,10 @@ widoku frontendowego dziś.
   przekazane 1:1 z mocka przy niedozwolonym przejściu. Audytuje `CARD_CHARGEBACK_ADVANCED`.
 
 **Ścieżka 503 → incydent ICT (F4 alt-flow):** jeśli `card_processor_mock` jest nieosiągalny
-(connection failure) LUB zwraca `503` (symulowany outage, tylko `POST /authorizations` w mocku to
-dziś wystawia realnie — `block`/`unblock`/`chargebacks` dostają 503 tylko przy connection failure,
-nie przy przełączniku `simulate-outage`, bo te endpointy mocka nie sprawdzają flagi outage) — przed
-zwróceniem `503` do `banking_web`, backend zgłasza incydent ICT do `governance_mock` (`POST
+(connection failure) LUB zwraca `503` (symulowany outage — `block`/`unblock`/`chargebacks`/
+`chargebacks/{id}/advance` w mocku sprawdzają flagę outage i zwracają `503` tak samo jak
+`POST /authorizations`) — przed zwróceniem `503` do `banking_web`, backend zgłasza incydent ICT do
+`governance_mock` (`POST
 /ict-incidents`, `source="CARD_PROCESSOR"`, `severity="HIGH"`). Jeśli to zgłoszenie też zawiedzie
 (podwójna awaria), oryginalny błąd `503` i tak wraca do klienta (błąd zgłoszenia logowany, nie
 maskuje oryginału). Brak endpointu `POST /cards/{cardId}/authorize` — ocena R3: autoryzacja karty
@@ -407,7 +419,8 @@ miało i nie ma formularza do ręcznego tworzenia autoryzacji.
 - `POST /cases` (F8) → `CustomerCaseDto`. Request: `{ "subject", "customerId", "ownerId"?, "priority", "caseType" }`
   (bez `statutoryDeadline`/`slaRemainingHours` — wyliczane przez backend, zob. reguła w
   `docs/services/banking_backend.md`). `ownerId` opcjonalny, domyślnie employeeId z JWT. Status
-  startowy `new`.
+  startowy `new`. `400` jeśli `priority` nie jest `low`/`medium`/`high`, lub `caseType` jest puste
+  albo dłuższe niż 30 znaków.
 - `POST /cases/{id}/escalate` (F8) → `{ "customerCase": CustomerCaseDto, "escalated": boolean }`.
   Woła `governance_mock` `POST /cases/{caseId}/sla-check` z aktualnym SLA wyliczonym z
   `sla_due_at`. `escalated=true` (SLA już minęło) → status `escalated`, audit event już dopisany
@@ -479,7 +492,9 @@ przekazuje kod klientowi kanałem pozakanałowym (symulowane w UI jako podpowied
   (`type="ENFORCEMENT_TRANSFER"`), zapisuje `approvalId` na encji (kolumna `approval_id`, już
   istniała od R1.5 jako zmiana na encji, bez potrzeby nowej migracji w R4), `status→'active'`. `409`
   jeśli `status != 'registered'` lub `gatewayEnforcementId=NULL` (defensywna gałąź — brak takiego
-  przypadku w bieżącym seedzie).
+  przypadku w bieżącym seedzie). `403` jeśli wnioskodawca ma najwyższy `seniorityLevel` w systemie
+  (`RoleCode.hasHigherSeniorityRole()` = false, dziś tylko `ADMIN`) — nikt nie mógłby tego approvala
+  zatwierdzić.
 - `POST /enforcement/{id}/transfer` (F6) → `EnforcementCaseDto`. Request: `{ "transferredAmount" }`.
   Wymaga `status='active'`, `gatewayEnforcementId` nie-NULL, oraz approval zapisany w `approvalId`
   w statusie `APPROVED` w `governance_mock` (wzorzec identyczny z `LoanActionsService.advanceStage`,
@@ -521,6 +536,7 @@ przekazuje kod klientowi kanałem pozakanałowym (symulowane w UI jako podpowied
 - `GET /dashboard/regulatory-alerts` → `RegulatoryAlertDto[]` (TOP 3)
 - `GET /dashboard/kpi-snapshot/latest` → `DashboardKpiSnapshotDto` (404 jeśli brak danych)
 - `GET /dashboard/portfolio-trend` → `PortfolioTrendPointDto[]`
+- `GET /dashboard/ict-incidents` → `IctIncidentAlertDto[]` (TOP 5 `OPEN`, proxy do governance_mock)
 
 ### Reference (bez widoku-konsumenta, pomocnicze)
 

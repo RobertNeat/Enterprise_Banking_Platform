@@ -17,7 +17,7 @@ Zestawienie funkcji mających solidne pokrycie w UI (ekran + podłączony handle
 - <a id="dsh-02"></a>**[DSH-02]** Wykres trendu portfela kredytowego w czasie
 - <a id="dsh-03"></a>**[DSH-03]** Wykres portfela według produktu
 - <a id="dsh-04"></a>**[DSH-04]** Lista ostatnich spraw klientów
-- <a id="dsh-05"></a>**[DSH-05]** Lista alertów regulacyjnych
+- <a id="dsh-05"></a>**[DSH-05]** Lista alertów regulacyjnych, oraz osobna karta incydentów ICT (DORA) — TOP 5 najnowszych incydentów ze statusem OPEN, zgłaszanych automatycznie przy niedostępności card_processor_mock/external_institutions_gateway_mock
 
 ## Kredyty i pożyczki
 
@@ -78,7 +78,23 @@ Zestawienie funkcji mających solidne pokrycie w UI (ekran + podłączony handle
 
 ## Uwaga
 
-Wszystkie akcje zmieniające status (blokady, eskalacje, transfery, wysyłki) operują na danych mockowych w pamięci — brak integracji z rzeczywistym backendem.
+Akcje zmieniające status (blokady, eskalacje, transfery, wysyłki) wołają `banking_backend`
+(uwierzytelnione JWT wydanym przez `POST /auth/login`), który zapisuje zmianę w swojej bazie i, gdy
+dotyczy, integruje się z serwisami mockowymi (`identity_access_mock`, `governance_mock`,
+`card_processor_mock`, `credit_risk_mock`, `external_institutions_gateway_mock`) — zob. przepływy
+F1-F8 niżej oraz `docs/banking_backend_contract/api.md` dla pełnej listy endpointów. `governance_mock`
+i `external_institutions_gateway_mock` trzymają swój stan wyłącznie w pamięci procesu
+(`ConcurrentHashMap`, reset po restarcie) — nie mają własnej bazy danych w tej iteracji.
+
+Część funkcji UI pozostaje bez integracji backendowej — nie są to usterki, tylko świadomie
+niepodłączone w tej iteracji: czat z klientem [KKT-04](#kkt-04) (czysto frontendowa symulacja, brak
+tabeli), eksport CSV raportów [RPT-02](#rpt-02) (ogólny CSV, nie format FATCA/CRS — backend nigdy nie
+woła `POST /fatca-crs/export`, mimo że ten endpoint istnieje w `external_institutions_gateway_mock`),
+kafelki KPI i wykresy na pulpicie ([DSH-01](#dsh-01)/[DSH-02](#dsh-02)/[DSH-03](#dsh-03) — nadal
+literały w `dashboard.page.ts`, mimo że backend wystawia `GET /dashboard/kpi-snapshot/latest` i
+`GET /dashboard/portfolio-trend`), oraz harmonogram spłat dla wniosków bez wierszy w `installment`
+([KRD-04](#krd-04) — fallback: generowany runtime we frontendzie, zob. GAP w
+`docs/banking_backend_contract/api.md`).
 
 ---
 
@@ -228,12 +244,6 @@ Poniższe standardy są przyporządkowane do funkcji, które już istnieją w UI
 - Wspierane funkcje: [KKT-01](#kkt-01), [KRT-01](#krt-01)
 - Mockowy serwis: nie — rozszerzenie istniejącego wzorca maskowania na inne dane osobowe.
 
-**DORA — obsługa incydentów operacyjnych/ICT**
-
-- Co zaimplementować/zasymulować: rejestr incydentów operacyjnych (np. niedostępność kanału e-banking, błąd procesora kart) widoczny jako dodatkowa lista alertów uzupełniająca istniejące alerty regulacyjne na pulpicie.
-- Wspierane funkcje: [DSH-05](#dsh-05)
-- Mockowy serwis: tak — mock rejestru incydentów ICT, ponieważ obecne alerty regulacyjne dotyczą tylko raportów, nie zdarzeń operacyjnych.
-
 **WCAG — dostępność interfejsu**
 
 - Co zaimplementować/zasymulować: audyt i uzupełnienie etykiet ARIA, kontrastu i obsługi klawiatury dla elementów interaktywnych (tabele, kreatory, menu użytkownika), jako wymóg jakościowy dla całego UI, nie pojedynczej funkcji.
@@ -280,7 +290,11 @@ Połączenie serwisów z poprzedniej sekcji w mniejszą liczbę wielozadaniowych
 
 # Podstawowe przepływy działań (system flows)
 
-Przepływy docelowe (planowane) uzasadniające istnienie najważniejszych funkcji oraz wszystkich skonsolidowanych serwisów mockowych. Na tym etapie przepływy są ogólne — bez szczegółów komunikatów czy pól.
+Przepływy zaimplementowane i zweryfikowane end-to-end (testy manualne oraz testy jednostkowe
+backendu), uzasadniające istnienie najważniejszych funkcji oraz wszystkich skonsolidowanych serwisów
+mockowych. Diagramy przedstawiają uproszczony, docelowy kształt komunikacji — rzeczywista
+implementacja upraszcza niektóre kroki względem diagramu; odstępstwa są odnotowane w notce "Stan
+implementacji" pod każdym diagramem, gdzie dotyczy.
 
 ## F1 — Logowanie pracownika i uprawnienia
 
@@ -332,6 +346,14 @@ sequenceDiagram
     BB-->>WEB: Generuje harmonogram spłat
 ```
 
+Backend ma tylko trzy etapy encji (`application`→`decision`→`contract`, zob.
+`docs/banking_backend_contract/api.md`, sekcja "Loans") — "scoring" i "analiza zdolności" z diagramu
+nie są osobnymi etapami cyklu życia, tylko wywołaniem `credit_risk_mock` wykonywanym synchronicznie
+przy `POST /loans` (zanim wiersz w ogóle powstanie). Harmonogram spłat jest generowany dopiero po
+zatwierdzeniu (`advance-stage`) dla nowych wniosków; dla części wniosków z seeda, które nie mają
+własnych wierszy `installment`, frontend nadal generuje harmonogram runtime jako fallback (zob. GAP w
+`docs/banking_backend_contract/api.md`, sekcja "loans").
+
 ## F3 — Monitoring ryzyka i windykacja
 
 Funkcje: [WND-01](#wnd-01), [WND-02](#wnd-02), [WND-03](#wnd-03), [WND-04](#wnd-04), [RSK-01](#rsk-01), [DSH-01](#dsh-01)
@@ -352,6 +374,12 @@ sequenceDiagram
     WEB->>BB: Zmienia etap windykacji
     BB->>GOV: Rejestruje zdarzenie w dzienniku audytowym
 ```
+
+`BB->>CR: Przelicza koszyk IFRS 9` jest akcją ręczną (`POST /risk/collateral/{id}/reclassify`, pracownik
+wpisuje `daysPastDue` w UI), nie automatycznym przeliczeniem w tle. `BB-->>WEB: Aktualizuje KPI na
+pulpicie` nie jest jeszcze podłączone — kafelki KPI i wykresy w `dashboard.page.ts` pozostają
+literałami, mimo że backend wystawia gotowe endpointy (`GET /dashboard/kpi-snapshot/latest`,
+`GET /dashboard/portfolio-trend`), zob. "Uwaga" wyżej i GAP w `docs/banking_backend_contract/api.md`.
 
 ## F4 — Autoryzacja karty, blokada i chargeback
 
@@ -381,6 +409,13 @@ sequenceDiagram
         BB-->>WEB: Incydent widoczny na liście alertów
     end
 ```
+
+`CP->>BB: Zgłasza autoryzację transakcji kartowej` nie jest realnym push/polling — `card_authorization_ref`
+jest dziś zasilane wyłącznie seedem, backend wystawia `GET /cards/authorizations` nad tym, co już ma
+w bazie; nie ma endpointu `POST /cards/{cardId}/authorize` ani zadania odpytującego
+`card_processor_mock` o nowe autoryzacje (decyzja projektowa R3 — autoryzacja jest transakcją
+klienta, nie akcją pracownika w tym UI; zob. `docs/banking_backend_contract/api.md`, sekcja "Cards").
+Reszta diagramu (blokada/chargeback + ścieżka 503→incydent ICT) odpowiada rzeczywistej implementacji.
 
 ## F5 — Odblokowanie dostępu e-banking z silnym uwierzytelnieniem
 
@@ -436,6 +471,14 @@ sequenceDiagram
     BB-->>WEB: Aktualizuje status zajęcia
 ```
 
+`Komornik->>GW: Przesyła tytuł wykonawczy` i `GW->>BB: Rejestruje zajęcie` opisują kierunek odwrotny
+do rzeczywistej implementacji: dziś to pracownik rejestruje zajęcie ręcznie w kreatorze
+([ZJC-03](#zjc-03)), `banking_web` woła `POST /enforcement` na `banking_backend`, a dopiero backend
+woła `external_institutions_gateway_mock`'s `POST /enforcement/incoming`. Nie ma symulacji
+samoczynnego, przychodzącego komunikatu e-zajęcia inicjowanego przez komornika bez akcji pracownika —
+to pozycja planowana (zob. "Kanał e-zajęcia" w sekcji "Zajęcia komornicze" wyżej). Reszta diagramu
+(zatwierdzenie czworu oczu i przekazanie należności) odpowiada rzeczywistej implementacji.
+
 ## F7 — Raport regulacyjny od generowania do złożenia
 
 Funkcje: [RPT-01](#rpt-01), [RPT-02](#rpt-02), [RPT-03](#rpt-03)
@@ -459,6 +502,16 @@ sequenceDiagram
     WEB-->>Pracownik: Wyświetla zaktualizowany dashboard raportowania
 ```
 
+`BB->>GW: Generuje plik w formacie docelowym (np. FATCA/CRS XML)` jest uproszczeniem: backend woła
+jeden generyczny endpoint, `POST /regulatory-gateway/submit`, dla wszystkich odbiorców (`KNF`/`NBP`/
+`BFG`/`FATCA/CRS`) — `external_institutions_gateway_mock` wystawia też osobny `POST /fatca-crs/export`
+(generujący XML), ale backend go nie woła; `reporting.page.ts` nie rozróżnia FATCA/CRS od innych
+odbiorców poza filtrem listy (zob. `docs/banking_backend_contract/api.md`, sekcja "Reporting"). Status
+przyjęcia/odrzucenia jest odpytywany (`POST /reporting/reports/{id}/refresh-submission-status`), nie
+wypychany przez bramę (`GW-->>BB` z diagramu jest więc wynikiem pollingu zainicjowanego przez
+pracownika, nie callbackiem). `RPT-02` (eksport CSV) jest funkcją czysto frontendową, bez udziału
+`banking_backend`/bramy.
+
 ## F8 — Sprawa klienta z terminem ustawowym i SLA
 
 Funkcje: [CAS-01](#cas-01), [CAS-02](#cas-02), [CAS-03](#cas-03), [DSH-04](#dsh-04), [KKT-02](#kkt-02)
@@ -474,11 +527,29 @@ sequenceDiagram
     Pracownik->>WEB: Rejestruje nową sprawę (kreator)
     WEB->>BB: Wylicza termin ustawowy i SLA
     BB-->>WEB: Wyświetla sprawę na liście i pulpicie
-    BB->>GOV: Monitoruje czas SLA (sla-check)
-    alt Przekroczenie SLA
-        GOV->>GOV: Automatyczna eskalacja i wpis audytowy
+    Pracownik->>WEB: Klika Escalate (akcja ręczna)
+    WEB->>BB: POST /cases/{id}/escalate
+    BB->>GOV: sla-check (aktualny slaRemainingHours)
+    alt SLA minęło
+        GOV->>GOV: Zapisuje wpis audytowy AUTO_ESCALATED
         GOV-->>BB: escalated=true
-        BB-->>WEB: Aktualizuje status sprawy (eskalowana)
+        BB-->>WEB: Aktualizuje status sprawy (eskalowana, source=AUTO_SLA)
+    else SLA jeszcze nie minęło
+        GOV-->>BB: escalated=false
+        BB->>GOV: Zapisuje wpis audytowy CASE_ESCALATED_MANUALLY
+        BB-->>WEB: Aktualizuje status sprawy (eskalowana, source=MANUAL)
     end
     Pracownik->>WEB: Łączy zlecenie serwisowe ze sprawą
 ```
+
+Eskalacja jest wyłącznie akcją ręczną (`POST /cases/{id}/escalate` wołane z przycisku
+Escalate w UI) — backend poprawnie rozpoznaje, czy SLA już minęło w momencie kliknięcia, ale
+nie ma procesu cyklicznego monitorującego otwarte sprawy w tle. Automatyczna, czasowa
+eskalacja bez interakcji pracownika jest pozycją planowaną (patrz "SLA i eskalacja w obsłudze
+spraw" w sekcji "Sprawy klientów i reklamacje").
+
+`Pracownik->>WEB: Łączy zlecenie serwisowe ze sprawą` nie ma odpowiadającego mutującego endpointu —
+`GET /contact-center/dispositions` zwraca `ServiceDisposition.linkedCase` jako pole istniejące w
+danych (ustawione tylko przez seed), ale nie ma `POST`/`PUT` do powiązania zlecenia serwisowego ze
+sprawą z poziomu UI (zob. `docs/banking_backend_contract/api.md`, sekcja "Contact center" — wyłącznie
+`GET`). Ta funkcja jest pozycją planowaną, nie zaimplementowaną.

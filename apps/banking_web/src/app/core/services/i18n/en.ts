@@ -125,6 +125,12 @@ export const en: Record<string, string> = {
   'auth.register.step.account': 'Account',
   'auth.register.next': 'Next',
   'auth.register.back': 'Back',
+  'auth.register.error.employeeIdTaken': 'This employee ID is already registered.',
+  'auth.register.error.invalidData':
+    'Check the entered data — employee ID or password format is invalid.',
+  'auth.register.error.unavailable':
+    'The registration service is temporarily unavailable. Try again later.',
+  'auth.register.error.generic': 'Registration failed. Please try again.',
   'auth.validation.email': 'Invalid email address.',
   'auth.validation.passwordMismatch': 'Passwords do not match.',
   'auth.validation.mustAccept': 'You must accept this to continue.',
@@ -145,6 +151,14 @@ export const en: Record<string, string> = {
   'dashboard.portfolioByProduct': 'Portfolio by Product',
   'dashboard.recentCases': 'Recent Cases',
   'dashboard.regulatoryAlerts': 'Regulatory Alerts',
+  'dashboard.ictIncidents': 'ICT Incidents (DORA)',
+  'dashboard.ictIncidents.source': 'Source',
+  'dashboard.ictIncidents.description': 'Description',
+  'dashboard.ictIncidents.createdAt': 'Reported',
+  'dashboard.ictIncidents.severity': 'Severity',
+  'dashboard.ictIncidents.severity.LOW': 'Low',
+  'dashboard.ictIncidents.severity.MEDIUM': 'Medium',
+  'dashboard.ictIncidents.severity.HIGH': 'High',
 
   'loans.title': 'Loans & Credit',
   'loans.subtitle': 'Full lifecycle of credit products',
@@ -195,6 +209,8 @@ export const en: Record<string, string> = {
   'loans.wizard.scoringLoading': 'Scoring with the credit bureau...',
   'loans.wizard.scoringError': 'Could not get a scoring result. Please try again.',
   'loans.error.generic': 'Could not save the loan application.',
+  'loans.error.forbidden':
+    'An administrator cannot initiate maker-checker approvals — no one is able to approve them.',
 
   'cards.title': 'Payment Cards & Authorizations',
   'cards.subtitle': 'Issuance, limits, blocks, chargebacks',
@@ -313,6 +329,8 @@ export const en: Record<string, string> = {
   'enforcement.error.generic': 'Could not complete the enforcement case operation.',
   'enforcement.error.transferRejected':
     'Transfer rejected — check that the approval is APPROVED and the case has a gateway linkage.',
+  'enforcement.error.forbidden':
+    'An administrator cannot initiate maker-checker approvals — no one is able to approve them.',
   'enforcement.wizard.title': 'Register new enforcement case',
   'enforcement.wizard.step1': 'Bailiff & case',
   'enforcement.wizard.step2': 'Amounts',

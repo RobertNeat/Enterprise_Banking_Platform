@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import robert_neat.banking_backend.approvals.GovernanceClient;
 import robert_neat.banking_backend.approvals.SlaCheckResult;
 import robert_neat.banking_backend.common.BankTimeZone;
+import robert_neat.banking_backend.common.InvalidRequestException;
 import robert_neat.banking_backend.common.InvalidStageTransitionException;
 import robert_neat.banking_backend.common.NotFoundException;
 import robert_neat.banking_backend.customer.Customer;
@@ -16,6 +17,7 @@ import robert_neat.banking_backend.customer.EmployeeRepository;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -34,6 +36,10 @@ public class CaseActionsService {
     private static final Set<String> COMPLEX_CASE_TYPES = Set.of("restructuring_request");
     private static final int STANDARD_DEADLINE_DAYS = 30;
     private static final int COMPLEX_DEADLINE_DAYS = 60;
+    /** Must mirror the CHECK constraint on customer_case.priority (db/changelog/schema/006-cases.sql). */
+    private static final List<String> VALID_PRIORITIES = List.of("low", "medium", "high");
+    /** No DB CHECK constraint on case_type (VARCHAR(30) only) — just guard against null/blank/overlong. */
+    private static final int MAX_CASE_TYPE_LENGTH = 30;
 
     private final CustomerCaseRepository customerCases;
     private final CustomerRepository customers;
@@ -58,6 +64,8 @@ public class CaseActionsService {
     }
 
     public CustomerCaseDto create(CreateCustomerCaseRequest request, String callerEmployeeId) {
+        validateCreateRequest(request);
+
         Customer customer = customers.findById(request.customerId())
                 .orElseThrow(() -> new NotFoundException("Customer not found: " + request.customerId()));
         String ownerId = request.ownerId() != null && !request.ownerId().isBlank()
@@ -85,6 +93,25 @@ public class CaseActionsService {
         customerCases.save(customerCase);
 
         return CaseService.toDto(customerCase, now);
+    }
+
+    /**
+     * Must run before any side effect (DB write) — an invalid priority would otherwise surface as
+     * a raw DataIntegrityViolationException (500) when the DB's CHECK constraint rejects the
+     * insert, or as an IllegalArgumentException (500) from slaHoursFor's switch.
+     */
+    private void validateCreateRequest(CreateCustomerCaseRequest request) {
+        if (request.priority() == null || !VALID_PRIORITIES.contains(request.priority())) {
+            throw new InvalidRequestException(
+                    "priority must be one of: " + String.join(", ", VALID_PRIORITIES));
+        }
+        if (request.caseType() == null || request.caseType().isBlank()) {
+            throw new InvalidRequestException("caseType must not be blank");
+        }
+        if (request.caseType().length() > MAX_CASE_TYPE_LENGTH) {
+            throw new InvalidRequestException(
+                    "caseType must not exceed " + MAX_CASE_TYPE_LENGTH + " characters");
+        }
     }
 
     public EscalateCaseResponse escalate(String caseId, String employeeId) {

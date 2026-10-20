@@ -118,6 +118,15 @@ public class GovernanceClient {
         });
     }
 
+    /** Mirrors GET /ict-incidents — used by the dashboard's ICT incidents card (DORA, F4 read-side). */
+    public List<GovernanceIctIncidentResponse> listIctIncidents() {
+        GovernanceIctIncidentResponse[] responses = exchange(() -> restClient.get()
+                .uri("/ict-incidents")
+                .retrieve()
+                .body(GovernanceIctIncidentResponse[].class));
+        return responses == null ? List.of() : List.of(responses);
+    }
+
     private <T> T exchange(Supplier<T> call) {
         try {
             return call.get();

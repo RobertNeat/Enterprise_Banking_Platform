@@ -7,6 +7,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import robert_neat.banking_backend.common.BankTimeZone;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -49,12 +55,16 @@ class LoanControllerSeedOnTest {
 
     @Test
     void createdAtIsFlattenedInWarsawLocalDateNotUtc() throws Exception {
-        // created_at seed value is '2026-08-12 09:00:00+02:00' — UTC would still show
-        // 2026-08-12 (07:00 UTC), but this pins the zone so a future change to a
-        // timestamp close to local midnight doesn't silently regress to UTC.
+        // created_at seed value is now relative ("now" - 54 days, see db/changelog/seed/002-loan.sql)
+        // instead of a fixed calendar literal, so this asserts the date is flattened using
+        // BankTimeZone.ZONE (Europe/Warsaw) rather than pinning an exact literal day — it still
+        // fails if the controller regresses to UTC on a day where the two zones disagree, just not
+        // deterministically on every run (that edge case is covered at the unit level elsewhere).
+        LocalDate expected = Instant.now().minusSeconds(54L * 24 * 3600)
+                .atZone(BankTimeZone.ZONE).toLocalDate();
         mockMvc.perform(get("/loans/LN-80231").with(testJwt()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.createdAt").value("2026-08-12"));
+                .andExpect(jsonPath("$.createdAt").value(expected.format(DateTimeFormatter.ISO_LOCAL_DATE)));
     }
 
     @Test

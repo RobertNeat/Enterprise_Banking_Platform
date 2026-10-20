@@ -35,4 +35,9 @@ public class DashboardController {
     public List<PortfolioTrendPointDto> findPortfolioTrend() {
         return dashboardService.findPortfolioTrend();
     }
+
+    @GetMapping("/ict-incidents")
+    public List<IctIncidentAlertDto> findIctIncidentAlerts() {
+        return dashboardService.findIctIncidentAlerts();
+    }
 }

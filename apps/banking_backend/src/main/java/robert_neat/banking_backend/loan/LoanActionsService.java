@@ -4,7 +4,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import robert_neat.banking_backend.approvals.ApprovalRecord;
+import robert_neat.banking_backend.approvals.ApprovalsService;
 import robert_neat.banking_backend.approvals.GovernanceClient;
+import robert_neat.banking_backend.common.InvalidRequestException;
 import robert_neat.banking_backend.common.InvalidStageTransitionException;
 import robert_neat.banking_backend.common.NotFoundException;
 import robert_neat.banking_backend.creditrisk.CreditRiskClient;
@@ -43,6 +45,12 @@ public class LoanActionsService {
     static final BigDecimal DEFAULT_INTEREST_RATE = new BigDecimal("0.0790");
     static final int DEFAULT_TERM_MONTHS = 36;
 
+    /** Must mirror the CHECK constraint on loan_application.segment (db/changelog/schema/002-loan.sql). */
+    private static final List<String> VALID_SEGMENTS = List.of("retail", "business");
+    /** Must mirror the CHECK constraint on loan_application.product (db/changelog/schema/002-loan.sql). */
+    private static final List<String> VALID_PRODUCTS =
+            List.of("cash", "mortgage", "overdraft", "investment", "creditLine");
+
     private final LoanApplicationRepository loanApplications;
     private final LoanStageTransitionRepository stageTransitions;
     private final InstallmentRepository installments;
@@ -50,6 +58,7 @@ public class LoanActionsService {
     private final EmployeeRepository employees;
     private final CreditRiskClient creditRiskClient;
     private final GovernanceClient governanceClient;
+    private final ApprovalsService approvalsService;
     private final LoanIdGenerator idGenerator;
     private final LoanService loanService;
 
@@ -61,6 +70,7 @@ public class LoanActionsService {
             EmployeeRepository employees,
             CreditRiskClient creditRiskClient,
             GovernanceClient governanceClient,
+            ApprovalsService approvalsService,
             LoanIdGenerator idGenerator,
             LoanService loanService) {
         this.loanApplications = loanApplications;
@@ -70,11 +80,14 @@ public class LoanActionsService {
         this.employees = employees;
         this.creditRiskClient = creditRiskClient;
         this.governanceClient = governanceClient;
+        this.approvalsService = approvalsService;
         this.idGenerator = idGenerator;
         this.loanService = loanService;
     }
 
     public LoanDetailDto create(CreateLoanApplicationRequest request) {
+        validateCreateRequest(request);
+
         Customer customer = customers.findById(request.customerId())
                 .orElseThrow(() -> new NotFoundException("Customer not found: " + request.customerId()));
 
@@ -101,6 +114,22 @@ public class LoanActionsService {
         return loanService.findById(loan.getId());
     }
 
+    /**
+     * Must run before any side effect (credit_risk_mock scoring, DB write) — an invalid
+     * segment/product would otherwise still burn a bureau inquiry and/or surface as a raw
+     * DataIntegrityViolationException (500) when the DB's CHECK constraint rejects the insert.
+     */
+    private void validateCreateRequest(CreateLoanApplicationRequest request) {
+        if (request.segment() == null || !VALID_SEGMENTS.contains(request.segment())) {
+            throw new InvalidRequestException(
+                    "segment must be one of: " + String.join(", ", VALID_SEGMENTS));
+        }
+        if (request.product() == null || !VALID_PRODUCTS.contains(request.product())) {
+            throw new InvalidRequestException(
+                    "product must be one of: " + String.join(", ", VALID_PRODUCTS));
+        }
+    }
+
     public SubmitForApprovalResponse submitForApproval(String loanId, String employeeId) {
         LoanApplication loan = loanApplications.findById(loanId)
                 .orElseThrow(() -> new NotFoundException("Loan application not found: " + loanId));
@@ -109,6 +138,7 @@ public class LoanActionsService {
                     "Loan " + loanId + " is not in stage 'application' (current: " + loan.getStage() + ")");
         }
         Employee employee = requireEmployee(employeeId);
+        approvalsService.requireCheckerExists(employeeId);
 
         String fromStage = loan.getStage();
         ApprovalRecord approval = governanceClient.createApproval(

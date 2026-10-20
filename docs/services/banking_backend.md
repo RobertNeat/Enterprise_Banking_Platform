@@ -80,6 +80,20 @@ zajęcia komornicze, raporty regulacyjne z dwoma zgłoszeniami do bramy, migawka
 Testy `SeedMockDataEnabledTest` i `SeedMockDataDisabledTest` weryfikują oba warianty (liczności
 wszystkich 21 tabel), ustawiając `BANKING_SEED_MOCK_DATA` na osobnych bazach H2.
 
+### Daty w seedzie są względne wobec momentu seedowania
+
+Pola zasilające logikę "ile czasu zostało"/"przeterminowane" w UI (`customer_case.sla_due_at` /
+`statutory_deadline`, `regulatory_report.due_date`, `installment.due_date` dla `LN-80231`/`LN-80203`,
+powiązane znaczniki czasu w `loan_stage_transition`, `collections_action` i `service_disposition`/
+`contact_history_entry`) są zapisane jako wyrażenia SQL względem `CURRENT_DATE`/`CURRENT_TIMESTAMP`
+(np. `CURRENT_DATE + 7`, `CURRENT_TIMESTAMP - INTERVAL '4' HOUR`), a nie jako stałe literały daty.
+Dzięki temu po `docker compose up` na czystym wolumenie dane zawsze zawierają mieszankę: część spraw/
+rat/raportów już przeterminowanych (do testowania ścieżki eskalacji) i część ze świeżym terminem (do
+testowania normalnego SLA) — niezależnie od tego, kiedy wolumen zostanie faktycznie utworzony. Pola
+czysto historyczne/narracyjne (np. `loan_application.created_at` dla pożyczek bez harmonogramu rat,
+`collateral_entry.ecl_classified_at`) pozostają stałymi literałami — nie zasilają żadnej logiki
+"remaining time" w czasie działania aplikacji.
+
 ## Dodawanie nowej tabeli
 
 1. Changeset schematu w `src/main/resources/db/changelog/schema/` (nowy plik lub nowy changeset
@@ -371,7 +385,12 @@ doradca kredytowy. Zwracane jako claim JWT `seniorityLevel` oraz pole `LoginResp
 `banking.governance.base-url`/`BANKING_GOVERNANCE_BASEURL`, domyślnie `http://localhost:10524`).
 Endpointy: `GET /approvals` (filtr `status`), `GET /approvals/{id}`, `POST /approvals/{id}/decide`.
 `GovernanceClient` ma też `recordAuditEvent(...)` i `slaCheck(...)` — wywoływane od R2 przez
-`loan/LoanActionsService` (F2) i `cases/CaseActionsService` (F8), zob. niżej.
+`loan/LoanActionsService` (F2) i `cases/CaseActionsService` (F8), zob. niżej. `createIctIncident(...)`
+(zapis) i `listIctIncidents(...)` (odczyt, dodane obok zapisu) obsługują rejestr incydentów ICT (DORA):
+zapis wołany przez `card/CardActionsService` i `reporting/ReportingActionsService` przy niedostępności
+mocków (zob. F4/F6/F7 niżej), odczyt przez `dashboard/DashboardService.findIctIncidentAlerts()` —
+`GET /dashboard/ict-incidents` zwraca TOP 5 najnowszych incydentów `OPEN`, konsumowane przez osobną
+kartę na pulpicie obok alertów regulacyjnych.
 
 Reguła maker-checker wymuszana PO STRONIE BACKENDU (nie tylko UI), w `ApprovalsService.decide()`:
 1. `requestedBy` approvala (zawsze `employeeId` typu `PRC-xxxxx`) jest tą samą osobą co wołający →
@@ -388,6 +407,22 @@ Reguła maker-checker wymuszana PO STRONIE BACKENDU (nie tylko UI), w `Approvals
 `GET /approvals` wzbogaca każdy wpis o `requestedByRole`/`requestedBySeniorityLevel` (ta sama
 rezolucja co wyżej), żeby frontend mógł pokazać/schować przycisk zatwierdź/odrzuć bez duplikowania
 mapowania employeeId→rola.
+
+Druga strona tej samej reguły — strona makera, nie checkera — jest wymuszana w
+`ApprovalsService.requireCheckerExists(employeeId)`: rola o braku jakiejkolwiek roli o ściśle
+wyższym `seniorityLevel` w systemie (`RoleCode.hasHigherSeniorityRole()` zwraca `false`; dziś
+dotyczy to wyłącznie `ADMIN`, najwyższego poziomu) nie może w ogóle zainicjować approvala
+maker-checker — inaczej approval zostałby trwale `PENDING`, bo żaden checker nie mógłby go
+zatwierdzić. Wołane PRZED `governanceClient.createApproval(...)` (ale PO własnych
+preconditions stage/status wywołującego, żeby błędne żądanie nadal dostało swoje zwykłe 404/409
+zamiast być maskowane przez 403) z `loan/LoanActionsService.submitForApproval()` oraz
+`enforcement/EnforcementActionsService.requestTransferApproval()`. Rola nierozpoznawalna
+(`Optional.empty()`, np. `PRC-6000x` "Doradca klienta") NIE jest tu blokowana — to inny przypadek
+niż `decide()`: brak wiedzy o roli wnioskodawcy nie oznacza braku możliwego checkera. Frontend
+odzwierciedla to w `AuthService.canInitiateMakerChecker` (seniorityLevel < 3) — ukrywa przycisk
+"Nowy" na liście wniosków kredytowych (cały wizard, bo submit-for-approval jest jego jedynym
+mutującym krokiem po utworzeniu wniosku) oraz przycisk "Wyślij do zatwierdzenia" per wiersz
+zajęcia komorniczego (rejestracja sama w sobie nie ma bramki seniority).
 
 ### F2 — wniosek kredytowy: scoring → approval → decyzja → harmonogram (R2)
 

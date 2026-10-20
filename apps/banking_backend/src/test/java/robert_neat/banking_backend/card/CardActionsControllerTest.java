@@ -147,6 +147,20 @@ class CardActionsControllerTest {
     }
 
     @Test
+    void fileChargebackWithInvalidReasonCodeIsBadRequestAndNeverCallsCardProcessorMock() throws Exception {
+        mockMvc.perform(post("/cards/CRD-5521/chargebacks").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"authorizationId":"dfd92a8d-976a-4601-97be-13ab2e09c7b1",
+                                 "reasonCode":"9999","description":"opis"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "reasonCode must be one of: 4855, 4837, 4853, 4863"));
+
+        verify(cardProcessorClient, never()).fileChargeback(anyString(), anyString(), anyString());
+    }
+
+    @Test
     void fileChargebackForAuthorizationOfAnotherCardIsNotFound() throws Exception {
         // dfd92a8d-... belongs to CRD-5521, not CRD-5522.
         mockMvc.perform(post("/cards/CRD-5522/chargebacks").with(testJwt())

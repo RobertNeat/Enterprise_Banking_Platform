@@ -98,11 +98,12 @@ class EnforcementActionsControllerTest {
     void requestTransferApprovalOnSeededRegisteredCaseWithSeededLinkageSucceeds() throws Exception {
         // EN-2205 is seeded 'registered' with gatewayEnforcementId populated (R5) — request can
         // proceed to governance_mock even though the case predates the demo's own registration flow.
-        given(governanceClient.createApproval(eq("ENFORCEMENT_TRANSFER"), eq("PRC-00001"), anyString()))
-                .willReturn(new ApprovalRecord("appr-en2205", "ENFORCEMENT_TRANSFER", "PRC-00001", "payload",
+        // PRC-30678 (Windykator, seniorityLevel 1) — not admin, has a checker available.
+        given(governanceClient.createApproval(eq("ENFORCEMENT_TRANSFER"), eq("PRC-30678"), anyString()))
+                .willReturn(new ApprovalRecord("appr-en2205", "ENFORCEMENT_TRANSFER", "PRC-30678", "payload",
                         "PENDING", Instant.now(), null, null, null, null));
 
-        mockMvc.perform(post("/enforcement/EN-2205/request-transfer-approval").with(testJwt()))
+        mockMvc.perform(post("/enforcement/EN-2205/request-transfer-approval").with(testJwt("PRC-30678", 1)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enforcementCase.status").value("active"))
                 .andExpect(jsonPath("$.approvalId").value("appr-en2205"));
@@ -110,9 +111,21 @@ class EnforcementActionsControllerTest {
 
     @Test
     void requestTransferApprovalOnNonRegisteredSeededCaseIsConflict() throws Exception {
-        // EN-2198 is seeded 'settled' — wrong status short-circuits before any gateway/governance call.
+        // EN-2198 is seeded 'settled' — wrong status short-circuits before any gateway/governance
+        // call, so this stays a 409 even for the admin test JWT (status check runs before the
+        // admin maker-checker check).
         mockMvc.perform(post("/enforcement/EN-2198/request-transfer-approval").with(testJwt()))
                 .andExpect(status().isConflict());
+
+        verify(governanceClient, never()).createApproval(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void requestTransferApprovalByAdminIsForbidden() throws Exception {
+        // PRC-00001 is seeded as 'Administrator systemu' — the highest seniorityLevel in the
+        // system, so no one could ever check this approval (see RoleCode.hasHigherSeniorityRole()).
+        mockMvc.perform(post("/enforcement/EN-2205/request-transfer-approval").with(testJwt()))
+                .andExpect(status().isForbidden());
 
         verify(governanceClient, never()).createApproval(anyString(), anyString(), anyString());
     }
@@ -167,18 +180,19 @@ class EnforcementActionsControllerTest {
                 .andReturn().getResponse().getContentAsString();
         String caseId = com.jayway.jsonpath.JsonPath.read(body, "$.id");
 
-        given(governanceClient.createApproval(eq("ENFORCEMENT_TRANSFER"), eq("PRC-00001"), anyString()))
-                .willReturn(new ApprovalRecord("appr-enf-1", "ENFORCEMENT_TRANSFER", "PRC-00001", "payload",
+        // PRC-30678 (Windykator, seniorityLevel 1) — not admin, has a checker available.
+        given(governanceClient.createApproval(eq("ENFORCEMENT_TRANSFER"), eq("PRC-30678"), anyString()))
+                .willReturn(new ApprovalRecord("appr-enf-1", "ENFORCEMENT_TRANSFER", "PRC-30678", "payload",
                         "PENDING", Instant.now(), null, null, null, null));
 
-        mockMvc.perform(post("/enforcement/" + caseId + "/request-transfer-approval").with(testJwt()))
+        mockMvc.perform(post("/enforcement/" + caseId + "/request-transfer-approval").with(testJwt("PRC-30678", 1)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enforcementCase.status").value("active"))
                 .andExpect(jsonPath("$.approvalId").value("appr-enf-1"));
 
         // Approval still PENDING -> transfer is rejected.
         given(governanceClient.getApproval("appr-enf-1")).willReturn(
-                new ApprovalRecord("appr-enf-1", "ENFORCEMENT_TRANSFER", "PRC-00001", "payload",
+                new ApprovalRecord("appr-enf-1", "ENFORCEMENT_TRANSFER", "PRC-30678", "payload",
                         "PENDING", Instant.now(), null, null, null, null));
         mockMvc.perform(post("/enforcement/" + caseId + "/transfer").with(testJwt())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -187,8 +201,8 @@ class EnforcementActionsControllerTest {
 
         // Approval now APPROVED -> transfer succeeds.
         given(governanceClient.getApproval("appr-enf-1")).willReturn(
-                new ApprovalRecord("appr-enf-1", "ENFORCEMENT_TRANSFER", "PRC-00001", "payload",
-                        "APPROVED", Instant.now(), "PRC-50123", Instant.now(), null, null));
+                new ApprovalRecord("appr-enf-1", "ENFORCEMENT_TRANSFER", "PRC-30678", "payload",
+                        "APPROVED", Instant.now(), "PRC-00001", Instant.now(), null, null));
         given(gatewayClient.transferEnforcement(eq("gw-uuid-2"), eq(new BigDecimal("4800.00"))))
                 .willReturn(new EnforcementTransferResponse("gw-uuid-2", "settled", Instant.now()));
 

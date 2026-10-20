@@ -1,0 +1,20 @@
+# Normalize line endings to LF for all text files by default.
+# Prevents prettier/format:check failures caused by local core.autocrlf=true
+# checking out CRLF line endings on Windows (prettier defaults to LF).
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF to run correctly via cmd.exe.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary assets: leave untouched, no line-ending conversion.
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.jar binary

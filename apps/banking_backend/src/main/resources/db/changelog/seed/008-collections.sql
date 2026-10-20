@@ -10,8 +10,12 @@ INSERT INTO collections_case (id, loan_application_id, days_past_due, outstandin
 ('DBT-6572', 'LN-80099', 48, 9800.00, 'restructuring');
 
 --changeset robert_neat:seed-collections_action-001 context:mock-data
+-- DBT-6601's two actions are shifted by the same relative offset as LN-80203's installment schedule
+-- (seed/002-loan.sql) — both stay shortly after that loan's first overdue installment, regardless of
+-- when the volume is created. DBT-6598 has no linked installment schedule (LN-80180 is a stub loan),
+-- so it keeps its original fixed calendar literal — narrative only, not in scope.
 INSERT INTO collections_action (collections_case_id, action_type, performed_at, performed_by,
                                 governance_audit_event_id) VALUES
-('DBT-6601', 'REMINDER_SENT', TIMESTAMP WITH TIME ZONE '2026-07-20 10:15:00+02:00', 'PRC-30678', NULL),
-('DBT-6601', 'SETTLEMENT_PROPOSED', TIMESTAMP WITH TIME ZONE '2026-08-25 13:00:00+02:00', 'PRC-30678', NULL),
+('DBT-6601', 'REMINDER_SENT', CURRENT_TIMESTAMP - INTERVAL '3' MONTH + INTERVAL '15' DAY, 'PRC-30678', NULL),
+('DBT-6601', 'SETTLEMENT_PROPOSED', CURRENT_TIMESTAMP - INTERVAL '2' MONTH + INTERVAL '21' DAY, 'PRC-30678', NULL),
 ('DBT-6598', 'EXTERNAL_TRANSFER', TIMESTAMP WITH TIME ZONE '2026-09-30 14:30:00+02:00', 'PRC-30678', NULL);
