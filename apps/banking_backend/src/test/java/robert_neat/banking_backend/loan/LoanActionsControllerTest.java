@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -90,25 +91,37 @@ class LoanActionsControllerTest {
 
     @Test
     void submitForApprovalMovesApplicationToDecisionAndRecordsAudit() throws Exception {
-        given(governanceClient.createApproval(eq("LOAN_STAGE_TRANSITION"), eq("PRC-00001"), anyString()))
-                .willReturn(new ApprovalRecord("appr-loan-1", "LOAN_STAGE_TRANSITION", "PRC-00001", "payload",
+        // PRC-10234 (Doradca kredytowy, seniorityLevel 1) — not admin, has a checker available.
+        given(governanceClient.createApproval(eq("LOAN_STAGE_TRANSITION"), eq("PRC-10234"), anyString()))
+                .willReturn(new ApprovalRecord("appr-loan-1", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
                         "PENDING", Instant.now(), null, null, null, null));
 
         // LN-80288 is seeded at stage 'application'.
-        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt()))
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt("PRC-10234", 1)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.loan.stage").value("decision"))
                 .andExpect(jsonPath("$.approvalId").value("appr-loan-1"));
 
-        verify(governanceClient).recordAuditEvent(eq("PRC-00001"), eq("LOAN_STAGE_CHANGED"),
+        verify(governanceClient).recordAuditEvent(eq("PRC-10234"), eq("LOAN_STAGE_CHANGED"),
                 eq("LOAN_APPLICATION"), eq("LN-80288"), anyString());
     }
 
     @Test
     void submitForApprovalOnNonApplicationStageIsConflict() throws Exception {
-        // LN-80231 is seeded at stage 'contract', not 'application'.
+        // LN-80231 is seeded at stage 'contract', not 'application'. Stage check must short-circuit
+        // before the admin maker-checker check, so this stays a 409 even for the admin test JWT.
         mockMvc.perform(post("/loans/LN-80231/submit-for-approval").with(testJwt()))
                 .andExpect(status().isConflict());
+
+        verify(governanceClient, never()).createApproval(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void submitForApprovalByAdminIsForbidden() throws Exception {
+        // PRC-00001 is seeded as 'Administrator systemu' — the highest seniorityLevel in the
+        // system, so no one could ever check this approval (see RoleCode.hasHigherSeniorityRole()).
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt()))
+                .andExpect(status().isForbidden());
 
         verify(governanceClient, never()).createApproval(anyString(), anyString(), anyString());
     }
@@ -118,21 +131,21 @@ class LoanActionsControllerTest {
         given(governanceClient.createApproval(anyString(), anyString(), anyString()))
                 .willThrow(new GovernanceUnavailableException("down", new RuntimeException()));
 
-        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt()))
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt("PRC-10234", 1)))
                 .andExpect(status().isServiceUnavailable());
     }
 
     @Test
     void advanceStageRequiresApprovedGovernanceDecisionAndGeneratesInstallments() throws Exception {
         given(governanceClient.createApproval(anyString(), anyString(), anyString()))
-                .willReturn(new ApprovalRecord("appr-loan-2", "LOAN_STAGE_TRANSITION", "PRC-00001", "payload",
+                .willReturn(new ApprovalRecord("appr-loan-2", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
                         "PENDING", Instant.now(), null, null, null, null));
-        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt()))
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt("PRC-10234", 1)))
                 .andExpect(status().isOk());
 
         given(governanceClient.getApproval("appr-loan-2")).willReturn(
-                new ApprovalRecord("appr-loan-2", "LOAN_STAGE_TRANSITION", "PRC-00001", "payload",
-                        "APPROVED", Instant.now(), "PRC-50123", Instant.now(), null, null));
+                new ApprovalRecord("appr-loan-2", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
+                        "APPROVED", Instant.now(), "PRC-00001", Instant.now(), null, null));
 
         mockMvc.perform(post("/loans/LN-80288/advance-stage").with(testJwt()))
                 .andExpect(status().isOk())
@@ -144,17 +157,45 @@ class LoanActionsControllerTest {
     @Test
     void advanceStageWhenApprovalStillPendingIsConflict() throws Exception {
         given(governanceClient.createApproval(anyString(), anyString(), anyString()))
-                .willReturn(new ApprovalRecord("appr-loan-3", "LOAN_STAGE_TRANSITION", "PRC-00001", "payload",
+                .willReturn(new ApprovalRecord("appr-loan-3", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
                         "PENDING", Instant.now(), null, null, null, null));
-        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt()))
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt("PRC-10234", 1)))
                 .andExpect(status().isOk());
 
         given(governanceClient.getApproval("appr-loan-3")).willReturn(
-                new ApprovalRecord("appr-loan-3", "LOAN_STAGE_TRANSITION", "PRC-00001", "payload",
+                new ApprovalRecord("appr-loan-3", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
                         "PENDING", Instant.now(), null, null, null, null));
 
         mockMvc.perform(post("/loans/LN-80288/advance-stage").with(testJwt()))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void createWithInvalidSegmentIsBadRequestAndNeverCallsCreditRiskMock() throws Exception {
+        mockMvc.perform(post("/loans").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customerId":"CUST-001","segment":"wholesale","product":"cash",
+                                 "requestedAmount":10000,"termMonths":12}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "segment must be one of: retail, business"));
+
+        verifyNoInteractions(creditRiskClient);
+    }
+
+    @Test
+    void createWithInvalidProductIsBadRequestAndNeverCallsCreditRiskMock() throws Exception {
+        mockMvc.perform(post("/loans").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customerId":"CUST-001","segment":"retail","product":"unknownProduct",
+                                 "requestedAmount":10000,"termMonths":12}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "product must be one of: cash, mortgage, overdraft, investment, creditLine"));
+
+        verifyNoInteractions(creditRiskClient);
     }
 
     @Test

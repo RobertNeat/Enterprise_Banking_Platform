@@ -10,7 +10,12 @@ import { KpiCardComponent } from '../../shared/components/kpi-card.component';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { CASE_SEVERITY } from '../cases/cases.model';
 import { REPORT_SEVERITY } from '../reporting/reporting.model';
-import { RecentCase, RegulatoryAlert } from './dashboard.data';
+import {
+  ICT_INCIDENT_SEVERITY,
+  IctIncidentAlert,
+  RecentCase,
+  RegulatoryAlert,
+} from './dashboard.data';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -26,11 +31,14 @@ export class DashboardPage {
 
   private readonly recentCasesSignal = signal<RecentCase[]>([]);
   private readonly regulatoryAlertsSignal = signal<RegulatoryAlert[]>([]);
+  private readonly ictIncidentsSignal = signal<IctIncidentAlert[]>([]);
 
   protected readonly recentCases = this.recentCasesSignal.asReadonly();
   protected readonly regulatoryAlerts = this.regulatoryAlertsSignal.asReadonly();
+  protected readonly ictIncidents = this.ictIncidentsSignal.asReadonly();
   protected readonly caseSeverity = CASE_SEVERITY;
   protected readonly reportSeverity = REPORT_SEVERITY;
+  protected readonly ictIncidentSeverity = ICT_INCIDENT_SEVERITY;
 
   constructor() {
     this.http
@@ -39,6 +47,9 @@ export class DashboardPage {
     this.http
       .get<RegulatoryAlert[]>(`${this.apiBaseUrl.bankingBackend}/dashboard/regulatory-alerts`)
       .subscribe((alerts) => this.regulatoryAlertsSignal.set(alerts));
+    this.http
+      .get<IctIncidentAlert[]>(`${this.apiBaseUrl.bankingBackend}/dashboard/ict-incidents`)
+      .subscribe((incidents) => this.ictIncidentsSignal.set(incidents));
   }
 
   // KPI kafelki i wykresy niżej pozostają literałami — backend wystawia

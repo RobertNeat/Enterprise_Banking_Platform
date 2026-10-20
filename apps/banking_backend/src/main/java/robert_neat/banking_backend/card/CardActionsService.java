@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import robert_neat.banking_backend.approvals.GovernanceClient;
+import robert_neat.banking_backend.common.InvalidRequestException;
 import robert_neat.banking_backend.common.InvalidStageTransitionException;
 import robert_neat.banking_backend.common.NotFoundException;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * F4 mutating flow — card block/unblock and chargeback filing/advancement, all proxied through
@@ -31,6 +33,9 @@ import java.time.Instant;
 public class CardActionsService {
 
     private static final Logger log = LoggerFactory.getLogger(CardActionsService.class);
+
+    /** Must mirror the CHECK constraint on chargeback_ref.reason_code (db/changelog/schema/003-card.sql). */
+    private static final List<String> VALID_REASON_CODES = List.of("4855", "4837", "4853", "4863");
 
     private final PaymentCardRepository paymentCards;
     private final CardAuthorizationRefRepository authorizations;
@@ -83,7 +88,19 @@ public class CardActionsService {
         return CardService.toDto(card);
     }
 
+    /**
+     * reasonCode is validated before the card_processor_mock call (and before any DB write) —
+     * matching LoanActionsService.validateCreateRequest(): an invalid value would otherwise still
+     * burn a network call to card_processor_mock and/or surface as a raw
+     * DataIntegrityViolationException (500) when chargeback_ref's CHECK constraint rejects the
+     * insert.
+     */
     public ChargebackDto fileChargeback(String cardId, FileChargebackRequest request, String employeeId) {
+        if (request.reasonCode() == null || !VALID_REASON_CODES.contains(request.reasonCode())) {
+            throw new InvalidRequestException(
+                    "reasonCode must be one of: " + String.join(", ", VALID_REASON_CODES));
+        }
+
         requireCard(cardId);
         CardAuthorizationRef authorizationRef = authorizations.findById(request.authorizationId())
                 .orElseThrow(() -> new NotFoundException(

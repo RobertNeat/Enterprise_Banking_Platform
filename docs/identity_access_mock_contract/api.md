@@ -1,8 +1,11 @@
 # Kontrakt REST API — identity_access_mock
 
-Port domyślny: `10525` (env `SERVER_PORT`). Serwis wołany bezpośrednio z przeglądarki — CORS dozwolony
-dla originu `http://localhost:10500` (właściwość `app.cors.allowed-origin`, nadpisywalna zmienną
-środowiskową `APP_CORS_ALLOWEDORIGIN` — wymagane w środowiskach innych niż lokalne).
+Port domyślny: `10525` (env `SERVER_PORT`). `banking_web` NIE woła tego serwisu bezpośrednio —
+`banking_backend` jest wyłącznym pośrednikiem (zob. `docs/banking_backend_contract/api.md`, sekcja
+"Auth"). Port na hoście pozostaje eksponowany dla panelu operatorskiego i narzędzi diagnostycznych.
+CORS dozwolony dla originu `http://localhost:10500` (właściwość `app.cors.allowed-origin`,
+nadpisywalna zmienną środowiskową `APP_CORS_ALLOWEDORIGIN` — wymagane w środowiskach innych niż
+lokalne) na wypadek bezpośredniego wywołania z przeglądarki w narzędziach developerskich.
 
 Panel operatorski Thymeleaf (`/`, `/accounts`, `/otp`, `/devices`) nie jest częścią tego kontraktu —
 to wewnętrzne narzędzie do manualnego testowania, nieprzeznaczone do integracji.

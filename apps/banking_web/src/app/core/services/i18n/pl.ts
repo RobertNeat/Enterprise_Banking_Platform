@@ -125,6 +125,12 @@ export const pl: Record<string, string> = {
   'auth.register.step.account': 'Konto',
   'auth.register.next': 'Dalej',
   'auth.register.back': 'Wstecz',
+  'auth.register.error.employeeIdTaken': 'Ten identyfikator pracownika jest już zarejestrowany.',
+  'auth.register.error.invalidData':
+    'Sprawdź wprowadzone dane — niepoprawny format identyfikatora pracownika lub hasła.',
+  'auth.register.error.unavailable':
+    'Usługa rejestracji jest tymczasowo niedostępna. Spróbuj później.',
+  'auth.register.error.generic': 'Nie udało się zarejestrować. Spróbuj ponownie.',
   'auth.validation.email': 'Nieprawidłowy adres e-mail.',
   'auth.validation.passwordMismatch': 'Hasła nie są identyczne.',
   'auth.validation.mustAccept': 'Musisz zaakceptować, aby kontynuować.',
@@ -145,6 +151,14 @@ export const pl: Record<string, string> = {
   'dashboard.portfolioByProduct': 'Portfel wg produktu',
   'dashboard.recentCases': 'Ostatnie sprawy',
   'dashboard.regulatoryAlerts': 'Alerty regulacyjne',
+  'dashboard.ictIncidents': 'Incydenty ICT (DORA)',
+  'dashboard.ictIncidents.source': 'Źródło',
+  'dashboard.ictIncidents.description': 'Opis',
+  'dashboard.ictIncidents.createdAt': 'Zgłoszono',
+  'dashboard.ictIncidents.severity': 'Istotność',
+  'dashboard.ictIncidents.severity.LOW': 'Niska',
+  'dashboard.ictIncidents.severity.MEDIUM': 'Średnia',
+  'dashboard.ictIncidents.severity.HIGH': 'Wysoka',
 
   'loans.title': 'Kredyty i pożyczki',
   'loans.subtitle': 'Pełny cykl życia produktów kredytowych',
@@ -195,6 +209,8 @@ export const pl: Record<string, string> = {
   'loans.wizard.scoringLoading': 'Przetwarzanie scoringu w biurze informacji kredytowej...',
   'loans.wizard.scoringError': 'Nie udało się uzyskać wyniku scoringu. Spróbuj ponownie.',
   'loans.error.generic': 'Nie udało się zapisać wniosku kredytowego.',
+  'loans.error.forbidden':
+    'Administrator nie może inicjować zatwierdzeń maker-checker — brak osoby mogącej je zatwierdzić.',
 
   'cards.title': 'Karty płatnicze i autoryzacje',
   'cards.subtitle': 'Wydawanie, limity, blokady, reklamacje',
@@ -313,6 +329,8 @@ export const pl: Record<string, string> = {
   'enforcement.error.generic': 'Nie udało się wykonać operacji na zajęciu komorniczym.',
   'enforcement.error.transferRejected':
     'Transfer odrzucony — sprawdź czy zatwierdzenie jest APPROVED i czy sprawa ma powiązanie z bramą.',
+  'enforcement.error.forbidden':
+    'Administrator nie może inicjować zatwierdzeń maker-checker — brak osoby mogącej je zatwierdzić.',
   'enforcement.wizard.title': 'Rejestracja nowego zajęcia komorniczego',
   'enforcement.wizard.step1': 'Komornik i sprawa',
   'enforcement.wizard.step2': 'Kwoty',

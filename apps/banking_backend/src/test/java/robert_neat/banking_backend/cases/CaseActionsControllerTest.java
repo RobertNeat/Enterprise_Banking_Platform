@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -123,6 +124,47 @@ class CaseActionsControllerTest {
 
         mockMvc.perform(post("/cases/CS-10225/escalate").with(testJwt()))
                 .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void createWithInvalidPriorityIsBadRequestAndNeverTouchesGovernanceMock() throws Exception {
+        mockMvc.perform(post("/cases").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"subject":"Reklamacja opłaty","customerId":"CUST-001",
+                                 "priority":"urgent","caseType":"complaint"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "priority must be one of: low, medium, high"));
+
+        verifyNoInteractions(governanceClient);
+    }
+
+    @Test
+    void createWithNullPriorityIsBadRequest() throws Exception {
+        mockMvc.perform(post("/cases").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"subject":"Reklamacja opłaty","customerId":"CUST-001",
+                                 "caseType":"complaint"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "priority must be one of: low, medium, high"));
+
+        verifyNoInteractions(governanceClient);
+    }
+
+    @Test
+    void createWithBlankCaseTypeIsBadRequest() throws Exception {
+        mockMvc.perform(post("/cases").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"subject":"Reklamacja opłaty","customerId":"CUST-001",
+                                 "priority":"high","caseType":""}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("caseType must not be blank"));
+
+        verifyNoInteractions(governanceClient);
     }
 
     @Test

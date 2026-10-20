@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
@@ -12,6 +12,7 @@ import { SelectModule } from 'primeng/select';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
+import { AuthService } from '../../core/services/auth.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
 import { EnforcementStore } from './enforcement.store';
@@ -49,11 +50,18 @@ export class EnforcementPage {
   private readonly store = inject(EnforcementStore);
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = inject(ApiBaseUrlService);
+  private readonly auth = inject(AuthService);
 
   private readonly wizard = viewChild.required(WizardDialogComponent);
 
   protected readonly cases = this.store.cases;
   protected readonly severity = ENFORCEMENT_SEVERITY;
+  /**
+   * Admin can never be a maker-checker requester (backend 403s — see RoleCode.hasHigherSeniorityRole()
+   * and ApprovalsService.requireCheckerExists()). Registration itself has no seniority gate, so
+   * only the per-row "request transfer approval" action is hidden, not the whole wizard.
+   */
+  protected readonly canRequestTransferApproval = this.auth.canInitiateMakerChecker;
 
   protected readonly customers = signal<CustomerOption[]>([]);
 
@@ -174,9 +182,16 @@ export class EnforcementPage {
     try {
       await this.store.requestTransferApproval(item.id);
       this.notify.success('toast.saved');
-    } catch {
-      this.notify.error('enforcement.error.generic');
+    } catch (error) {
+      this.notify.error(this.resolveErrorKey(error));
     }
+  }
+
+  private resolveErrorKey(error: unknown): string {
+    if (error instanceof HttpErrorResponse && error.status === 403) {
+      return 'enforcement.error.forbidden';
+    }
+    return 'enforcement.error.generic';
   }
 
   // --- F6: wykonanie transferu (po zatwierdzeniu) ---

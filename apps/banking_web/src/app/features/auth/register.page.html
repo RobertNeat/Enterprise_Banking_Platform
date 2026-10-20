@@ -204,6 +204,18 @@
             <ng-template let-option #item>
               {{ option.labelKey | translate }}
             </ng-template>
+            <ng-template let-removeChip="removeChip" #selectedItems>
+              @for (key of industryGroup.controls.businessLines.value ?? []; track key) {
+                <div class="p-multiselect-chip-item" id="register-business-line-chip-{{ key }}">
+                  <p-chip
+                    class="p-multiselect-chip"
+                    [label]="businessLineLabelKey(key) | translate"
+                    [removable]="true"
+                    (onRemove)="removeChip(key, $event)"
+                  />
+                </div>
+              }
+            </ng-template>
           </p-multiselect>
           @if (
             industryGroup.controls.businessLines.invalid &&
@@ -313,6 +325,12 @@
         </div>
       </div>
 
+      @if (errorKey()) {
+        <p id="register-form-error" class="error">
+          {{ errorKey()! | translate }}
+        </p>
+      }
+
       <div class="register-form-actions" id="register-form-actions">
         <p class="register-login-hint" id="register-login-hint">
           {{ 'auth.register.haveAccount' | translate }}
@@ -324,7 +342,8 @@
           id="register-submit-btn"
           [pt]="{ root: { id: 'register-submit-btn-root' } }"
           [label]="'auth.register.submit' | translate"
-          [disabled]="form.invalid"
+          [disabled]="form.invalid || submitting()"
+          [loading]="submitting()"
           type="submit"
         />
       </div>

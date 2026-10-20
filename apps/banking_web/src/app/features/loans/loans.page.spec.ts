@@ -4,12 +4,30 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { LOAN_APPLICATIONS } from './loans.data';
 import { LoansPage } from './loans.page';
+
+/** Pre-seeds sessionStorage the way AuthService itself persists a session (see auth.service.ts). */
+function storeSession(employeeId: string, seniorityLevel: number): void {
+  sessionStorage.setItem(
+    'bank.auth.session',
+    JSON.stringify({
+      token: 'jwt-token-value',
+      employeeId,
+      role: 'ignored',
+      permissions: ['loans'],
+      seniorityLevel,
+    }),
+  );
+}
 
 describe('LoansPage', () => {
   let httpMock: HttpTestingController;
   let apiBaseUrl: ApiBaseUrlService;
+  let lastFixture: ReturnType<typeof TestBed.createComponent<LoansPage>>;
+
+  afterEach(() => sessionStorage.clear());
 
   function createPage(): LoansPage {
     TestBed.configureTestingModule({
@@ -24,11 +42,13 @@ describe('LoansPage', () => {
     httpMock = TestBed.inject(HttpTestingController);
     apiBaseUrl = TestBed.inject(ApiBaseUrlService);
     const fixture = TestBed.createComponent(LoansPage);
+    lastFixture = fixture;
     fixture.detectChanges();
     httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
     httpMock
       .expectOne(`${apiBaseUrl.bankingBackend}/customers`)
       .flush([{ id: 'CUST-001', fullName: 'Jan Wiśniewski', segment: 'retail' }]);
+    fixture.detectChanges();
     return fixture.componentInstance;
   }
 
@@ -100,5 +120,43 @@ describe('LoansPage', () => {
     await submitPromise;
 
     expect((page as any).wizardOpen()).toBe(false);
+  });
+
+  it('canCreateLoan is false for admin (seniorityLevel 3, highest in the system) and the Nowy button is hidden', () => {
+    storeSession('PRC-00001', 3);
+    const page = createPage();
+    expect((page as any).canCreateLoan()).toBe(false);
+    expect(lastFixture.nativeElement.querySelector('#loans-new-item-btn')).toBeNull();
+  });
+
+  it('canCreateLoan is true for a non-admin role and the Nowy button is shown', () => {
+    storeSession('PRC-10234', 1);
+    const page = createPage();
+    expect((page as any).canCreateLoan()).toBe(true);
+    expect(lastFixture.nativeElement.querySelector('#loans-new-item-btn')).not.toBeNull();
+  });
+
+  it('submitWizard() maps a 403 from submit-for-approval to the forbidden toast', async () => {
+    storeSession('PRC-00001', 3);
+    const page = createPage();
+    const errorSpy = vi.spyOn(TestBed.inject(NotificationService), 'error');
+    (page as any).createdLoan.set({
+      ...LOAN_APPLICATIONS[0],
+      id: 'LN-90002',
+      stage: 'application',
+      interestRate: 0.079,
+      termMonths: 36,
+      installments: [],
+      stageTransitions: [],
+    });
+
+    const submitPromise = page.submitWizard();
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/loans/LN-90002/submit-for-approval`,
+    );
+    req.flush({ message: 'forbidden' }, { status: 403, statusText: 'Forbidden' });
+    await submitPromise;
+
+    expect(errorSpy).toHaveBeenCalledWith('loans.error.forbidden');
   });
 });

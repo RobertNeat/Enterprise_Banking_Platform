@@ -4,13 +4,15 @@
     <p id="loans-subtitle">{{ 'loans.subtitle' | translate }}</p>
   </div>
   <div class="page-header__actions">
-    <p-button
-      id="loans-new-item-btn"
-      [pt]="{ root: { id: 'loans-new-item-btn-root' } }"
-      [label]="'common.newItem' | translate"
-      icon="pi pi-plus"
-      (click)="openWizard()"
-    />
+    @if (canCreateLoan()) {
+      <p-button
+        id="loans-new-item-btn"
+        [pt]="{ root: { id: 'loans-new-item-btn-root' } }"
+        [label]="'common.newItem' | translate"
+        icon="pi pi-plus"
+        (click)="openWizard()"
+      />
+    }
   </div>
 </div>
 

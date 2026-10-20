@@ -16,6 +16,14 @@ import java.util.Optional;
  * employeeId (PRC-xxxxx); its role is resolved from banking_backend's own Employee table (same
  * PRC-xxxxx ids as identity_access_mock's demo accounts — see db/changelog/seed/001-customer.sql)
  * rather than calling identity_access_mock, avoiding an extra HTTP round trip per request.
+ *
+ * requireCheckerExists() is the maker-side counterpart to decide()'s seniority check: a role with
+ * no strictly-higher role in the system (currently only ADMIN) can never have its approval
+ * decided by anyone, so it must be blocked from creating one at all — otherwise the approval is
+ * stuck PENDING forever. Callers (LoanActionsService.submitForApproval,
+ * EnforcementActionsService.requestTransferApproval) must call this before
+ * governanceClient.createApproval(), after their own stage/status preconditions so an invalid
+ * request still gets its usual 409/404 rather than being masked by a 403.
  */
 @Service
 public class ApprovalsService {
@@ -54,6 +62,22 @@ public class ApprovalsService {
         }
 
         return withRequester(governanceClient.decideApproval(id, decision, checkerEmployeeId));
+    }
+
+    /**
+     * @throws InsufficientSeniorityException if requesterEmployeeId's role has no strictly-higher
+     *     role in the system (i.e. no one could ever check an approval it requests). An unmapped
+     *     or unresolvable role does NOT throw here — that is a data problem surfaced later, at
+     *     decide() time, not a reason to block submission.
+     */
+    public void requireCheckerExists(String requesterEmployeeId) {
+        resolveRole(requesterEmployeeId).ifPresent(role -> {
+            if (!role.hasHigherSeniorityRole()) {
+                throw new InsufficientSeniorityException(
+                        "Rola " + role.displayName() + " ma najwyzszy poziom uprawnien w systemie — "
+                                + "nie ma kto zatwierdzic tego wniosku (maker-checker)");
+            }
+        });
     }
 
     private ApprovalRecord withRequester(ApprovalRecord approval) {

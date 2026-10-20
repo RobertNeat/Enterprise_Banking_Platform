@@ -88,9 +88,9 @@ describe('AuthorizationsService', () => {
       delete process.env.CARD_PROCESSOR_SEED_MOCK_DATA;
       const seeded = new AuthorizationsService();
       expect(seeded.findAll()).toHaveLength(4);
-      expect(seeded.findById('449084f7-77b5-4cab-a790-e680763a6572').cardId).toBe(
-        'CRD-5530',
-      );
+      expect(
+        seeded.findById('449084f7-77b5-4cab-a790-e680763a6572').cardId,
+      ).toBe('CRD-5530');
     });
 
     it('seeds nothing when CARD_PROCESSOR_SEED_MOCK_DATA=false', () => {

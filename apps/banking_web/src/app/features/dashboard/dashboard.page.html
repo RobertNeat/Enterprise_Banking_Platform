@@ -141,4 +141,31 @@
       </ng-template>
     </p-table>
   </div>
+  <div class="card-section" id="dashboard-ict-incidents-section">
+    <h2 id="dashboard-ict-incidents-title">{{ 'dashboard.ictIncidents' | translate }}</h2>
+    <p-table id="dashboard-ict-incidents-table" [value]="ictIncidents()" [rows]="5">
+      <ng-template #header>
+        <tr>
+          <th>{{ 'dashboard.ictIncidents.source' | translate }}</th>
+          <th>{{ 'dashboard.ictIncidents.description' | translate }}</th>
+          <th>{{ 'dashboard.ictIncidents.createdAt' | translate }}</th>
+          <th>{{ 'dashboard.ictIncidents.severity' | translate }}</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-item>
+        <tr [id]="'dashboard-ict-incidents-row-' + item.id">
+          <td>{{ item.source }}</td>
+          <td>{{ item.description }}</td>
+          <td>{{ item.createdAt }}</td>
+          <td>
+            <app-status-tag
+              [tagId]="'dashboard-ict-incidents-row-' + item.id + '-severity'"
+              [labelKey]="'dashboard.ictIncidents.severity.' + item.severity"
+              [severity]="ictIncidentSeverity[item.severity]"
+            />
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
 </div>

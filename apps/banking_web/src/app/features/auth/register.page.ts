@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import {
   AbstractControl,
@@ -10,6 +11,7 @@ import {
 } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ChipModule } from 'primeng/chip';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputTextModule } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
@@ -17,6 +19,7 @@ import { PasswordModule } from 'primeng/password';
 import { SelectModule } from 'primeng/select';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
+import { AuthService, RegisterRequest } from '../../core/services/auth.service';
 
 /** Cross-field validator: confirmPassword must equal password. */
 const passwordsMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
@@ -34,6 +37,7 @@ const passwordsMatchValidator: ValidatorFn = (group: AbstractControl): Validatio
     RouterLink,
     ButtonModule,
     CheckboxModule,
+    ChipModule,
     DatePickerModule,
     InputTextModule,
     MultiSelectModule,
@@ -48,6 +52,10 @@ export class RegisterPage {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly notify = inject(NotificationService);
+  private readonly auth = inject(AuthService);
+
+  protected readonly submitting = signal(false);
+  protected readonly errorKey = signal<string | null>(null);
 
   /** Czas wyświetlenia toastu po rejestracji (ms) — użytkownik musi zdążyć przeczytać informację o zatwierdzeniu przez administratora. */
   private static readonly REGISTER_TOAST_LIFE_MS = 5000;
@@ -121,12 +129,74 @@ export class RegisterPage {
     return this.form.controls.account;
   }
 
-  onSubmit(): void {
+  /** Translation key for a selected "business lines" chip — looked up by option key. */
+  protected businessLineLabelKey(key: string): string {
+    return (
+      this.businessLineOptions.find((option) => option.key === key)?.labelKey ??
+      'auth.register.businessLines'
+    );
+  }
+
+  async onSubmit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.notify.success('toast.registerSuccess', undefined, RegisterPage.REGISTER_TOAST_LIFE_MS);
-    this.router.navigate(['/login']);
+    this.errorKey.set(null);
+    this.submitting.set(true);
+    try {
+      await this.auth.register(this.buildRegisterRequest());
+      this.notify.success('toast.registerSuccess', undefined, RegisterPage.REGISTER_TOAST_LIFE_MS);
+      await this.router.navigate(['/login']);
+    } catch (error) {
+      this.errorKey.set(this.resolveErrorKey(error));
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  private buildRegisterRequest(): RegisterRequest {
+    const value = this.form.getRawValue();
+    const startDate = value.employment.startDate;
+    return {
+      personal: {
+        firstName: value.personal.firstName ?? '',
+        lastName: value.personal.lastName ?? '',
+        email: value.personal.email ?? '',
+        phone: value.personal.phone ?? '',
+      },
+      employment: {
+        employeeId: value.employment.employeeId ?? '',
+        department: value.employment.department ?? '',
+        branch: value.employment.branch ?? '',
+        position: value.employment.position ?? '',
+        supervisor: value.employment.supervisor ?? '',
+        startDate: startDate ? RegisterPage.toIsoDate(startDate) : '',
+      },
+      industry: {
+        businessLines: value.industry.businessLines ?? [],
+        certifications: value.industry.certifications ?? '',
+        licenseNumber: value.industry.licenseNumber ?? '',
+      },
+      account: {
+        password: value.account.password ?? '',
+        confirmPassword: value.account.confirmPassword ?? '',
+        acceptPolicy: value.account.acceptPolicy ?? false,
+      },
+    };
+  }
+
+  /** Local calendar date (datepicker has no time component) → UTC-midnight ISO string, matching the contract example. */
+  private static toIsoDate(date: Date): string {
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
+  }
+
+  private resolveErrorKey(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 409) return 'auth.register.error.employeeIdTaken';
+      if (error.status === 400) return 'auth.register.error.invalidData';
+      if (error.status === 0 || error.status >= 500) return 'auth.register.error.unavailable';
+    }
+    return 'auth.register.error.generic';
   }
 }

@@ -1,3 +1,4 @@
+import { StatusSeverity } from '../../shared/components/status-tag.component';
 import { CaseStatus } from '../cases/cases.model';
 import { ReportStatus } from '../reporting/reporting.model';
 
@@ -14,6 +15,23 @@ export interface RegulatoryAlert {
   recipient: string;
   status: ReportStatus;
   dueDate: string;
+}
+
+export type IctIncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export const ICT_INCIDENT_SEVERITY: Record<IctIncidentSeverity, StatusSeverity> = {
+  LOW: 'info',
+  MEDIUM: 'warn',
+  HIGH: 'danger',
+};
+
+/** GET /dashboard/ict-incidents response shape — TOP N most recent OPEN incidents (DORA registry). */
+export interface IctIncidentAlert {
+  id: string;
+  source: string;
+  description: string;
+  severity: IctIncidentSeverity;
+  createdAt: string;
 }
 
 export const RECENT_CASES: RecentCase[] = [
@@ -68,5 +86,22 @@ export const REGULATORY_ALERTS: RegulatoryAlert[] = [
     recipient: 'BFG',
     status: 'draft',
     dueDate: '2026-10-20',
+  },
+];
+
+export const ICT_INCIDENTS: IctIncidentAlert[] = [
+  {
+    id: 'inc-1',
+    source: 'CARD_PROCESSOR',
+    description: 'card_processor_mock unavailable podczas blokady karty',
+    severity: 'HIGH',
+    createdAt: '2026-10-18T10:00:00Z',
+  },
+  {
+    id: 'inc-2',
+    source: 'EXTERNAL_INSTITUTIONS_GATEWAY',
+    description: 'external_institutions_gateway_mock unavailable podczas rejestracji zajęcia',
+    severity: 'MEDIUM',
+    createdAt: '2026-10-15T09:00:00Z',
   },
 ];

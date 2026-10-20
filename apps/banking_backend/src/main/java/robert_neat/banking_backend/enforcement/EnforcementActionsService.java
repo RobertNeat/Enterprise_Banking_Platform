@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import robert_neat.banking_backend.approvals.ApprovalRecord;
+import robert_neat.banking_backend.approvals.ApprovalsService;
 import robert_neat.banking_backend.approvals.GovernanceClient;
 import robert_neat.banking_backend.common.InvalidStageTransitionException;
 import robert_neat.banking_backend.common.NotFoundException;
@@ -43,6 +44,7 @@ public class EnforcementActionsService {
     private final CustomerRepository customers;
     private final RegulatoryGatewayClient gatewayClient;
     private final GovernanceClient governanceClient;
+    private final ApprovalsService approvalsService;
     private final EnforcementIdGenerator idGenerator;
 
     public EnforcementActionsService(
@@ -50,11 +52,13 @@ public class EnforcementActionsService {
             CustomerRepository customers,
             RegulatoryGatewayClient gatewayClient,
             GovernanceClient governanceClient,
+            ApprovalsService approvalsService,
             EnforcementIdGenerator idGenerator) {
         this.enforcementCases = enforcementCases;
         this.customers = customers;
         this.gatewayClient = gatewayClient;
         this.governanceClient = governanceClient;
+        this.approvalsService = approvalsService;
         this.idGenerator = idGenerator;
     }
 
@@ -97,6 +101,7 @@ public class EnforcementActionsService {
             throw new InvalidStageTransitionException(
                     "Enforcement case " + id + " has no gateway linkage (seeded case) — cannot request a transfer");
         }
+        approvalsService.requireCheckerExists(employeeId);
 
         ApprovalRecord approval = governanceClient.createApproval(
                 "ENFORCEMENT_TRANSFER", employeeId,

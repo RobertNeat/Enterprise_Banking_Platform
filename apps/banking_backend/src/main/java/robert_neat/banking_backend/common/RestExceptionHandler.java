@@ -28,6 +28,12 @@ public class RestExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiError(ex.getMessage()));
     }
 
+    /** Request field failed validation (e.g. value outside a DB CHECK constraint's allowed set). */
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ApiError> handleInvalidRequest(InvalidRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(ex.getMessage()));
+    }
+
     /** Passes identity_access_mock's own status/message through unchanged (401/403/400/409). */
     @ExceptionHandler(IdentityAccessException.class)
     public ResponseEntity<ApiError> handleIdentityAccess(IdentityAccessException ex) {

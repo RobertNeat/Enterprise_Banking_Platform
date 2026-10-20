@@ -46,7 +46,7 @@
           />
         </td>
         <td>
-          @if (item.status === 'registered') {
+          @if (item.status === 'registered' && canRequestTransferApproval()) {
             <p-button
               [id]="'enforcement-row-' + item.id + '-request-approval-btn'"
               [pt]="{ root: { id: 'enforcement-row-' + item.id + '-request-approval-btn-root' } }"
