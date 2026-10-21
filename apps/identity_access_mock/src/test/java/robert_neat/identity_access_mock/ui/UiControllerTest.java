@@ -3,6 +3,7 @@ package robert_neat.identity_access_mock.ui;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -18,8 +19,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Full context needed to resolve real Thymeleaf templates/fragments (th:replace/th:insert), unlike the standalone REST tests. */
+/**
+ * Full context needed to resolve real Thymeleaf templates/fragments (th:replace/th:insert), unlike
+ * the standalone REST tests. Relies on the Liquibase seed (accounts/devices) staying intact, so
+ * unlike the other @SpringBootTest classes this one does NOT clear any tables in @BeforeEach — it
+ * only gets its own isolated H2 url, and its OTP requests use owner ids (CUST-1/CUST-2) that don't
+ * collide with any other test class's data.
+ */
 @SpringBootTest
+@TestPropertySource(
+        properties =
+                "spring.datasource.url=jdbc:h2:mem:identity_access_ui_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE")
 class UiControllerTest {
 
     @Autowired

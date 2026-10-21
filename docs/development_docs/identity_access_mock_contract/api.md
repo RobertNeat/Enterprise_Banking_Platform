@@ -10,6 +10,9 @@ lokalne) na wypadek bezpośredniego wywołania z przeglądarki w narzędziach de
 Panel operatorski Thymeleaf (`/`, `/accounts`, `/otp`, `/devices`) nie jest częścią tego kontraktu —
 to wewnętrzne narzędzie do manualnego testowania, nieprzeznaczone do integracji.
 
+Stan trwały w dedykowanej instancji PostgreSQL (schema `identity_access`, Spring Data JPA +
+Liquibase) — przetrwa restart serwisu. Szczegóły w `docs/development_docs/services/identity_access_mock.md`.
+
 ## Auth
 
 ### POST /auth/login

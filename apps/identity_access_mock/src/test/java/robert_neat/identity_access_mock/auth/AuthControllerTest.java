@@ -1,30 +1,50 @@
 package robert_neat.identity_access_mock.auth;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import robert_neat.identity_access_mock.common.RestExceptionHandler;
+import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Standalone MockMvc setup: no web-slice test starter is on the classpath (not a declared dependency). */
+/**
+ * Promoted from standalone MockMvc (new AuthService()) to @SpringBootTest, since AuthService now
+ * needs a JPA repository/EntityManager. Relies on the Liquibase seed (6 demo accounts), so it only
+ * gets its own isolated H2 url rather than clearing the employee_account table — the one test that
+ * mutates state (registerCreatesPendingApprovalAccountAndBlocksLogin) cleans up its own row in
+ * @AfterEach so the accounts-count assertion below stays correct regardless of execution order.
+ */
+@SpringBootTest
+@TestPropertySource(
+        properties =
+                "spring.datasource.url=jdbc:h2:mem:identity_access_auth_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE")
 class AuthControllerTest {
 
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    @Autowired
+    private EmployeeAccountRepository accountRepository;
+
     private MockMvc mockMvc;
-    private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService();
-        AuthController controller = new AuthController(authService);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new RestExceptionHandler())
-                .build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    }
+
+    @AfterEach
+    void cleanUp() {
+        accountRepository.findByEmployeeId("PRC-99999").ifPresent(accountRepository::delete);
     }
 
     @Test
@@ -36,7 +56,8 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.token").exists())
                 .andExpect(jsonPath("$.employeeId").value("PRC-00001"))
                 .andExpect(jsonPath("$.role").value("Administrator systemu"))
-                .andExpect(jsonPath("$.permissions").isArray());
+                .andExpect(jsonPath("$.permissions").isArray())
+                .andExpect(jsonPath("$.permissions").isNotEmpty());
     }
 
     @Test

@@ -31,6 +31,9 @@ public final class RolePermissions {
     }
 
     public static List<String> forRole(String role) {
+        if (role == null) {
+            return List.of();
+        }
         return PERMISSIONS_BY_ROLE.getOrDefault(role, List.of());
     }
 }

@@ -2,10 +2,14 @@ package robert_neat.identity_access_mock.ebanking;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import robert_neat.identity_access_mock.common.RestExceptionHandler;
+import org.springframework.web.context.WebApplicationContext;
+import robert_neat.identity_access_mock.otp.OtpCodeRepository;
 import robert_neat.identity_access_mock.otp.OtpPurpose;
 import robert_neat.identity_access_mock.otp.OtpRequestRequest;
 import robert_neat.identity_access_mock.otp.OtpRequestResponse;
@@ -16,18 +20,32 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Promoted from standalone MockMvc (new OtpService()) to @SpringBootTest, since OtpService now
+ * needs a JPA repository/EntityManager. The otp_code table isn't seeded by Liquibase, so this test
+ * can safely clear it in @BeforeEach.
+ */
+@SpringBootTest
+@TestPropertySource(
+        properties =
+                "spring.datasource.url=jdbc:h2:mem:identity_access_ebanking_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE")
 class EbankingAccessControllerTest {
 
-    private MockMvc mockMvc;
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    @Autowired
     private OtpService otpService;
+
+    @Autowired
+    private OtpCodeRepository otpCodeRepository;
+
+    private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        otpService = new OtpService();
-        EbankingAccessController controller = new EbankingAccessController(otpService);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new RestExceptionHandler())
-                .build();
+        otpCodeRepository.deleteAll();
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
 
     @Test

@@ -13,7 +13,7 @@ import robert_neat.identity_access_mock.otp.OtpPurpose;
 import robert_neat.identity_access_mock.otp.OtpService;
 import robert_neat.identity_access_mock.otp.OtpVerifyRequest;
 
-/** Manual-testing panel: separate from the REST API, reads the same in-memory services. */
+/** Manual-testing panel: separate from the REST API, reads the same services. */
 @Controller
 public class UiController {
 

@@ -1,28 +1,62 @@
 package robert_neat.identity_access_mock.auth;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.util.List;
 
-/** In-memory account record. Mirrors DemoAccount (login.page.ts) plus registration/status fields. */
+/**
+ * JPA entity for an employee account. Mirrors DemoAccount (login.page.ts) plus registration/status
+ * fields. Permissions are derived from {@code role} via {@link RolePermissions} rather than
+ * persisted (same "no persistence, no hierarchy" contract as before the migration) — kept as a
+ * transient getter so JSON/LoginResponse shape is unchanged.
+ */
+@Entity
+@Table(name = "employee_account", schema = "identity_access")
 public class EmployeeAccount {
 
-    private final String id;
-    private final String employeeId;
+    @Id
+    @Column(name = "id", length = 50)
+    private String id;
+
+    @Column(name = "employee_id", length = 20, nullable = false, unique = true)
+    private String employeeId;
+
+    @Column(name = "password", length = 100, nullable = false)
     private String password;
+
+    @Column(name = "role", length = 50)
     private String role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
     private AccountStatus status;
-    private List<String> permissions;
+
+    @Column(name = "first_name", length = 100)
     private String firstName;
+
+    @Column(name = "last_name", length = 100)
     private String lastName;
+
+    @Column(name = "email", length = 150)
     private String email;
 
+    protected EmployeeAccount() {
+        // JPA
+    }
+
     public EmployeeAccount(String id, String employeeId, String password, String role,
-                            AccountStatus status, List<String> permissions) {
+            AccountStatus status, List<String> permissions) {
         this.id = id;
         this.employeeId = employeeId;
         this.password = password;
         this.role = role;
         this.status = status;
-        this.permissions = permissions;
+        // permissions param kept for call-site compatibility; derived from role instead (see class javadoc).
     }
 
     public String getId() {
@@ -57,12 +91,9 @@ public class EmployeeAccount {
         this.status = status;
     }
 
+    @Transient
     public List<String> getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(List<String> permissions) {
-        this.permissions = permissions;
+        return RolePermissions.forRole(role);
     }
 
     public String getFirstName() {

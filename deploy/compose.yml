@@ -18,8 +18,9 @@
 # Spring Data JPA). Od migracji `governance_mock` na trwały storage istnieje też
 # druga, wspólna instancja PostgreSQL dla serwisów mockowych (`mocks-postgres`) —
 # każdy zmigrowany mock dostaje własny schema w tej samej instancji (`governance_mock`
-# już ma schema `governance`; `identity_access_mock`/`external_institutions_gateway_mock`
-# wciąż trzymają stan tylko w pamięci procesu, do migracji w kolejnych zadaniach).
+# ma schema `governance`, `identity_access_mock` ma schema `identity_access`;
+# `external_institutions_gateway_mock` wciąż trzyma stan tylko w pamięci procesu,
+# do migracji w kolejnym zadaniu).
 name: enterprise-banking-platform
 
 services:
@@ -46,7 +47,8 @@ services:
   mocks-postgres:
     # Druga, osobna instancja PostgreSQL — wyłącznie dla serwisów mockowych migrowanych na trwały
     # storage (zob. docs/development_docs/currentwork/plan.md). Każdy mock dostaje własny schema w
-    # tej samej instancji; dziś tylko governance_mock (schema "governance").
+    # tej samej instancji: governance_mock (schema "governance"), identity_access_mock (schema
+    # "identity_access").
     image: 192.168.1.162:5000/library/postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -213,6 +215,13 @@ services:
     environment:
       SERVER_PORT: ${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}
       BANKING_WEB_ORIGIN: ${BANKING_WEB_ORIGIN:-http://localhost:10500}
+      IDENTITY_ACCESS_SEED_MOCK_DATA: ${IDENTITY_ACCESS_SEED_MOCK_DATA:-true}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://mocks-postgres:5432/${MOCKS_DB_NAME:-mocks}
+      SPRING_DATASOURCE_USERNAME: ${MOCKS_DB_USER:-mocks}
+      SPRING_DATASOURCE_PASSWORD: ${MOCKS_DB_PASSWORD:-mocks}
+    depends_on:
+      mocks-postgres:
+        condition: service_healthy
     ports:
       - "${IDENTITY_ACCESS_MOCK_HOST_PORT:-10525}:${IDENTITY_ACCESS_MOCK_CONTAINER_PORT:-10525}"
     networks:
