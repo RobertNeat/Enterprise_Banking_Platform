@@ -99,9 +99,12 @@ export const LOAN_APPLICATIONS: LoanApplication[] = [
   },
 ];
 
-export function buildSchedule(totalAmount: number, months: number): Installment[] {
+export function buildSchedule(
+  totalAmount: number,
+  months: number,
+  annualRate = 0.079,
+): Installment[] {
   const monthlyPrincipal = totalAmount / months;
-  const annualRate = 0.079;
   let remaining = totalAmount;
   const today = new Date('2026-10-05');
   const schedule: Installment[] = [];

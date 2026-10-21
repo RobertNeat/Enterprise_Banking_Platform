@@ -63,7 +63,7 @@ export class LoanDetailPage {
   protected readonly stageSeverity = LOAN_STAGE_SEVERITY;
   protected readonly installmentSeverity = INSTALLMENT_SEVERITY;
 
-  private readonly fetchedLoan = signal<LoanApplication | null>(null);
+  private readonly fetchedLoan = signal<LoanDetail | null>(null);
   private readonly fetchedInstallments = signal<Installment[] | null>(null);
   private readonly fetchedTransitions = signal<LoanStageTransitionEntry[]>([]);
 
@@ -92,7 +92,16 @@ export class LoanDetailPage {
       return fetched;
     }
     const amount = this.loan().approvedAmount ?? this.loan().requestedAmount;
-    return amount > 0 ? buildSchedule(amount, 12) : [];
+    if (amount <= 0) {
+      return [];
+    }
+    // fetchedLoan carries the full LoanDetail (interestRate/termMonths) when the backend has
+    // answered; EMPTY_LOAN / a bare LoanApplication from the store has neither, so fall back
+    // to the defaults previously hardcoded here.
+    const detail = this.fetchedLoan();
+    const termMonths = detail?.termMonths ?? 12;
+    const annualRate = detail?.interestRate ?? 0.079;
+    return buildSchedule(amount, termMonths, annualRate);
   });
 
   constructor() {

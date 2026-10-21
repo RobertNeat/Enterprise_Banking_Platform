@@ -77,6 +77,34 @@ describe('LoanDetailPage', () => {
     expect((component as any).schedule()).toEqual([]);
   });
 
+  it('builds the locally-generated schedule from the loan own interestRate/termMonths, not hardcoded constants', () => {
+    // Deep link to an id the store doesn't carry, so loan()/fetchedLoan() resolve from the
+    // fetched LoanDetail (with its own interestRate/termMonths) rather than the store's list.
+    configure('LN-90001');
+
+    const fixture = TestBed.createComponent(LoanDetailPage);
+    const component = fixture.componentInstance;
+
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-90001`).flush({
+      ...LOAN_APPLICATIONS.find((l) => l.id === 'LN-80288'),
+      id: 'LN-90001',
+      requestedAmount: 120000,
+      approvedAmount: 120000,
+      interestRate: 0.12,
+      termMonths: 24,
+      installments: null,
+      stageTransitions: [],
+    });
+
+    const schedule = (component as any).schedule();
+    expect(schedule.length).toBe(24);
+    // monthlyPrincipal = 120000 / 24 = 5000; first interest = 120000 * (0.12 / 12) = 1200,
+    // which differs from the old hardcoded 0.079/12 defaults (would give 790).
+    expect(schedule[0].principal).toBe(5000);
+    expect(schedule[0].interest).toBe(1200);
+  });
+
   it('falls back to EMPTY_LOAN / locally-generated schedule when the backend has no such loan', () => {
     configure('LN-99999');
 
