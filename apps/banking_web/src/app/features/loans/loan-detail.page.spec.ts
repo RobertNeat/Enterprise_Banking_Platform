@@ -189,4 +189,85 @@ describe('LoanDetailPage', () => {
 
     expect((component as any).stageTransitions()).toEqual([newTransition]);
   });
+
+  it('advanceStage() on a REJECTED decision returns the loan to application stage without erroring', async () => {
+    // LN-80255 is seeded in stage 'decision' — canAdvance() requires that stage.
+    configure('LN-80255');
+
+    const fixture = TestBed.createComponent(LoanDetailPage);
+    const component = fixture.componentInstance;
+    const seeded = LOAN_APPLICATIONS.find((l) => l.id === 'LN-80255')!;
+
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80255`).flush({
+      ...seeded,
+      installments: [],
+      stageTransitions: [],
+    });
+
+    const advancePromise = component.advanceStage();
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80255/advance-stage`);
+    req.flush({
+      ...seeded,
+      stage: 'application',
+      installments: [],
+      stageTransitions: [
+        {
+          fromStage: 'decision',
+          toStage: 'application',
+          transitionedAt: '2026-10-21T09:00:00Z',
+          transitionedBy: 'PRC-30678',
+          approvalId: 'APR-1004',
+        },
+      ],
+    });
+    await advancePromise;
+
+    expect((component as any).loan().stage).toBe('application');
+    expect((component as any).canSubmitForApproval()).toBe(true);
+  });
+
+  it('disburse() posts to /disburse and updates the loan to schedule stage', async () => {
+    // LN-80231 is seeded in stage 'contract' — canDisburse() requires that stage.
+    configure('LN-80231');
+
+    const fixture = TestBed.createComponent(LoanDetailPage);
+    const component = fixture.componentInstance;
+
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80231`).flush({
+      ...LOAN_APPLICATIONS[0],
+      installments: [],
+      stageTransitions: [],
+    });
+
+    const disbursePromise = component.disburse();
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80231/disburse`);
+    const transitions = [
+      {
+        fromStage: 'contract',
+        toStage: 'disbursement',
+        transitionedAt: '2026-10-21T09:00:00.000Z',
+        transitionedBy: 'PRC-30678',
+        approvalId: null,
+      },
+      {
+        fromStage: 'disbursement',
+        toStage: 'schedule',
+        transitionedAt: '2026-10-21T09:00:00.001Z',
+        transitionedBy: 'PRC-30678',
+        approvalId: null,
+      },
+    ];
+    req.flush({
+      ...LOAN_APPLICATIONS[0],
+      stage: 'schedule',
+      installments: [],
+      stageTransitions: transitions,
+    });
+    await disbursePromise;
+
+    expect((component as any).loan().stage).toBe('schedule');
+    expect((component as any).stageTransitions()).toEqual(transitions);
+  });
 });

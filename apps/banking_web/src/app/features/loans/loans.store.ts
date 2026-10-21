@@ -55,10 +55,23 @@ export class LoansStore {
     return response;
   }
 
-  /** F2 — decision -> contract: requires the linked approval to be APPROVED; generates the schedule. */
+  /**
+   * F2 — decision -> contract: requires the linked approval to be APPROVED; generates the
+   * schedule. A REJECTED approval instead comes back with stage 'application' (see
+   * LoanActionsService.advanceStage) so the caller can offer resubmission instead of an error.
+   */
   async advanceStage(id: string): Promise<LoanDetail> {
     const detail = await firstValueFrom(
       this.http.post<LoanDetail>(`${this.apiBaseUrl.bankingBackend}/loans/${id}/advance-stage`, {}),
+    );
+    this.replace(detail);
+    return detail;
+  }
+
+  /** F2 — contract -> disbursement -> schedule: operational payout step after the contract stage. */
+  async disburse(id: string): Promise<LoanDetail> {
+    const detail = await firstValueFrom(
+      this.http.post<LoanDetail>(`${this.apiBaseUrl.bankingBackend}/loans/${id}/disburse`, {}),
     );
     this.replace(detail);
     return detail;

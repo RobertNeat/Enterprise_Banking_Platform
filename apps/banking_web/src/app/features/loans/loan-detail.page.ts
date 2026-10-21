@@ -123,12 +123,17 @@ export class LoanDetailPage {
   }
 
   protected readonly canAdvance = computed(() => this.loan().stage === 'decision');
+  /** application stage covers both a brand-new loan and one bounced back from a REJECTED decision. */
+  protected readonly canSubmitForApproval = computed(() => this.loan().stage === 'application');
+  protected readonly canDisburse = computed(() => this.loan().stage === 'contract');
 
   /**
    * decision -> contract requires the linked governance_mock approval to already be APPROVED
    * (see LoanActionsService.advanceStage) — the employee clicks this after seeing the approval
    * decided in the approvals queue (R2 design: manual action, no automatic callback from
-   * ApprovalsService.decide(), see docs/services/banking_backend.md).
+   * ApprovalsService.decide(), see docs/services/banking_backend.md). A REJECTED decision instead
+   * comes back with stage 'application' (200, not an error) so the cycle can be closed by
+   * resubmitting rather than getting stuck.
    */
   async advanceStage(): Promise<void> {
     if (!this.canAdvance()) {
@@ -137,6 +142,44 @@ export class LoanDetailPage {
     }
     try {
       const updated = await this.store.advanceStage(this.loan().id);
+      this.fetchedLoan.set(updated);
+      this.fetchedInstallments.set(updated.installments);
+      this.fetchedTransitions.set(updated.stageTransitions ?? []);
+      if (updated.stage === 'application') {
+        this.notify.warn('loans.rejected');
+      } else {
+        this.notify.success('toast.saved');
+      }
+    } catch {
+      this.notify.error('loans.error.generic');
+    }
+  }
+
+  /** application -> decision: reopens a governance_mock approval, used for both first submission and resubmission after a rejection. */
+  async submitForApproval(): Promise<void> {
+    if (!this.canSubmitForApproval()) {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    try {
+      const response = await this.store.submitForApproval(this.loan().id);
+      this.fetchedLoan.set(response.loan);
+      this.fetchedInstallments.set(response.loan.installments);
+      this.fetchedTransitions.set(response.loan.stageTransitions ?? []);
+      this.notify.success('toast.saved');
+    } catch {
+      this.notify.error('loans.error.generic');
+    }
+  }
+
+  /** contract -> disbursement -> schedule: operational payout step after the contract stage. */
+  async disburse(): Promise<void> {
+    if (!this.canDisburse()) {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    try {
+      const updated = await this.store.disburse(this.loan().id);
       this.fetchedLoan.set(updated);
       this.fetchedInstallments.set(updated.installments);
       this.fetchedTransitions.set(updated.stageTransitions ?? []);

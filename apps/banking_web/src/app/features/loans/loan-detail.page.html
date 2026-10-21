@@ -26,6 +26,15 @@
       [text]="true"
       (click)="openHistoryDialog()"
     />
+    @if (canSubmitForApproval()) {
+      <p-button
+        id="loan-detail-submit-for-approval-btn"
+        [pt]="{ root: { id: 'loan-detail-submit-for-approval-btn-root' } }"
+        [label]="'loans.submitForApproval' | translate"
+        icon="pi pi-send"
+        (click)="submitForApproval()"
+      />
+    }
     @if (canAdvance()) {
       <p-button
         id="loan-detail-advance-stage-btn"
@@ -33,6 +42,15 @@
         [label]="'loans.decisionMove' | translate"
         icon="pi pi-check"
         (click)="advanceStage()"
+      />
+    }
+    @if (canDisburse()) {
+      <p-button
+        id="loan-detail-disburse-btn"
+        [pt]="{ root: { id: 'loan-detail-disburse-btn-root' } }"
+        [label]="'loans.disburse' | translate"
+        icon="pi pi-wallet"
+        (click)="disburse()"
       />
     }
   </div>

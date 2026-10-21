@@ -25,7 +25,8 @@ import java.util.List;
 
 /**
  * F2 mutating flow — submission (scoring via credit_risk_mock), submit-for-approval (governance
- * maker-checker queue), and advance-stage (contract + installment generation) after approval.
+ * maker-checker queue), advance-stage (contract + installment generation, or back to 'application'
+ * on a REJECTED decision), and disburse (contract -> disbursement -> schedule).
  *
  * Design decision (R2): advance-stage is a separate endpoint the employee calls manually after
  * seeing the approval decided APPROVED, rather than ApprovalsService.decide() calling back into
@@ -174,6 +175,21 @@ public class LoanActionsService {
             throw new InvalidStageTransitionException("Loan " + loanId + " has no linked approval");
         }
         ApprovalRecord approval = governanceClient.getApproval(approvalId);
+
+        // REJECTED is not a dead end: the applicant should be able to fix and resubmit, mirroring
+        // ReportingActionsService's REJECTED -> 'draft' revert (see its class javadoc). Unlike a
+        // still-PENDING approval (which legitimately stays a 409 until decided), REJECTED is a
+        // final decision, so this branch must not throw — it returns 200 with the loan back at
+        // 'application'.
+        if ("REJECTED".equals(approval.status())) {
+            String fromStage = loan.getStage();
+            loan.setStage("application");
+            loanApplications.save(loan);
+            recordTransition(loan, fromStage, "application", approvalId, employee);
+            governanceClient.recordAuditEvent(employeeId, "LOAN_STAGE_CHANGED", "LOAN_APPLICATION", loanId,
+                    fromStage + " -> application");
+            return loanService.findById(loanId);
+        }
         if (!"APPROVED".equals(approval.status())) {
             throw new InvalidStageTransitionException(
                     "Approval " + approvalId + " is not APPROVED (status: " + approval.status() + ")");
@@ -187,6 +203,40 @@ public class LoanActionsService {
         generateInstallments(loan);
         governanceClient.recordAuditEvent(employeeId, "LOAN_STAGE_CHANGED", "LOAN_APPLICATION", loanId,
                 fromStage + " -> contract");
+
+        return loanService.findById(loanId);
+    }
+
+    /**
+     * F2 — contract -> disbursement -> schedule. Both CHECK-constraint-valid stages are reachable
+     * only through this explicit employee action (no governance approval gate here — disbursement
+     * is an operational step after the contract stage's approval already happened in advanceStage).
+     * Two stage_transition rows + two LOAN_STAGE_CHANGED audits, one per hop, so the audit trail and
+     * timeline read the same way submitForApproval/advanceStage's single-hop audits do. The second
+     * transition's timestamp is nudged forward by 1ms so the frontend's transitionedAt sort (see
+     * loan-detail.page.ts's stageTransitions) orders the two hops deterministically.
+     */
+    public LoanDetailDto disburse(String loanId, String employeeId) {
+        LoanApplication loan = loanApplications.findById(loanId)
+                .orElseThrow(() -> new NotFoundException("Loan application not found: " + loanId));
+        if (!"contract".equals(loan.getStage())) {
+            throw new InvalidStageTransitionException(
+                    "Loan " + loanId + " is not in stage 'contract' (current: " + loan.getStage() + ")");
+        }
+        Employee employee = requireEmployee(employeeId);
+
+        Instant firstHop = Instant.now();
+        loan.setStage("disbursement");
+        loanApplications.save(loan);
+        recordTransition(loan, "contract", "disbursement", null, employee, firstHop);
+        governanceClient.recordAuditEvent(employeeId, "LOAN_STAGE_CHANGED", "LOAN_APPLICATION", loanId,
+                "contract -> disbursement");
+
+        loan.setStage("schedule");
+        loanApplications.save(loan);
+        recordTransition(loan, "disbursement", "schedule", null, employee, firstHop.plusMillis(1));
+        governanceClient.recordAuditEvent(employeeId, "LOAN_STAGE_CHANGED", "LOAN_APPLICATION", loanId,
+                "disbursement -> schedule");
 
         return loanService.findById(loanId);
     }
@@ -236,12 +286,18 @@ public class LoanActionsService {
 
     private void recordTransition(
             LoanApplication loan, String fromStage, String toStage, String approvalId, Employee employee) {
+        recordTransition(loan, fromStage, toStage, approvalId, employee, Instant.now());
+    }
+
+    private void recordTransition(
+            LoanApplication loan, String fromStage, String toStage, String approvalId, Employee employee,
+            Instant transitionedAt) {
         LoanStageTransition transition = new LoanStageTransition();
         transition.setLoanApplication(loan);
         transition.setFromStage(fromStage);
         transition.setToStage(toStage);
         transition.setApprovalId(approvalId);
-        transition.setTransitionedAt(Instant.now());
+        transition.setTransitionedAt(transitionedAt);
         transition.setTransitionedBy(employee);
         stageTransitions.save(transition);
     }

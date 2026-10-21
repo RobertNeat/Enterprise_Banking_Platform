@@ -45,9 +45,19 @@ public class LoanController {
         return loanActionsService.submitForApproval(id, jwt.getSubject());
     }
 
-    /** F2 — decision -> contract: requires the linked approval to be APPROVED; generates the schedule. */
+    /**
+     * F2 — decision -> contract: requires the linked approval to be APPROVED; generates the
+     * schedule. A REJECTED approval instead moves the loan back to 'application' so it can be
+     * resubmitted (see LoanActionsService.advanceStage).
+     */
     @PostMapping("/{id}/advance-stage")
     public LoanDetailDto advanceStage(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
         return loanActionsService.advanceStage(id, jwt.getSubject());
+    }
+
+    /** F2 — contract -> disbursement -> schedule: operational payout step after the contract stage. */
+    @PostMapping("/{id}/disburse")
+    public LoanDetailDto disburse(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
+        return loanActionsService.disburse(id, jwt.getSubject());
     }
 }

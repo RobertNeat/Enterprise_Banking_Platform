@@ -96,4 +96,29 @@ describe('LoansStore', () => {
 
     expect(store.findById('LN-90001')?.stage).toBe('contract');
   });
+
+  it('advanceStage() on a REJECTED decision replaces the loan back at the application stage', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush([DETAIL]);
+
+    const reverted: LoanDetail = { ...DETAIL, stage: 'application' };
+    const promise = store.advanceStage('LN-90001');
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-90001/advance-stage`);
+    req.flush(reverted);
+    await promise;
+
+    expect(store.findById('LN-90001')?.stage).toBe('application');
+  });
+
+  it('disburse() posts and replaces the loan with the schedule stage', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush([DETAIL]);
+
+    const disbursed: LoanDetail = { ...DETAIL, stage: 'schedule' };
+    const promise = store.disburse('LN-90001');
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-90001/disburse`);
+    expect(req.request.method).toBe('POST');
+    req.flush(disbursed);
+    await promise;
+
+    expect(store.findById('LN-90001')?.stage).toBe('schedule');
+  });
 });

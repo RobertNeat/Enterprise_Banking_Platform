@@ -171,6 +171,75 @@ class LoanActionsControllerTest {
     }
 
     @Test
+    void advanceStageOnRejectedApprovalReturnsLoanToApplicationStage() throws Exception {
+        given(governanceClient.createApproval(anyString(), anyString(), anyString()))
+                .willReturn(new ApprovalRecord("appr-loan-4", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
+                        "PENDING", Instant.now(), null, null, null, null));
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt("PRC-10234", 1)))
+                .andExpect(status().isOk());
+
+        given(governanceClient.getApproval("appr-loan-4")).willReturn(
+                new ApprovalRecord("appr-loan-4", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
+                        "REJECTED", Instant.now(), "PRC-00001", Instant.now(), null, null));
+
+        mockMvc.perform(post("/loans/LN-80288/advance-stage").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stage").value("application"))
+                .andExpect(jsonPath("$.installments.length()").value(0));
+
+        verify(governanceClient).recordAuditEvent(eq("PRC-00001"), eq("LOAN_STAGE_CHANGED"),
+                eq("LOAN_APPLICATION"), eq("LN-80288"), eq("decision -> application"));
+    }
+
+    @Test
+    void loanCanBeResubmittedAfterReturningToApplicationFromRejection() throws Exception {
+        given(governanceClient.createApproval(anyString(), anyString(), anyString()))
+                .willReturn(new ApprovalRecord("appr-loan-5", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
+                        "PENDING", Instant.now(), null, null, null, null));
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt("PRC-10234", 1)))
+                .andExpect(status().isOk());
+
+        given(governanceClient.getApproval("appr-loan-5")).willReturn(
+                new ApprovalRecord("appr-loan-5", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
+                        "REJECTED", Instant.now(), "PRC-00001", Instant.now(), null, null));
+        mockMvc.perform(post("/loans/LN-80288/advance-stage").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stage").value("application"));
+
+        // Loan is back at 'application' — submit-for-approval must accept it again.
+        given(governanceClient.createApproval(anyString(), anyString(), anyString()))
+                .willReturn(new ApprovalRecord("appr-loan-6", "LOAN_STAGE_TRANSITION", "PRC-10234", "payload",
+                        "PENDING", Instant.now(), null, null, null, null));
+        mockMvc.perform(post("/loans/LN-80288/submit-for-approval").with(testJwt("PRC-10234", 1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.loan.stage").value("decision"))
+                .andExpect(jsonPath("$.approvalId").value("appr-loan-6"));
+    }
+
+    @Test
+    void disburseMovesContractLoanThroughDisbursementToScheduleAndRecordsTwoAudits() throws Exception {
+        // LN-80231 is seeded at stage 'contract'.
+        mockMvc.perform(post("/loans/LN-80231/disburse").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stage").value("schedule"));
+
+        verify(governanceClient).recordAuditEvent(anyString(), eq("LOAN_STAGE_CHANGED"),
+                eq("LOAN_APPLICATION"), eq("LN-80231"), eq("contract -> disbursement"));
+        verify(governanceClient).recordAuditEvent(anyString(), eq("LOAN_STAGE_CHANGED"),
+                eq("LOAN_APPLICATION"), eq("LN-80231"), eq("disbursement -> schedule"));
+    }
+
+    @Test
+    void disburseOnNonContractStageIsConflict() throws Exception {
+        // LN-80288 is seeded at stage 'application', not 'contract'.
+        mockMvc.perform(post("/loans/LN-80288/disburse").with(testJwt()))
+                .andExpect(status().isConflict());
+
+        verify(governanceClient, never()).recordAuditEvent(anyString(), eq("LOAN_STAGE_CHANGED"),
+                anyString(), anyString(), anyString());
+    }
+
+    @Test
     void createWithInvalidSegmentIsBadRequestAndNeverCallsCreditRiskMock() throws Exception {
         mockMvc.perform(post("/loans").with(testJwt())
                         .contentType(MediaType.APPLICATION_JSON)

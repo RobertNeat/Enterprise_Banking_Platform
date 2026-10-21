@@ -189,6 +189,10 @@ export const en: Record<string, string> = {
   'loans.scoreResult': 'Scoring result',
   'loans.dsti': 'DSTI ratio',
   'loans.decisionMove': 'Move to next stage',
+  'loans.submitForApproval': 'Submit for approval',
+  'loans.disburse': 'Disburse loan',
+  'loans.rejected':
+    'Application rejected — returned to the application stage. It can be resubmitted.',
   'loans.scheduleTitle': 'Repayment schedule',
   'loans.installment': 'Installment',
   'loans.principal': 'Principal',

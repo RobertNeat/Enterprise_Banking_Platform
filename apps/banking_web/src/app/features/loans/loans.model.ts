@@ -64,7 +64,10 @@ export interface CreateLoanApplicationRequest {
   termMonths?: number;
 }
 
-/** Full detail shape returned by POST /loans, POST /loans/{id}/advance-stage and GET /loans/{id}. */
+/**
+ * Full detail shape returned by POST /loans, POST /loans/{id}/advance-stage,
+ * POST /loans/{id}/disburse and GET /loans/{id}.
+ */
 export interface LoanDetail extends LoanApplication {
   interestRate: number;
   termMonths: number;
