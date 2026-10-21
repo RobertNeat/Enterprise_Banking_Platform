@@ -7,7 +7,7 @@ package robert_neat.banking_backend.common;
  */
 public class InvalidRequestException extends RuntimeException {
 
-    public InvalidRequestException(String message) {
-        super(message);
-    }
+  public InvalidRequestException(String message) {
+    super(message);
+  }
 }

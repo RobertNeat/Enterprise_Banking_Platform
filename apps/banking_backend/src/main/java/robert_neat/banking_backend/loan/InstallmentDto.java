@@ -4,9 +4,4 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record InstallmentDto(
-        int no,
-        LocalDate dueDate,
-        BigDecimal principal,
-        BigDecimal interest,
-        String status) {
-}
+    int no, LocalDate dueDate, BigDecimal principal, BigDecimal interest, String status) {}

@@ -1,38 +1,38 @@
 package robert_neat.banking_backend.loan;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-
-import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static robert_neat.banking_backend.support.JwtTestSupport.testJwt;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-@TestPropertySource(properties = {
-        "BANKING_SEED_MOCK_DATA=false",
-        "spring.datasource.url=jdbc:h2:mem:loans_seed_off;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"
-})
+@TestPropertySource(
+    properties = {
+      "BANKING_SEED_MOCK_DATA=false",
+      "spring.datasource.url=jdbc:h2:mem:loans_seed_off;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"
+    })
 class LoanControllerSeedOffTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Test
-    void listReturnsEmptyArrayWhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/loans").with(testJwt()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
-    }
+  @Test
+  void listReturnsEmptyArrayWhenNotSeeded() throws Exception {
+    mockMvc
+        .perform(get("/loans").with(testJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(0));
+  }
 
-    @Test
-    void detailReturns404WhenNotSeeded() throws Exception {
-        mockMvc.perform(get("/loans/LN-80231").with(testJwt()))
-                .andExpect(status().isNotFound());
-    }
+  @Test
+  void detailReturns404WhenNotSeeded() throws Exception {
+    mockMvc.perform(get("/loans/LN-80231").with(testJwt())).andExpect(status().isNotFound());
+  }
 }

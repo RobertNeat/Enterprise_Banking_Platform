@@ -124,8 +124,8 @@
   [stepValid]="stepValid()"
   (visibleChange)="onWizardVisibleChange($event)"
   (stepChange)="onWizardStepChange($event)"
-  (cancel)="cancelWizard()"
-  (submit)="submitWizard()"
+  (wizardCancel)="cancelWizard()"
+  (wizardSubmit)="submitWizard()"
 >
   <div [formGroup]="form">
     @switch (wizardStep()) {
@@ -229,21 +229,21 @@
           <h3 id="cases-wizard-summary-title">{{ 'cases.wizard.summary' | translate }}</h3>
           <div class="field-grid" id="cases-wizard-summary-grid">
             <div class="field-grid__item" id="cases-wizard-summary-subject">
-              <label>{{ 'cases.subject' | translate }}</label>
+              <span class="field-grid__item-label">{{ 'cases.subject' | translate }}</span>
               <div class="value">{{ summary().subject }}</div>
             </div>
             <div class="field-grid__item" id="cases-wizard-summary-customer">
-              <label>{{ 'common.customer' | translate }}</label>
+              <span class="field-grid__item-label">{{ 'common.customer' | translate }}</span>
               <div class="value">{{ summary().customerId }}</div>
             </div>
             <div class="field-grid__item" id="cases-wizard-summary-case-type">
-              <label>{{ 'cases.caseType' | translate }}</label>
+              <span class="field-grid__item-label">{{ 'cases.caseType' | translate }}</span>
               <div class="value">
                 {{ summary().caseType ? ('cases.type.' + summary().caseType | translate) : '' }}
               </div>
             </div>
             <div class="field-grid__item" id="cases-wizard-summary-priority">
-              <label>{{ 'common.priority' | translate }}</label>
+              <span class="field-grid__item-label">{{ 'common.priority' | translate }}</span>
               @if (summary().priority) {
                 <app-status-tag
                   tagId="cases-wizard-summary-priority-tag"

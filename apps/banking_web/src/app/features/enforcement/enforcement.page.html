@@ -89,8 +89,8 @@
   [stepValid]="isStepValid()"
   (visibleChange)="onWizardVisibleChange($event)"
   (stepChange)="onWizardStepChange($event)"
-  (cancel)="cancelWizard()"
-  (submit)="submitWizard()"
+  (wizardCancel)="cancelWizard()"
+  (wizardSubmit)="submitWizard()"
 >
   <div [formGroup]="form">
     @switch (wizardStep()) {

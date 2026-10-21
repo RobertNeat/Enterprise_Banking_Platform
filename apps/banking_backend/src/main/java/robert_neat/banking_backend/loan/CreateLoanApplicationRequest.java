@@ -7,9 +7,8 @@ import java.math.BigDecimal;
  * they come back from credit_risk_mock (see LoanActionsService.create).
  */
 public record CreateLoanApplicationRequest(
-        String customerId,
-        String segment,
-        String product,
-        BigDecimal requestedAmount,
-        Integer termMonths) {
-}
+    String customerId,
+    String segment,
+    String product,
+    BigDecimal requestedAmount,
+    Integer termMonths) {}

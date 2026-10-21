@@ -54,9 +54,9 @@ describe('DashboardPage', () => {
     const component = fixture.componentInstance;
     flushAll();
 
-    expect((component as any).recentCases()).toEqual(RECENT_CASES);
-    expect((component as any).regulatoryAlerts()).toEqual(REGULATORY_ALERTS);
-    expect((component as any).ictIncidents()).toEqual(ICT_INCIDENTS);
+    expect(component['recentCases']()).toEqual(RECENT_CASES);
+    expect(component['regulatoryAlerts']()).toEqual(REGULATORY_ALERTS);
+    expect(component['ictIncidents']()).toEqual(ICT_INCIDENTS);
   });
 
   it('fills KPI tiles from GET /dashboard/kpi-snapshot/latest, formatted per tile', () => {
@@ -64,19 +64,19 @@ describe('DashboardPage', () => {
     const component = fixture.componentInstance;
 
     // Placeholder before the snapshot resolves.
-    expect((component as any).kpiLoansActive()).toBe('—');
-    expect((component as any).kpiLoansValue()).toBe('—');
+    expect(component['kpiLoansActive']()).toBe('—');
+    expect(component['kpiLoansValue']()).toBe('—');
 
     flushAll();
 
-    expect((component as any).kpiLoansActive()).toBe('18,420');
-    expect((component as any).kpiLoansValue()).toBe('512.4 M PLN');
-    expect((component as any).kpiCardsIssued()).toBe('64,910');
-    expect((component as any).kpiNpl()).toBe('3.8%');
-    expect((component as any).kpiLcr()).toBe('142%');
-    expect((component as any).kpiNsfr()).toBe('118%');
-    expect((component as any).kpiCasesOpen()).toBe('312');
-    expect((component as any).kpiCollectionsOverdue()).toBe('24.6 M PLN');
+    expect(component['kpiLoansActive']()).toBe('18,420');
+    expect(component['kpiLoansValue']()).toBe('512.4 M PLN');
+    expect(component['kpiCardsIssued']()).toBe('64,910');
+    expect(component['kpiNpl']()).toBe('3.8%');
+    expect(component['kpiLcr']()).toBe('142%');
+    expect(component['kpiNsfr']()).toBe('118%');
+    expect(component['kpiCasesOpen']()).toBe('312');
+    expect(component['kpiCollectionsOverdue']()).toBe('24.6 M PLN');
   });
 
   it('falls back to the placeholder when the KPI snapshot is not seeded (404)', () => {
@@ -96,7 +96,7 @@ describe('DashboardPage', () => {
       .flush(PORTFOLIO_TREND);
     httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
 
-    expect((component as any).kpiLoansActive()).toBe('—');
+    expect(component['kpiLoansActive']()).toBe('—');
   });
 
   it('builds the portfolio trend chart from GET /dashboard/portfolio-trend, scaled to millions', () => {
@@ -104,7 +104,7 @@ describe('DashboardPage', () => {
     const component = fixture.componentInstance;
     flushAll();
 
-    const trendData = (component as any).trendData();
+    const trendData = component['trendData']();
     expect(trendData.labels.length).toBe(PORTFOLIO_TREND.length);
     expect(trendData.datasets[0].data).toEqual(
       PORTFOLIO_TREND.map((point) => point.portfolioTotal / 1_000_000),
@@ -116,7 +116,7 @@ describe('DashboardPage', () => {
     const component = fixture.componentInstance;
     flushAll();
 
-    const productData = (component as any).productData();
+    const productData = component['productData']();
     // LOAN_PRODUCTS order: cash, mortgage, overdraft, investment, creditLine.
     // LOAN_APPLICATIONS counts: cash x2, mortgage x2, overdraft x1, investment x2, creditLine x1.
     expect(productData.datasets[0].data).toEqual([2, 2, 1, 2, 1]);
@@ -127,7 +127,7 @@ describe('DashboardPage', () => {
     const component = fixture.componentInstance;
     flushAll();
 
-    const resolvePromise = (component as any).resolveIctIncident(ICT_INCIDENTS[0]);
+    const resolvePromise = component['resolveIctIncident'](ICT_INCIDENTS[0]);
 
     httpMock
       .expectOne(
@@ -142,7 +142,7 @@ describe('DashboardPage', () => {
       .flush([ICT_INCIDENTS[1]]);
     await resolvePromise;
 
-    expect((component as any).ictIncidents()).toEqual([ICT_INCIDENTS[1]]);
+    expect(component['ictIncidents']()).toEqual([ICT_INCIDENTS[1]]);
   });
 
   it('resolveIctIncident does not refetch when the backend call fails', async () => {
@@ -150,7 +150,7 @@ describe('DashboardPage', () => {
     const component = fixture.componentInstance;
     flushAll();
 
-    const resolvePromise = (component as any).resolveIctIncident(ICT_INCIDENTS[0]);
+    const resolvePromise = component['resolveIctIncident'](ICT_INCIDENTS[0]);
 
     httpMock
       .expectOne(
@@ -159,6 +159,6 @@ describe('DashboardPage', () => {
       .flush('Conflict', { status: 409, statusText: 'Conflict' });
     await resolvePromise;
 
-    expect((component as any).ictIncidents()).toEqual(ICT_INCIDENTS);
+    expect(component['ictIncidents']()).toEqual(ICT_INCIDENTS);
   });
 });

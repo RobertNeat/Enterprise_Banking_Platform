@@ -30,15 +30,15 @@ describe('CasesPage', () => {
 
   it('the wizard form no longer has statutoryDeadline/slaRemainingHours controls', () => {
     const page = createPage();
-    expect((page as any).form.controls.schedule.contains('statutoryDeadline')).toBe(false);
-    expect((page as any).form.controls.schedule.contains('slaRemainingHours')).toBe(false);
-    expect((page as any).form.controls.details.contains('customerId')).toBe(true);
-    expect((page as any).form.controls.details.contains('caseType')).toBe(true);
+    expect(page['form'].controls.schedule.contains('statutoryDeadline')).toBe(false);
+    expect(page['form'].controls.schedule.contains('slaRemainingHours')).toBe(false);
+    expect(page['form'].controls.details.contains('customerId')).toBe(true);
+    expect(page['form'].controls.details.contains('caseType')).toBe(true);
   });
 
   it('submitWizard() posts to /cases and shows the backend-computed case in the list', async () => {
     const page = createPage();
-    (page as any).form.patchValue({
+    page['form'].patchValue({
       details: { subject: 'Reklamacja', customerId: 'CUST-001', caseType: 'complaint' },
       schedule: { priority: 'high' },
     });
@@ -64,8 +64,8 @@ describe('CasesPage', () => {
     });
     await submitPromise;
 
-    expect((page as any).cases()[0].id).toBe('CS-90001');
-    expect((page as any).cases()[0].statutoryDeadline).toBe('2026-11-14');
+    expect(page['cases']()[0].id).toBe('CS-90001');
+    expect(page['cases']()[0].statutoryDeadline).toBe('2026-11-14');
   });
 
   it('escalate() calls POST /cases/{id}/escalate and updates the status from the response', async () => {
@@ -78,7 +78,7 @@ describe('CasesPage', () => {
     req.flush({ customerCase: { ...target, status: 'escalated' }, escalated: true });
     await escalatePromise;
 
-    expect((page as any).cases().find((c) => c.id === target.id)?.status).toBe('escalated');
+    expect(page['cases']().find((c) => c.id === target.id)?.status).toBe('escalated');
   });
 
   it('escalate() blocks already-escalated or resolved cases without calling the backend', async () => {
@@ -100,7 +100,7 @@ describe('CasesPage', () => {
     req.flush({ ...target, status: 'inProgress' });
     await startPromise;
 
-    expect((page as any).cases().find((c) => c.id === target.id)?.status).toBe('inProgress');
+    expect(page['cases']().find((c) => c.id === target.id)?.status).toBe('inProgress');
   });
 
   it('start() blocks non-new cases without calling the backend', async () => {
@@ -122,7 +122,7 @@ describe('CasesPage', () => {
     req.flush({ ...target, status: 'resolved' });
     await resolvePromise;
 
-    expect((page as any).cases().find((c) => c.id === target.id)?.status).toBe('resolved');
+    expect(page['cases']().find((c) => c.id === target.id)?.status).toBe('resolved');
   });
 
   it('resolve() blocks already-resolved cases without calling the backend', async () => {
@@ -152,7 +152,7 @@ describe('CasesPage', () => {
     const target = CUSTOMER_CASES[0];
 
     page.openHistoryDialog(target);
-    expect((page as any).historyDialogOpen()).toBe(true);
+    expect(page['historyDialogOpen']()).toBe(true);
 
     const req = httpMock.expectOne(
       (r) =>
@@ -163,6 +163,6 @@ describe('CasesPage', () => {
     req.flush([]);
 
     page.closeHistoryDialog();
-    expect((page as any).historyDialogOpen()).toBe(false);
+    expect(page['historyDialogOpen']()).toBe(false);
   });
 });

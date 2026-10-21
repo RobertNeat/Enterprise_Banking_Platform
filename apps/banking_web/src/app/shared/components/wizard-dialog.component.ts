@@ -96,7 +96,7 @@ export interface WizardStep {
               [label]="'wizard.submit' | translate"
               icon="pi pi-check"
               [disabled]="!stepValid()"
-              (click)="submit.emit()"
+              (click)="wizardSubmit.emit()"
             />
           }
         </div>
@@ -139,8 +139,8 @@ export class WizardDialogComponent {
 
   readonly visibleChange = output<boolean>();
   readonly stepChange = output<number>();
-  readonly cancel = output<void>();
-  readonly submit = output<void>();
+  readonly wizardCancel = output<void>();
+  readonly wizardSubmit = output<void>();
 
   private readonly confirmation = inject(ConfirmationService);
   private readonly i18n = inject(TranslationService);
@@ -172,7 +172,7 @@ export class WizardDialogComponent {
       rejectLabel: this.i18n.translate('wizard.cancelConfirm.reject'),
       accept: () => {
         this.activeIndex.set(0);
-        this.cancel.emit();
+        this.wizardCancel.emit();
       },
     });
   }

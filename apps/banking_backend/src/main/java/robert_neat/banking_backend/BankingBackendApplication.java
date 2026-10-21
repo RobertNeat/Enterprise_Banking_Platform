@@ -9,8 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class BankingBackendApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(BankingBackendApplication.class, args);
-    }
-
+  public static void main(String[] args) {
+    SpringApplication.run(BankingBackendApplication.class, args);
+  }
 }

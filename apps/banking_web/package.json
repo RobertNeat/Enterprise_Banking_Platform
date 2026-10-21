@@ -7,10 +7,11 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\"",
-    "check": "pnpm run format:check && pnpm run typecheck && ng test --watch=false"
+    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck && ng test --watch=false"
   },
   "private": true,
   "packageManager": "pnpm@11.17.0",
@@ -35,9 +36,13 @@
     "@angular/build": "^21.2.25",
     "@angular/cli": "^21.2.25",
     "@angular/compiler-cli": "^21.2.25",
+    "@eslint/js": "^10.0.1",
+    "angular-eslint": "^21.4.0",
+    "eslint": "^10.13.0",
     "jsdom": "^30.0.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^5.0.0"
   }
 }

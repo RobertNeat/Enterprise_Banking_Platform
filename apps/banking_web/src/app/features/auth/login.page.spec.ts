@@ -46,10 +46,10 @@ describe('LoginPage', () => {
 
   it('logs in and navigates to /dashboard on success', async () => {
     const fixture = createPage();
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-    component.form.setValue({ employeeId: 'PRC-00001', password: 'Admin12345' });
+    component['form'].setValue({ employeeId: 'PRC-00001', password: 'Admin12345' });
 
     const submitPromise = component.onSubmit();
     httpMock.expectOne(`${apiBaseUrl.bankingBackend}/auth/login`).flush({
@@ -61,15 +61,15 @@ describe('LoginPage', () => {
     await submitPromise;
 
     expect(navigateSpy).toHaveBeenCalledWith(['/dashboard']);
-    expect(component.errorKey()).toBeNull();
+    expect(component['errorKey']()).toBeNull();
   });
 
   it('shows an error message and does not navigate on 401', async () => {
     const fixture = createPage();
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-    component.form.setValue({ employeeId: 'PRC-00001', password: 'wrongpass' });
+    component['form'].setValue({ employeeId: 'PRC-00001', password: 'wrongpass' });
 
     const submitPromise = component.onSubmit();
     httpMock
@@ -78,6 +78,6 @@ describe('LoginPage', () => {
     await submitPromise;
 
     expect(navigateSpy).not.toHaveBeenCalled();
-    expect(component.errorKey()).toBe('auth.login.error.invalidCredentials');
+    expect(component['errorKey']()).toBe('auth.login.error.invalidCredentials');
   });
 });

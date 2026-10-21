@@ -39,7 +39,7 @@ describe('CardsPage', () => {
     req.flush({ ...card, status: 'blocked' });
     await promise;
 
-    expect((page as any).cards().find((c: any) => c.id === 'CRD-5521')?.status).toBe('blocked');
+    expect(page['cards']().find((c) => c.id === 'CRD-5521')?.status).toBe('blocked');
   });
 
   it('toggleBlock() on a pending card is a no-op (UX guard before any HTTP call)', async () => {
@@ -58,15 +58,15 @@ describe('CardsPage', () => {
 
     page.fileChargeback(card);
 
-    expect((page as any).chargebackDialogOpen()).toBe(true);
-    expect((page as any).chargebackCard()).toEqual(card);
+    expect(page['chargebackDialogOpen']()).toBe(true);
+    expect(page['chargebackCard']()).toEqual(card);
   });
 
   it('submitChargeback() posts to /cards/{id}/chargebacks and closes the dialog', async () => {
     const page = createPage();
     const card = PAYMENT_CARDS.find((c) => c.id === 'CRD-5521')!;
     page.fileChargeback(card);
-    (page as any).chargebackForm.patchValue({
+    page['chargebackForm'].patchValue({
       authorizationId: 'dfd92a8d-976a-4601-97be-13ab2e09c7b1',
       reasonCode: '4837',
       description: 'opis',
@@ -84,7 +84,7 @@ describe('CardsPage', () => {
     });
     await promise;
 
-    expect((page as any).chargebackDialogOpen()).toBe(false);
+    expect(page['chargebackDialogOpen']()).toBe(false);
   });
 
   it('openHistoryDialog() opens the dialog and loads audit events scoped to PAYMENT_CARD', () => {
@@ -92,7 +92,7 @@ describe('CardsPage', () => {
     const card = PAYMENT_CARDS.find((c) => c.id === 'CRD-5521')!;
 
     page.openHistoryDialog(card);
-    expect((page as any).historyDialogOpen()).toBe(true);
+    expect(page['historyDialogOpen']()).toBe(true);
 
     const req = httpMock.expectOne(
       (r) =>
@@ -103,6 +103,6 @@ describe('CardsPage', () => {
     req.flush([]);
 
     page.closeHistoryDialog();
-    expect((page as any).historyDialogOpen()).toBe(false);
+    expect(page['historyDialogOpen']()).toBe(false);
   });
 });

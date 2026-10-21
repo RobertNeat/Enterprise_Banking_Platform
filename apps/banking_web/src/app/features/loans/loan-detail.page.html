@@ -76,25 +76,25 @@
 
 <div class="field-grid card-section" id="loan-detail-fields" style="margin-bottom: 1.5rem">
   <div class="field-grid__item" id="loan-detail-requested-amount">
-    <label>{{ 'loans.requestedAmount' | translate }}</label>
+    <span class="field-grid__item-label">{{ 'loans.requestedAmount' | translate }}</span>
     <div class="value">{{ loan().requestedAmount | number: '1.0-0' }} PLN</div>
   </div>
   <div class="field-grid__item" id="loan-detail-approved-amount">
-    <label>{{ 'loans.approvedAmount' | translate }}</label>
+    <span class="field-grid__item-label">{{ 'loans.approvedAmount' | translate }}</span>
     <div class="value">
       {{ loan().approvedAmount ? (loan().approvedAmount! | number: '1.0-0') + ' PLN' : '—' }}
     </div>
   </div>
   <div class="field-grid__item" id="loan-detail-score-result">
-    <label>{{ 'loans.scoreResult' | translate }}</label>
+    <span class="field-grid__item-label">{{ 'loans.scoreResult' | translate }}</span>
     <div class="value">{{ loan().scoreResult || '—' }}</div>
   </div>
   <div class="field-grid__item" id="loan-detail-dsti">
-    <label>{{ 'loans.dsti' | translate }}</label>
+    <span class="field-grid__item-label">{{ 'loans.dsti' | translate }}</span>
     <div class="value">{{ loan().dsti ? (loan().dsti * 100 | number: '1.0-1') + '%' : '—' }}</div>
   </div>
   <div class="field-grid__item" id="loan-detail-status">
-    <label>{{ 'common.status' | translate }}</label>
+    <span class="field-grid__item-label">{{ 'common.status' | translate }}</span>
     <div class="value">
       <app-status-tag
         tagId="loan-detail-status-tag"

@@ -31,7 +31,7 @@ describe('EbankingPage', () => {
 
     page.unlock(activeUser);
 
-    expect((page as any).otpDialogOpen()).toBe(false);
+    expect(page['otpDialogOpen']()).toBe(false);
   });
 
   it('unlock() on a locked user opens the OTP dialog at step 1', () => {
@@ -40,9 +40,9 @@ describe('EbankingPage', () => {
 
     page.unlock(lockedUser);
 
-    expect((page as any).otpDialogOpen()).toBe(true);
-    expect((page as any).otpStep()).toBe(1);
-    expect((page as any).otpPurpose()).toBe('unlock');
+    expect(page['otpDialogOpen']()).toBe(true);
+    expect(page['otpStep']()).toBe(1);
+    expect(page['otpPurpose']()).toBe('unlock');
   });
 
   it('sendOtp() requests the challenge and advances to step 2', async () => {
@@ -58,8 +58,8 @@ describe('EbankingPage', () => {
     req.flush({ otpId: 'otp-1', expiresAt: '2026-10-15T10:05:00Z' });
     await promise;
 
-    expect((page as any).otpStep()).toBe(2);
-    expect((page as any).otpId()).toBe('otp-1');
+    expect(page['otpStep']()).toBe(2);
+    expect(page['otpId']()).toBe('otp-1');
   });
 
   it('confirmOtp() submits the code and closes the dialog on success', async () => {
@@ -71,7 +71,7 @@ describe('EbankingPage', () => {
       .expectOne(`${apiBaseUrl.bankingBackend}/ebanking/EB-1001/unlock/request-otp`)
       .flush({ otpId: 'otp-1', expiresAt: '2026-10-15T10:05:00Z' });
     await sendPromise;
-    (page as any).otpCode.set('123456');
+    page['otpCode'].set('123456');
 
     const confirmPromise = page.confirmOtp();
     const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/ebanking/EB-1001/unlock/confirm`);
@@ -79,8 +79,8 @@ describe('EbankingPage', () => {
     req.flush({ ...lockedUser, accessStatus: 'active' });
     await confirmPromise;
 
-    expect((page as any).otpDialogOpen()).toBe(false);
-    expect((page as any).users().find((u: any) => u.id === 'EB-1001')?.accessStatus).toBe('active');
+    expect(page['otpDialogOpen']()).toBe(false);
+    expect(page['users']().find((u) => u.id === 'EB-1001')?.accessStatus).toBe('active');
   });
 
   it('confirmOtp() shows an inline error and keeps the dialog open on a wrong code', async () => {
@@ -92,7 +92,7 @@ describe('EbankingPage', () => {
       .expectOne(`${apiBaseUrl.bankingBackend}/ebanking/EB-1001/unlock/request-otp`)
       .flush({ otpId: 'otp-1', expiresAt: '2026-10-15T10:05:00Z' });
     await sendPromise;
-    (page as any).otpCode.set('000000');
+    page['otpCode'].set('000000');
 
     const confirmPromise = page.confirmOtp();
     httpMock
@@ -100,8 +100,8 @@ describe('EbankingPage', () => {
       .flush({ message: 'forbidden' }, { status: 403, statusText: 'Forbidden' });
     await confirmPromise;
 
-    expect((page as any).otpDialogOpen()).toBe(true);
-    expect((page as any).otpError()).toBe(true);
+    expect(page['otpDialogOpen']()).toBe(true);
+    expect(page['otpError']()).toBe(true);
   });
 
   it('resetDevice() fetches devices and opens the dialog for device-reset purpose', async () => {
@@ -121,8 +121,8 @@ describe('EbankingPage', () => {
     ]);
     await promise;
 
-    expect((page as any).otpDialogOpen()).toBe(true);
-    expect((page as any).otpPurpose()).toBe('resetDevice');
-    expect((page as any).otpSelectedDeviceId()).toBe('DEV-0002');
+    expect(page['otpDialogOpen']()).toBe(true);
+    expect(page['otpPurpose']()).toBe('resetDevice');
+    expect(page['otpSelectedDeviceId']()).toBe('DEV-0002');
   });
 });

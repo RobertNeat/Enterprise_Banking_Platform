@@ -9,24 +9,26 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Maps banking.seed-mock-data (bound from BANKING_SEED_MOCK_DATA) to the Liquibase "mock-data"
  * context. Liquibase treats an empty/unset context list as "run everything" including seed
- * changesets, so when seeding is disabled we must set a non-empty, non-matching context rather
- * than leaving it blank.
+ * changesets, so when seeding is disabled we must set a non-empty, non-matching context rather than
+ * leaving it blank.
  */
 @Configuration
 public class MockDataContextConfig {
 
-    @Bean
-    static BeanPostProcessor mockDataContextPostProcessor(ConfigurableListableBeanFactory beanFactory) {
-        return new BeanPostProcessor() {
-            @Override
-            public Object postProcessBeforeInitialization(Object bean, String beanName) {
-                if (bean instanceof SpringLiquibase liquibase) {
-                    boolean seed = Boolean.parseBoolean(
-                            beanFactory.resolveEmbeddedValue("${banking.seed-mock-data:false}"));
-                    liquibase.setContexts(seed ? "mock-data" : "schema-only");
-                }
-                return bean;
-            }
-        };
-    }
+  @Bean
+  static BeanPostProcessor mockDataContextPostProcessor(
+      ConfigurableListableBeanFactory beanFactory) {
+    return new BeanPostProcessor() {
+      @Override
+      public Object postProcessBeforeInitialization(Object bean, String beanName) {
+        if (bean instanceof SpringLiquibase liquibase) {
+          boolean seed =
+              Boolean.parseBoolean(
+                  beanFactory.resolveEmbeddedValue("${banking.seed-mock-data:false}"));
+          liquibase.setContexts(seed ? "mock-data" : "schema-only");
+        }
+        return bean;
+      }
+    };
+  }
 }

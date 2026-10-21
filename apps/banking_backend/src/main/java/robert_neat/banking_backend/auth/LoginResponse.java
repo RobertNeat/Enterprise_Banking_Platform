@@ -10,5 +10,4 @@ import java.util.List;
  * approvals UI without decoding the JWT manually.
  */
 public record LoginResponse(
-        String token, String employeeId, String role, List<String> permissions, int seniorityLevel) {
-}
+    String token, String employeeId, String role, List<String> permissions, int seniorityLevel) {}

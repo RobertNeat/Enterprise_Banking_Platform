@@ -1,11 +1,10 @@
 package robert_neat.banking_backend.approvals;
 
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * Proxy to governance_mock's GET /audit-events — backs the "Historia" tab/dialog on loan, case,
@@ -16,16 +15,16 @@ import java.util.List;
 @RequestMapping("/audit-events")
 public class AuditEventsController {
 
-    private final ApprovalsService approvalsService;
+  private final ApprovalsService approvalsService;
 
-    public AuditEventsController(ApprovalsService approvalsService) {
-        this.approvalsService = approvalsService;
-    }
+  public AuditEventsController(ApprovalsService approvalsService) {
+    this.approvalsService = approvalsService;
+  }
 
-    @GetMapping
-    public List<AuditEventDto> list(
-            @RequestParam(required = false) String entityType,
-            @RequestParam(required = false) String entityId) {
-        return approvalsService.listAuditEvents(entityType, entityId);
-    }
+  @GetMapping
+  public List<AuditEventDto> list(
+      @RequestParam(required = false) String entityType,
+      @RequestParam(required = false) String entityId) {
+    return approvalsService.listAuditEvents(entityType, entityId);
+  }
 }

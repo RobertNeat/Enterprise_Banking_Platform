@@ -31,8 +31,8 @@ describe('CollectionsPage', () => {
     const item = COLLECTIONS_CASES[0]; // DBT-6601
 
     const openPromise = page.openActionsDialog(item);
-    expect((page as any).actionsDialogOpen()).toBe(true);
-    expect((page as any).actionsLoading()).toBe(true);
+    expect(page['actionsDialogOpen']()).toBe(true);
+    expect(page['actionsLoading']()).toBe(true);
 
     const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/collections/${item.id}/actions`);
     expect(req.request.method).toBe('GET');
@@ -53,12 +53,12 @@ describe('CollectionsPage', () => {
     req.flush(actions);
     await openPromise;
 
-    expect((page as any).actionsLoading()).toBe(false);
-    expect((page as any).actions()).toEqual(actions);
+    expect(page['actionsLoading']()).toBe(false);
+    expect(page['actions']()).toEqual(actions);
 
     page.closeActionsDialog();
-    expect((page as any).actionsDialogOpen()).toBe(false);
-    expect((page as any).actions()).toEqual([]);
+    expect(page['actionsDialogOpen']()).toBe(false);
+    expect(page['actions']()).toEqual([]);
   });
 
   it('openActionsDialog() toasts an error and clears the list when the request fails', async () => {
@@ -72,7 +72,7 @@ describe('CollectionsPage', () => {
 
     await openPromise;
 
-    expect((page as any).actions()).toEqual([]);
+    expect(page['actions']()).toEqual([]);
     expect(errorSpy).toHaveBeenCalledWith('collections.actionsHistory.error');
   });
 });

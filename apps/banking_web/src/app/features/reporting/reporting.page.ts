@@ -50,6 +50,7 @@ export class ReportingPage {
     const csv = buildReportsCsv(this.reports(), this.recipientFilter(), (status) =>
       this.i18n.translate(`reporting.status.${status}`),
     );
+    // eslint-disable-next-line no-irregular-whitespace -- intentional UTF-8 BOM so Excel detects the encoding
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

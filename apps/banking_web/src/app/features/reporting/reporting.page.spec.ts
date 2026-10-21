@@ -37,8 +37,8 @@ describe('ReportingPage', () => {
     const report = REGULATORY_REPORTS[1]; // RPT-NBP-014
 
     const openPromise = page.openSubmissionsDialog(report);
-    expect((page as any).submissionsDialogOpen()).toBe(true);
-    expect((page as any).submissionsLoading()).toBe(true);
+    expect(page['submissionsDialogOpen']()).toBe(true);
+    expect(page['submissionsLoading']()).toBe(true);
 
     const req = httpMock.expectOne(
       `${apiBaseUrl.bankingBackend}/reporting/reports/${report.id}/submissions`,
@@ -63,12 +63,12 @@ describe('ReportingPage', () => {
     req.flush(submissions);
     await openPromise;
 
-    expect((page as any).submissionsLoading()).toBe(false);
-    expect((page as any).submissions()).toEqual(submissions);
+    expect(page['submissionsLoading']()).toBe(false);
+    expect(page['submissions']()).toEqual(submissions);
 
     page.closeSubmissionsDialog();
-    expect((page as any).submissionsDialogOpen()).toBe(false);
-    expect((page as any).submissions()).toEqual([]);
+    expect(page['submissionsDialogOpen']()).toBe(false);
+    expect(page['submissions']()).toEqual([]);
   });
 
   it('openSubmissionsDialog() toasts an error and clears the list when the request fails', async () => {
@@ -84,7 +84,7 @@ describe('ReportingPage', () => {
 
     await openPromise;
 
-    expect((page as any).submissions()).toEqual([]);
+    expect(page['submissions']()).toEqual([]);
     expect(errorSpy).toHaveBeenCalledWith('reporting.submissionsHistory.error');
   });
 });

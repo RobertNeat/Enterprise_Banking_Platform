@@ -5,14 +5,13 @@ import java.time.Instant;
 
 /** Mirrors external_institutions_gateway_mock's POST /enforcement/incoming response shape. */
 public record EnforcementIncomingResponse(
-        String id,
-        String customer,
-        String bailiff,
-        String caseNumber,
-        BigDecimal blockedAmount,
-        BigDecimal transferredAmount,
-        BigDecimal protectedAmount,
-        String status,
-        Instant createdAt,
-        Instant settledAt) {
-}
+    String id,
+    String customer,
+    String bailiff,
+    String caseNumber,
+    BigDecimal blockedAmount,
+    BigDecimal transferredAmount,
+    BigDecimal protectedAmount,
+    String status,
+    Instant createdAt,
+    Instant settledAt) {}

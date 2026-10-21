@@ -10,24 +10,40 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
  */
 public final class JwtTestSupport {
 
-    private JwtTestSupport() {
-    }
+  private JwtTestSupport() {}
 
-    public static RequestPostProcessor testJwt() {
-        return SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt
-                .subject("PRC-00001")
-                .claim("role", "Administrator systemu")
-                .claim("permissions", java.util.List.of("dashboard", "loans", "risk", "collections",
-                        "contact", "compliance", "ebanking", "cards", "accounts-admin", "audit"))
-                .claim("seniorityLevel", 3));
-    }
+  public static RequestPostProcessor testJwt() {
+    return SecurityMockMvcRequestPostProcessors.jwt()
+        .jwt(
+            jwt ->
+                jwt.subject("PRC-00001")
+                    .claim("role", "Administrator systemu")
+                    .claim(
+                        "permissions",
+                        java.util.List.of(
+                            "dashboard",
+                            "loans",
+                            "risk",
+                            "collections",
+                            "contact",
+                            "compliance",
+                            "ebanking",
+                            "cards",
+                            "accounts-admin",
+                            "audit"))
+                    .claim("seniorityLevel", 3));
+  }
 
-    /** Variant with a caller-chosen subject (employeeId) and seniorityLevel, for maker-checker tests. */
-    public static RequestPostProcessor testJwt(String subject, int seniorityLevel) {
-        return SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt -> jwt
-                .subject(subject)
-                .claim("role", "ignored-in-these-tests")
-                .claim("permissions", java.util.List.of("dashboard"))
-                .claim("seniorityLevel", seniorityLevel));
-    }
+  /**
+   * Variant with a caller-chosen subject (employeeId) and seniorityLevel, for maker-checker tests.
+   */
+  public static RequestPostProcessor testJwt(String subject, int seniorityLevel) {
+    return SecurityMockMvcRequestPostProcessors.jwt()
+        .jwt(
+            jwt ->
+                jwt.subject(subject)
+                    .claim("role", "ignored-in-these-tests")
+                    .claim("permissions", java.util.List.of("dashboard"))
+                    .claim("seniorityLevel", seniorityLevel));
+  }
 }

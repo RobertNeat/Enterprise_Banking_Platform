@@ -8,7 +8,7 @@ package robert_neat.banking_backend.ebanking;
  */
 public class OtpNotVerifiedException extends RuntimeException {
 
-    public OtpNotVerifiedException(String message) {
-        super(message);
-    }
+  public OtpNotVerifiedException(String message) {
+    super(message);
+  }
 }

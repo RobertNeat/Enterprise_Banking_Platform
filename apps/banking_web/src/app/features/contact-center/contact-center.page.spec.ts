@@ -38,8 +38,8 @@ describe('ContactCenterPage', () => {
 
   it('selektor klienta zasilany jest przez GET /customers i auto-wybiera pierwszego klienta', () => {
     const page = createPage();
-    expect((page as any).customers()).toEqual(CUSTOMERS);
-    expect((page as any).selectedCustomerId()).toBe('CUST-001');
+    expect(page['customers']()).toEqual(CUSTOMERS);
+    expect(page['selectedCustomerId']()).toBe('CUST-001');
   });
 
   it('onCustomerChange() przełącza klienta i przeładowuje dyspozycje/historię/profil', () => {
@@ -65,7 +65,7 @@ describe('ContactCenterPage', () => {
       .expectOne(`${apiBaseUrl.bankingBackend}/contact-center/profile/CUST-002`)
       .flush({ ...CUSTOMER_PROFILE, name: 'Katarzyna Zając' });
 
-    expect((page as any).selectedCustomerId()).toBe('CUST-002');
+    expect(page['selectedCustomerId']()).toBe('CUST-002');
   });
 
   it('linkCase() wywołuje PUT /contact-center/dispositions/{id}/case z wpisanym caseId', async () => {
@@ -82,9 +82,7 @@ describe('ContactCenterPage', () => {
     req.flush({ ...target, linkedCase: 'CS-99999' });
     await linkPromise;
 
-    expect((page as any).dispositions().find((d: any) => d.id === target.id)?.linkedCase).toBe(
-      'CS-99999',
-    );
+    expect(page['dispositions']().find((d) => d.id === target.id)?.linkedCase).toBe('CS-99999');
   });
 
   it('linkCase() nie wywołuje backendu gdy pole caseId jest puste', async () => {

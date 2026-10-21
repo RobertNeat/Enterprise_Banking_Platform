@@ -53,7 +53,7 @@ describe('EnforcementPage', () => {
     storeSession('PRC-00001', 3);
     const page = createPage();
     const registeredId = ENFORCEMENT_CASES.find((c) => c.status === 'registered')!.id;
-    expect((page as any).canRequestTransferApproval()).toBe(false);
+    expect(page['canRequestTransferApproval']()).toBe(false);
     expect(
       lastFixture.nativeElement.querySelector(
         `#enforcement-row-${registeredId}-request-approval-btn`,
@@ -65,7 +65,7 @@ describe('EnforcementPage', () => {
     storeSession('PRC-30678', 1);
     const page = createPage();
     const registeredId = ENFORCEMENT_CASES.find((c) => c.status === 'registered')!.id;
-    expect((page as any).canRequestTransferApproval()).toBe(true);
+    expect(page['canRequestTransferApproval']()).toBe(true);
     expect(
       lastFixture.nativeElement.querySelector(
         `#enforcement-row-${registeredId}-request-approval-btn`,
@@ -97,7 +97,7 @@ describe('EnforcementPage', () => {
   it('NON_ALIMONY at the protected-amount limit (3604.50) keeps the amounts step valid', () => {
     storeSession('PRC-30678', 1);
     const page = createPage();
-    const amounts = (page as any).form.controls.amounts;
+    const amounts = page['form'].controls.amounts;
     amounts.patchValue({ kind: 'NON_ALIMONY', blockedAmount: 5000, protectedAmount: 3604.5 });
 
     expect(amounts.valid).toBe(true);
@@ -106,7 +106,7 @@ describe('EnforcementPage', () => {
   it('NON_ALIMONY above the protected-amount limit makes the amounts step invalid', () => {
     storeSession('PRC-30678', 1);
     const page = createPage();
-    const amounts = (page as any).form.controls.amounts;
+    const amounts = page['form'].controls.amounts;
     amounts.patchValue({ kind: 'NON_ALIMONY', blockedAmount: 5000, protectedAmount: 3604.51 });
 
     expect(amounts.valid).toBe(false);
@@ -116,7 +116,7 @@ describe('EnforcementPage', () => {
   it('ALIMONY with a positive protected amount makes the amounts step invalid (limit is 0.00)', () => {
     storeSession('PRC-30678', 1);
     const page = createPage();
-    const amounts = (page as any).form.controls.amounts;
+    const amounts = page['form'].controls.amounts;
     amounts.patchValue({ kind: 'ALIMONY', blockedAmount: 2000, protectedAmount: 1 });
 
     expect(amounts.valid).toBe(false);
@@ -125,7 +125,7 @@ describe('EnforcementPage', () => {
   it('ALIMONY with protectedAmount 0 is valid', () => {
     storeSession('PRC-30678', 1);
     const page = createPage();
-    const amounts = (page as any).form.controls.amounts;
+    const amounts = page['form'].controls.amounts;
     amounts.patchValue({ kind: 'ALIMONY', blockedAmount: 2000, protectedAmount: 0 });
 
     expect(amounts.valid).toBe(true);
@@ -134,7 +134,7 @@ describe('EnforcementPage', () => {
   it('submitWizard() sends kind in the POST /enforcement body', async () => {
     storeSession('PRC-30678', 1);
     const page = createPage();
-    const form = (page as any).form;
+    const form = page['form'];
     form.controls.details.patchValue({
       customer: 'CUST-001',
       bailiff: 'Komornik Jan Kowalski',
@@ -168,7 +168,7 @@ describe('EnforcementPage', () => {
     const item = ENFORCEMENT_CASES[0];
 
     page.openHistoryDialog(item);
-    expect((page as any).historyDialogOpen()).toBe(true);
+    expect(page['historyDialogOpen']()).toBe(true);
 
     const req = httpMock.expectOne(
       (r) =>
@@ -179,6 +179,6 @@ describe('EnforcementPage', () => {
     req.flush([]);
 
     page.closeHistoryDialog();
-    expect((page as any).historyDialogOpen()).toBe(false);
+    expect(page['historyDialogOpen']()).toBe(false);
   });
 });

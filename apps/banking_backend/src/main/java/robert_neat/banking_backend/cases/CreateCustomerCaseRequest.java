@@ -6,9 +6,4 @@ package robert_neat.banking_backend.cases;
  * ownerId is optional — defaults to the JWT caller when absent.
  */
 public record CreateCustomerCaseRequest(
-        String subject,
-        String customerId,
-        String ownerId,
-        String priority,
-        String caseType) {
-}
+    String subject, String customerId, String ownerId, String priority, String caseType) {}

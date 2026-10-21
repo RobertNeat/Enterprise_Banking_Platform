@@ -202,7 +202,8 @@ app-status-tag {
   margin-bottom: 1.25rem;
 }
 
-.field-grid__item label {
+.field-grid__item label,
+.field-grid__item .field-grid__item-label {
   display: block;
   font-size: 0.78rem;
   color: var(--p-text-muted-color);

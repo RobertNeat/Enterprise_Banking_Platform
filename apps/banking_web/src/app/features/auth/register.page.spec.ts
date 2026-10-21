@@ -37,8 +37,8 @@ describe('RegisterPage', () => {
     return fixture;
   }
 
-  function fillValidForm(component: any) {
-    component.form.setValue({
+  function fillValidForm(component: RegisterPage) {
+    component['form'].setValue({
       personal: {
         firstName: 'Jan',
         lastName: 'Kowalski',
@@ -77,7 +77,7 @@ describe('RegisterPage', () => {
 
   it('registers and navigates to /login on success', async () => {
     const fixture = createPage();
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     fillValidForm(component);
@@ -115,13 +115,13 @@ describe('RegisterPage', () => {
     await submitPromise;
 
     expect(navigateSpy).toHaveBeenCalledWith(['/login']);
-    expect(component.errorKey()).toBeNull();
-    expect(component.submitting()).toBe(false);
+    expect(component['errorKey']()).toBeNull();
+    expect(component['submitting']()).toBe(false);
   });
 
   it('shows an error message and does not navigate on 409 (employeeId already registered)', async () => {
     const fixture = createPage();
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
     const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     fillValidForm(component);
@@ -133,7 +133,7 @@ describe('RegisterPage', () => {
     await submitPromise;
 
     expect(navigateSpy).not.toHaveBeenCalled();
-    expect(component.errorKey()).toBe('auth.register.error.employeeIdTaken');
-    expect(component.submitting()).toBe(false);
+    expect(component['errorKey']()).toBe('auth.register.error.employeeIdTaken');
+    expect(component['submitting']()).toBe(false);
   });
 });

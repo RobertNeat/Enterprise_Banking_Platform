@@ -9,11 +9,11 @@ package robert_neat.banking_backend.card;
  */
 public class CardProcessorUnavailableException extends RuntimeException {
 
-    public CardProcessorUnavailableException(String message) {
-        super(message);
-    }
+  public CardProcessorUnavailableException(String message) {
+    super(message);
+  }
 
-    public CardProcessorUnavailableException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public CardProcessorUnavailableException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

@@ -4,7 +4,7 @@
   "packageManager": "pnpm@11.17.0",
   "scripts": {
     "start:frontend": "pnpm --filter banking-web start",
-    "lint:frontend": "echo \"banking_web: no linter configured, skipping\"",
+    "lint:frontend": "pnpm --filter banking-web lint",
     "typecheck:frontend": "pnpm --filter banking-web typecheck",
     "format:frontend": "pnpm --filter banking-web format",
 
@@ -14,8 +14,8 @@
     "format:card_processor_mock": "pnpm --filter card_processor_mock format",
 
     "start:backend": "cd apps/banking_backend && .\\mvnw.cmd spring-boot:run",
-    "lint:backend": "echo \"banking_backend: no linter configured, skipping\"",
+    "lint:backend": "cd apps/banking_backend && .\\mvnw.cmd -q spotless:check",
     "typecheck:backend": "cd apps/banking_backend && .\\mvnw.cmd -q -o compile",
-    "format:backend": "echo \"banking_backend: no formatter configured, skipping\""
+    "format:backend": "cd apps/banking_backend && .\\mvnw.cmd -q spotless:apply"
   }
 }

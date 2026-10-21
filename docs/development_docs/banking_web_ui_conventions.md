@@ -177,7 +177,8 @@ wszystkich elementów wewnętrznych — step-list, przyciski, close button),
 `titleKey` (klucz i18n nagłówka dialogu), `steps: WizardStep[]` (każdy z
 `labelKey`), `visible`, `stepValid` (bool — wynik walidacji aktualnego
 kroku, liczony przez stronę), `(visibleChange)`, `(stepChange)` (numer
-nowego aktywnego kroku), `(cancel)`, `(submit)`.
+nowego aktywnego kroku), `(wizardCancel)`, `(wizardSubmit)` (nazwy inne niż
+natywne zdarzenia DOM `cancel`/`submit` — `@angular-eslint/no-output-native`).
 
 **Wzorzec strony korzystającej z wizarda** (patrz `enforcement.page.ts`,
 `cases.page.ts`, `loans.page.ts`):
@@ -186,7 +187,7 @@ nowego aktywnego kroku), `(cancel)`, `(submit)`.
   (np. `details`, `amounts`), żeby łatwo sprawdzić walidność jednego kroku
   (`this.form.controls.details.valid`) bez walidowania całości. Projected
   content owinięty w `<div [formGroup]="form">` (NIE `<form>`, żeby natywny
-  event `submit`/Enter nie wyemitował fałszywie output `(submit)` wizarda
+  event `submit`/Enter nie wyemitował fałszywie output `(wizardSubmit)` wizarda
   przez bubbling), a grupa danego kroku podłączona przez
   `formGroupName="details"` na elemencie wewnątrz — **nigdy**
   `[formGroup]="form.controls.details"` zagnieżdżone w drugim elemencie z
@@ -272,7 +273,7 @@ komponentu (`onVisibleChange`) może po prostu NIE przepuścić tej wartości
 do strony i wywołać `requestCancel()` zamiast — w kolejnym cyklu detekcji
 zmian Angular ponownie wymusza `[visible]="true"` z sygnału strony, więc
 dialog wraca widoczny, a realne zamknięcie następuje tylko po
-`accept()` potwierdzenia (który emituje `(cancel)` do strony). Dzięki temu
+`accept()` potwierdzenia (który emituje `(wizardCancel)` do strony). Dzięki temu
 jest jedna ścieżka zamykania, nie trzy.
 
 ### Routing: trasy auth (bez shella) vs. trasy w shellu

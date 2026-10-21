@@ -57,8 +57,8 @@ describe('LoanDetailPage', () => {
       stageTransitions: [],
     });
 
-    expect((component as any).loan().id).toBe('LN-80231');
-    expect((component as any).schedule()).toEqual(seededInstallments);
+    expect(component['loan']().id).toBe('LN-80231');
+    expect(component['schedule']()).toEqual(seededInstallments);
   });
 
   it('shows an empty schedule (not a synthetic one) when the backend returns no installments yet', () => {
@@ -74,7 +74,7 @@ describe('LoanDetailPage', () => {
       stageTransitions: [],
     });
 
-    expect((component as any).schedule()).toEqual([]);
+    expect(component['schedule']()).toEqual([]);
   });
 
   it('builds the locally-generated schedule from the loan own interestRate/termMonths, not hardcoded constants', () => {
@@ -97,7 +97,7 @@ describe('LoanDetailPage', () => {
       stageTransitions: [],
     });
 
-    const schedule = (component as any).schedule();
+    const schedule = component['schedule']();
     expect(schedule.length).toBe(24);
     // monthlyPrincipal = 120000 / 24 = 5000; first interest = 120000 * (0.12 / 12) = 1200,
     // which differs from the old hardcoded 0.079/12 defaults (would give 790).
@@ -116,7 +116,7 @@ describe('LoanDetailPage', () => {
       .expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-99999`)
       .flush({ message: 'not found' }, { status: 404, statusText: 'Not Found' });
 
-    expect((component as any).loan().id).toBe('');
+    expect(component['loan']().id).toBe('');
   });
 
   it('openHistoryDialog() opens the dialog and loads audit events scoped to LOAN_APPLICATION', () => {
@@ -133,7 +133,7 @@ describe('LoanDetailPage', () => {
     });
 
     component.openHistoryDialog();
-    expect((component as any).historyDialogOpen()).toBe(true);
+    expect(component['historyDialogOpen']()).toBe(true);
 
     const req = httpMock.expectOne(
       (r) =>
@@ -144,7 +144,7 @@ describe('LoanDetailPage', () => {
     req.flush([]);
 
     component.closeHistoryDialog();
-    expect((component as any).historyDialogOpen()).toBe(false);
+    expect(component['historyDialogOpen']()).toBe(false);
   });
 
   it('renders stageTransitions sorted by transitionedAt, even when loan() comes from the store', () => {
@@ -179,7 +179,7 @@ describe('LoanDetailPage', () => {
       stageTransitions: transitions,
     });
 
-    expect((component as any).stageTransitions()).toEqual([transitions[1], transitions[0]]);
+    expect(component['stageTransitions']()).toEqual([transitions[1], transitions[0]]);
   });
 
   it('refreshes stageTransitions after advanceStage()', async () => {
@@ -215,7 +215,7 @@ describe('LoanDetailPage', () => {
     });
     await advancePromise;
 
-    expect((component as any).stageTransitions()).toEqual([newTransition]);
+    expect(component['stageTransitions']()).toEqual([newTransition]);
   });
 
   it('advanceStage() on a REJECTED decision returns the loan to application stage without erroring', async () => {
@@ -251,8 +251,8 @@ describe('LoanDetailPage', () => {
     });
     await advancePromise;
 
-    expect((component as any).loan().stage).toBe('application');
-    expect((component as any).canSubmitForApproval()).toBe(true);
+    expect(component['loan']().stage).toBe('application');
+    expect(component['canSubmitForApproval']()).toBe(true);
   });
 
   it('disburse() posts to /disburse and updates the loan to schedule stage', async () => {
@@ -295,7 +295,7 @@ describe('LoanDetailPage', () => {
     });
     await disbursePromise;
 
-    expect((component as any).loan().stage).toBe('schedule');
-    expect((component as any).stageTransitions()).toEqual(transitions);
+    expect(component['loan']().stage).toBe('schedule');
+    expect(component['stageTransitions']()).toEqual(transitions);
   });
 });

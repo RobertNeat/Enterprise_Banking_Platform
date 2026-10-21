@@ -6,5 +6,4 @@ package robert_neat.banking_backend.risk;
  * cases, so deriving it automatically would be ambiguous; the employee reclassifying the position
  * knows the current delinquency and enters it directly, see docs/services/banking_backend.md).
  */
-public record ReclassifyCollateralRequest(int daysPastDue) {
-}
+public record ReclassifyCollateralRequest(int daysPastDue) {}

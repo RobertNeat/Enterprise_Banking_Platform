@@ -56,14 +56,14 @@ describe('LoansPage', () => {
 
   it('the wizard form no longer has scoreResult/dsti controls', () => {
     const page = createPage();
-    expect((page as any).form.contains('scoreResult')).toBe(false);
-    expect((page as any).form.contains('dsti')).toBe(false);
-    expect((page as any).form.contains('customerId')).toBe(true);
+    expect(page['form'].contains('scoreResult')).toBe(false);
+    expect(page['form'].contains('dsti')).toBe(false);
+    expect(page['form'].contains('customerId')).toBe(true);
   });
 
   it('entering the scoring step (2) posts to /loans and stores the backend-scored result', async () => {
     const page = createPage();
-    (page as any).form.patchValue({
+    page['form'].patchValue({
       customerId: 'CUST-001',
       segment: 'retail',
       product: 'cash',
@@ -92,13 +92,13 @@ describe('LoansPage', () => {
     });
     await stepPromise;
 
-    expect((page as any).createdLoan().scoreResult).toBe(710);
-    expect((page as any).scoringError()).toBe(false);
+    expect(page['createdLoan']().scoreResult).toBe(710);
+    expect(page['scoringError']()).toBe(false);
   });
 
   it('submitWizard() calls submit-for-approval for the created loan', async () => {
     const page = createPage();
-    (page as any).createdLoan.set({
+    page['createdLoan'].set({
       ...LOAN_APPLICATIONS[0],
       id: 'LN-90001',
       stage: 'application',
@@ -119,20 +119,20 @@ describe('LoansPage', () => {
     });
     await submitPromise;
 
-    expect((page as any).wizardOpen()).toBe(false);
+    expect(page['wizardOpen']()).toBe(false);
   });
 
   it('canCreateLoan is false for admin (seniorityLevel 3, highest in the system) and the Nowy button is hidden', () => {
     storeSession('PRC-00001', 3);
     const page = createPage();
-    expect((page as any).canCreateLoan()).toBe(false);
+    expect(page['canCreateLoan']()).toBe(false);
     expect(lastFixture.nativeElement.querySelector('#loans-new-item-btn')).toBeNull();
   });
 
   it('canCreateLoan is true for a non-admin role and the Nowy button is shown', () => {
     storeSession('PRC-10234', 1);
     const page = createPage();
-    expect((page as any).canCreateLoan()).toBe(true);
+    expect(page['canCreateLoan']()).toBe(true);
     expect(lastFixture.nativeElement.querySelector('#loans-new-item-btn')).not.toBeNull();
   });
 
@@ -140,7 +140,7 @@ describe('LoansPage', () => {
     storeSession('PRC-00001', 3);
     const page = createPage();
     const errorSpy = vi.spyOn(TestBed.inject(NotificationService), 'error');
-    (page as any).createdLoan.set({
+    page['createdLoan'].set({
       ...LOAN_APPLICATIONS[0],
       id: 'LN-90002',
       stage: 'application',
