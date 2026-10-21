@@ -266,13 +266,13 @@ punktu; status poniżej odzwierciedla wynik.
     (`linkedCase: 'CS-10231'`), co jest świadomą decyzją zgodności tematycznej wewnątrz
     `banking_backend`. `DSP-758` (`loans.decisionMove` → `CS-10225`, klient `CUST-003`) nie był w
     zakresie tej sesji — pozostaje jako znana obserwacja do przyszłej iteracji.
-13. **`card_processor_mock` nie zna ID z `banking_backend`** — to generyczny, bezstanowy mock bez
-    własnego seeda, więc `GET /authorizations/{id}` i `GET /chargebacks/{id}` dla ID z seeda (teraz
-    realne UUID, patrz punkt 7) zwrócą `404 Not Found` w runtime, mimo że `banking_backend` traktuje je
-    jako referencje do „source of truth” w tym serwisie (`data_model.md`). **Potwierdzono decyzję
-    użytkownika**: referencje w `banking_backend` pozostają ilustracyjne/offline w tej iteracji — nie
-    dodano seeda w `card_processor_mock` (poza zakresem tej sesji, dotyka tylko `apps/credit_risk_mock`
-    i `apps/banking_backend`).
+13. **`card_processor_mock` zna ID z `banking_backend`** — `AuthorizationsService`/`ChargebacksService`
+    zasiewają (gdy `CARD_PROCESSOR_SEED_MOCK_DATA != 'false'`) te same stałe UUID co
+    `db/changelog/seed/003-card.sql`: autoryzacje `dfd92a8d-...`, `fc936c4c-...`, `449084f7-...`,
+    `c78bf1a6-...` (`card_authorization_ref`) oraz chargeback `d9a633a4-...` (`chargeback_ref`, filed
+    against `449084f7-...`). `GET /authorizations/{id}` i `GET /chargebacks/{id}` dla tych ID
+    zwracają `200`, nie `404` — referencje z `banking_backend` traktowane jako „source of truth” w
+    `card_processor_mock` rzeczywiście się rozwiązują.
 
 ### Pozostałe uwagi (bez naprawy — kwestia doprecyzowania dokumentacji lub architektury, poza zakresem tej sesji)
 
@@ -537,9 +537,10 @@ domyślnie `http://localhost:10521`) woła `card_processor_mock`.
    (nieszkodliwe duplikowanie, nie usunięte).
 2. **Ścieżka 503 → incydent ICT** (F4's "Procesor niedostępny" z `docs/banking_web_functions(concise).md`):
    `CardProcessorUnavailableException` (connection refused LUB `503` realnie zwrócony przez mocka —
-   dziś tylko `POST /authorizations` sprawdza flagę `simulate-outage`, `block`/`unblock`/`chargebacks`
-   w `card_processor_mock` jej nie sprawdzają, więc tam 503 wystąpi tylko przy connection failure, nie
-   przy przełączniku demo) jest łapany w `CardActionsService` PRZED propagacją do klienta: backend woła
+   `POST /authorizations`, `block`/`unblock` (`POST /cards/{cardId}/block|unblock`) i `chargebacks`
+   (`POST /chargebacks`, `POST /chargebacks/{id}/advance`) w `card_processor_mock` wszystkie sprawdzają
+   flagę `simulate-outage` przez `ProcessorService.isOutageSimulated()`, więc 503 wystąpi zarówno przy
+   connection failure jak i przy przełączniku demo) jest łapany w `CardActionsService` PRZED propagacją do klienta: backend woła
    `GovernanceClient.createIctIncident(source="CARD_PROCESSOR", severity="HIGH", description=...)`,
    potem i tak zwraca `503`. Jeśli samo zgłoszenie incydentu zawiedzie (podwójna awaria, governance_mock
    też niedostępny) — błąd jest logowany i **nie maskuje** oryginalnego `503` z `card_processor_mock`
@@ -623,21 +624,23 @@ klientów: ten mock zwraca `ProblemDetail` (RFC 9457, pole `detail`), nie `{"mes
 `extractMessage()` czyta `detail` najpierw, wzorem `GovernanceClient`, nie `CreditRiskClient`.
 
 1. `POST /enforcement` — woła `POST /enforcement/incoming`, zapisuje `gatewayEnforcementId` z
-   odpowiedzi bramy. **Zamyka otwarty punkt z R1.5**: od teraz NOWO rejestrowane zajęcia mają
-   realne powiązanie z bramą; zajęcia SEEDOWANE (`db/changelog/seed/009-enforcement.sql`) pozostają
-   z `gateway_enforcement_id=NULL` — to świadome, TRWAŁE ograniczenie demo (seedy backendu i seed
-   bramy nie mają wspólnych identyfikatorów, nigdy nie będą połączone retroaktywnie), nie zadanie do
-   zrobienia.
+   odpowiedzi bramy. **Zamyka otwarty punkt z R1.5**: NOWO rejestrowane zajęcia mają realne
+   powiązanie z bramą; zajęcia SEEDOWANE (`db/changelog/seed/009-enforcement.sql`) mają
+   `gateway_enforcement_id` ustawione na te same stałe UUID, które `external_institutions_gateway_mock`
+   zasiewa w `EnforcementService.seed()` (`33333333-...-001`..`004` dopasowane po
+   case/kliencie) — seedy obu serwisów są więc połączone id-do-id już od startu, bez potrzeby
+   ponownej rejestracji.
 2. `POST /enforcement/{id}/request-transfer-approval` — otwiera approval w `governance_mock`
    (`type="ENFORCEMENT_TRANSFER"`), zapisuje `approvalId` na kolumnie `enforcement_case.approval_id`
    (kolumna istniała od R1.5, nieużywana do teraz — bez potrzeby nowego Liquibase changesetu w R4).
-   `409` jeśli `status != 'registered'` LUB `gatewayEnforcementId=NULL` (sprawa seedowana — bez
-   sensu otwierać approval dla transferu, który i tak nie będzie mógł się wykonać).
+   `409` jeśli `status != 'registered'` LUB `gatewayEnforcementId=NULL` — w praktyce ten drugi
+   warunek jest dziś czysto obronny: zarówno nowo rejestrowane, jak i seedowane zajęcia mają
+   `gatewayEnforcementId` ustawione (patrz punkt 1.), więc trafia tylko przyszłe, celowo
+   niepowiązane rekordy.
 3. `POST /enforcement/{id}/transfer` — wzorzec identyczny z `LoanActionsService.advanceStage()`
    (F2): wymaga `approvalId` zapisanego i `governance_mock`'s `getApproval(approvalId).status()
-   == "APPROVED"`, inaczej `409`. Dodatkowo wymaga `gatewayEnforcementId` nie-NULL (ta sama logika
-   co w punkcie 2.) — próba transferu zajęcia seedowanego dostaje `409` z komunikatem wyjaśniającym
-   ograniczenie, zamiast wywołania bramy z `null`/pustym id.
+   == "APPROVED"`, inaczej `409`. Dodatkowo wymaga `gatewayEnforcementId` nie-NULL (ta sama obronna
+   logika co w punkcie 2.) przed wywołaniem bramy z `null`/pustym id.
 4. **Ścieżka 503 → incydent ICT**: identyczny wzorzec z `CardActionsService.callProcessor()` (F4) —
    `RegulatoryGatewayUnavailableException` (connection refused) łapana PRZED propagacją do klienta,
    backend woła `GovernanceClient.createIctIncident(source="EXTERNAL_INSTITUTIONS_GATEWAY",

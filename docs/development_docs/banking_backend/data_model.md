@@ -325,8 +325,11 @@ nie tabela.
 ## Zgodność i incydenty (DORA, cross-cutting)
 
 Rejestr incydentów ICT (`POST /ict-incidents`) żyje wyłącznie w `governance_mock` — `banking_backend`
-NIE ma własnej tabeli; `DSH-05` odpytuje `governance_mock` `GET /ict-incidents` na żywo (poza zakresem
-tej sesji — REST integracja to kolejna iteracja).
+NIE ma własnej tabeli. `DSH-05` jest podłączone na żywo: `DashboardController`
+(`GET /dashboard/ict-incidents`, `POST /dashboard/ict-incidents/{id}/resolve`) woła
+`GovernanceClient.listIctIncidents()`/`resolveIctIncident(id)`, które wołają `governance_mock`'s
+`GET /ict-incidents`/`POST /ict-incidents/{id}/resolve` przez `RestClient` — bez pośredniej tabeli
+w `banking_backend`.
 
 ## Zmienna środowiskowa seedowania
 
