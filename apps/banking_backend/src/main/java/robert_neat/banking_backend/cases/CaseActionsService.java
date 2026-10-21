@@ -129,10 +129,7 @@ public class CaseActionsService {
         if (slaCheck.escalated()) {
             // governance_mock already wrote the AUTO_ESCALATED audit event for this case — do not
             // duplicate it (see docs/governance_mock_contract/api.md, POST /cases/{caseId}/sla-check).
-            customerCase.setStatus("escalated");
-            customerCase.setEscalatedAt(now);
-            customerCase.setEscalationSource("AUTO_SLA");
-            customerCase.setGovernanceAuditEventId(slaCheck.auditEventId());
+            applyAutoEscalation(customerCase, now, slaCheck.auditEventId());
         } else {
             // Manual escalation while SLA has not yet expired — governance_mock does not audit this
             // case, so banking_backend records its own audit event for the decision.
@@ -143,10 +140,44 @@ public class CaseActionsService {
             customerCase.setEscalatedAt(now);
             customerCase.setEscalationSource("MANUAL");
             customerCase.setGovernanceAuditEventId(auditEventId);
+            customerCases.save(customerCase);
         }
-        customerCases.save(customerCase);
 
         return new EscalateCaseResponse(CaseService.toDto(customerCase, now), slaCheck.escalated());
+    }
+
+    /**
+     * CAS automatic SLA sweep (F8, scheduled by CaseSlaEscalationScheduler) — runs outside any
+     * request/JWT context, so there is no employeeId to pass to governance_mock. Re-checks the SLA
+     * itself (rather than trusting the caller's status filter alone) and only escalates when
+     * governance_mock confirms escalated=true, which guarantees the AUTO_SLA path and makes the
+     * "who escalated this" question moot: governance_mock already recorded the AUTO_ESCALATED audit
+     * event under actor 'SYSTEM' (see governance_mock CaseSlaController), banking_backend never calls
+     * recordAuditEvent itself for this path. If the SLA check unexpectedly returns escalated=false
+     * (e.g. a race where the case was just resolved/started past the point of the sweep's query),
+     * this is a silent no-op — the case is left untouched for the next sweep or a manual decision.
+     */
+    public void autoEscalateIfSlaExpired(String caseId) {
+        CustomerCase customerCase = customerCases.findById(caseId)
+                .orElseThrow(() -> new NotFoundException("Case not found: " + caseId));
+        if ("resolved".equals(customerCase.getStatus()) || "escalated".equals(customerCase.getStatus())) {
+            return;
+        }
+
+        Instant now = Instant.now();
+        long hoursRemaining = Duration.between(now, customerCase.getSlaDueAt()).toHours();
+        SlaCheckResult slaCheck = governanceClient.slaCheck(caseId, hoursRemaining);
+        if (slaCheck.escalated()) {
+            applyAutoEscalation(customerCase, now, slaCheck.auditEventId());
+        }
+    }
+
+    private void applyAutoEscalation(CustomerCase customerCase, Instant now, String auditEventId) {
+        customerCase.setStatus("escalated");
+        customerCase.setEscalatedAt(now);
+        customerCase.setEscalationSource("AUTO_SLA");
+        customerCase.setGovernanceAuditEventId(auditEventId);
+        customerCases.save(customerCase);
     }
 
     /** CAS lifecycle — only 'new' may start; audited as CASE_STATUS_CHANGED in governance_mock. */
@@ -170,7 +201,7 @@ public class CaseActionsService {
     /**
      * CAS lifecycle — 'new'/'inProgress'/'escalated' may resolve; 'resolved' is terminal (409).
      * A case never leaves 'escalated' other than through resolve, so escalation-SLA deduplication
-     * (status filter in the planned @Scheduled sweep) keeps working.
+     * (status filter in CaseSlaEscalationScheduler) keeps working.
      */
     public CustomerCaseDto resolve(String caseId, String employeeId) {
         CustomerCase customerCase = customerCases.findById(caseId)

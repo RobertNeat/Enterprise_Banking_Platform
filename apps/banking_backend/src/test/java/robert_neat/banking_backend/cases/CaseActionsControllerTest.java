@@ -14,6 +14,7 @@ import robert_neat.banking_backend.approvals.GovernanceClient;
 import robert_neat.banking_backend.approvals.GovernanceUnavailableException;
 import robert_neat.banking_backend.approvals.SlaCheckResult;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -42,6 +43,12 @@ class CaseActionsControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private CaseActionsService caseActionsService;
+
+    @Autowired
+    private CustomerCaseRepository customerCases;
 
     @MockitoBean
     private GovernanceClient governanceClient;
@@ -124,6 +131,47 @@ class CaseActionsControllerTest {
 
         mockMvc.perform(post("/cases/CS-10225/escalate").with(testJwt()))
                 .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void autoEscalateIfSlaExpiredEscalatesWithoutAnExtraAuditCall() {
+        // CS-10225 is seeded with status 'new'. F8 scheduled sweep path (CaseSlaEscalationScheduler)
+        // runs outside any request/JWT context, so this calls the service method directly.
+        given(governanceClient.slaCheck(eq("CS-10225"), anyLong()))
+                .willReturn(new SlaCheckResult("CS-10225", true, "audit-auto-sweep-1"));
+
+        caseActionsService.autoEscalateIfSlaExpired("CS-10225");
+
+        CustomerCase updated = customerCases.findById("CS-10225").orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo("escalated");
+        assertThat(updated.getEscalationSource()).isEqualTo("AUTO_SLA");
+        assertThat(updated.getGovernanceAuditEventId()).isEqualTo("audit-auto-sweep-1");
+        verify(governanceClient, never()).recordAuditEvent(anyString(), anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void autoEscalateIfSlaExpiredIsNoOpWhenGovernanceMockSaysNotEscalated() {
+        // Defensive race case: the scheduler's status filter is stale, or slaDueAt is right at the
+        // boundary — governance_mock is still the source of truth, so nothing is written.
+        given(governanceClient.slaCheck(eq("CS-10225"), anyLong()))
+                .willReturn(new SlaCheckResult("CS-10225", false, null));
+
+        caseActionsService.autoEscalateIfSlaExpired("CS-10225");
+
+        CustomerCase updated = customerCases.findById("CS-10225").orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo("new");
+        assertThat(updated.getEscalationSource()).isNull();
+        verify(governanceClient, never()).recordAuditEvent(anyString(), anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void autoEscalateIfSlaExpiredOnAlreadyEscalatedCaseIsNoOpAndSkipsGovernanceCall() {
+        // CS-10231 is seeded with status 'escalated' — the status filter itself is the dedup guard,
+        // but the service method double-checks defensively (status filter in the repo query could
+        // race a concurrent manual escalate between query and this call).
+        caseActionsService.autoEscalateIfSlaExpired("CS-10231");
+
+        verify(governanceClient, never()).slaCheck(anyString(), anyLong());
     }
 
     @Test

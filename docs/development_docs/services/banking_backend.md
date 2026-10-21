@@ -496,13 +496,27 @@ request/response. Przepływ:
    `recordAuditEvent(action=CASE_STATUS_CHANGED, details="new -> inProgress")` przed zapisem encji.
 4. `POST /cases/{id}/resolve` — `new`/`inProgress`/`escalated`→`resolved`, `409` jeśli sprawa jest już
    `resolved` (status terminalny). Sprawa nigdy nie wychodzi z `escalated` inaczej niż przez `resolve`
-   — na tym będzie oparta deduplikacja planowanej automatycznej eskalacji SLA (`@Scheduled`, filtr
+   — na tym jest oparta deduplikacja automatycznej eskalacji SLA (`CaseSlaEscalationScheduler`, filtr
    `status IN ('new','inProgress')`). Zapisuje `recordAuditEvent(action=CASE_STATUS_CHANGED,
    details="<fromStatus> -> resolved")`, nie nadpisuje `escalatedAt`/`escalationSource`/
    `governanceAuditEventId` (to pola historii eskalacji, nie resolve). Przyciski "Rozpocznij"/"Zamknij"
    w wierszu listy (`banking_web` `features/cases/cases.page.*`) są widoczne zależnie od statusu
    wiersza; `escalate`/`start`/`resolve` w `cases.store.ts` POST-ują i podstawiają zwrócony DTO w
    sygnale listy.
+5. **Automatyczna eskalacja SLA** (`cases/CaseSlaEscalationScheduler`, `@Scheduled` + `@EnableScheduling`
+   na `BankingBackendApplication`) — cykliczny przegląd `customer_case` z `sla_due_at < now()` i
+   `status IN ('new','inProgress')` (`CustomerCaseRepository.findBySlaDueAtBeforeAndStatusIn`). Dla
+   każdej sprawy woła `CaseActionsService.autoEscalateIfSlaExpired(caseId)` — osobna metoda od
+   `escalate()`, bo sweep działa poza kontekstem requestu/JWT (brak `employeeId`): re-weryfikuje SLA
+   przez `governanceClient.slaCheck(...)` i eskaluje tylko gdy odpowiedź to `escalated=true`
+   (`escalationSource='AUTO_SLA'`), governance_mock audytuje zdarzenie `AUTO_ESCALATED` sam pod
+   aktorem `'SYSTEM'` — backend nie woła `recordAuditEvent` w tej ścieżce. Jeśli `escalated=false`
+   (rzadki wyścig z manualną decyzją między zapytaniem a wywołaniem) — no-op, sprawa czeka na
+   następny przebieg. Błąd pojedynczej sprawy (np. `GovernanceUnavailableException`) jest logowany
+   i nie przerywa przeglądu reszty. Interwał: `banking.cases.sla-escalation.interval` (domyślnie
+   `PT5M`), włącznik: `banking.cases.sla-escalation.enabled` (domyślnie `true`, `false` w testach —
+   patrz `src/test/resources/application.properties`, żeby sweep nie ścigał się z asercjami
+   `@SpringBootTest`).
 
 **Wzorzec do ponownego użycia w R3/R4**: obsługa niedostępności mocka (connection refused →
 dedykowany `*UnavailableException` → `503`; 4xx mocka → przekazanie 1:1 statusu/komunikatu) jest
