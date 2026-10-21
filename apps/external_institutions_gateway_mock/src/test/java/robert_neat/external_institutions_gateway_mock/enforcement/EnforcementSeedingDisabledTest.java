@@ -8,7 +8,11 @@ import org.springframework.test.context.TestPropertySource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@TestPropertySource(properties = "GATEWAY_SEED_MOCK_DATA=false")
+@TestPropertySource(
+        properties = {
+            "GATEWAY_SEED_MOCK_DATA=false",
+            "spring.datasource.url=jdbc:h2:mem:gateway_enforcement_seeding_disabled_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"
+        })
 class EnforcementSeedingDisabledTest {
 
     @Autowired

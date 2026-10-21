@@ -134,11 +134,12 @@ kolejności wykonania testów w tej samej klasie.
 ## Reset danych
 
 Stan żyje w wolumenie Dockera `mocks-postgres-data` (kontener `mocks-postgres`, współdzielony z
-`governance_mock`) — restart kontenera `identity-access-mock` NIE czyści danych. Żeby zresetować
-wyłącznie dane tego mocka bez wpływu na schema `governance`, trzeba by usunąć tylko tabele schematu
-`identity_access` (np. `DROP SCHEMA identity_access CASCADE;` w `psql`) — usunięcie całego wolumenu
-`mocks-postgres-data` resetuje OBA schematy (`governance` i `identity_access`). NIE używać
-`docker compose down -v` — to usuwa też wolumen `postgres-data` (dane `banking_backend`).
+`governance_mock`/`external_institutions_gateway_mock`) — restart kontenera `identity-access-mock`
+NIE czyści danych. Żeby zresetować wyłącznie dane tego mocka bez wpływu na schema `governance`/
+`gateway`, trzeba by usunąć tylko tabele schematu `identity_access` (np. `DROP SCHEMA identity_access
+CASCADE;` w `psql`) — usunięcie całego wolumenu `mocks-postgres-data` resetuje WSZYSTKIE TRZY
+schematy (`governance`, `identity_access`, `gateway`). NIE używać `docker compose down -v` — to
+usuwa też wolumen `postgres-data` (dane `banking_backend`).
 
 ## Do uzupełnienia w innych częściach aplikacji
 

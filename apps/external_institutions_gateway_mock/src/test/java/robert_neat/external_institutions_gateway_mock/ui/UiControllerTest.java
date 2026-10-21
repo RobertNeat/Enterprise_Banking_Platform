@@ -3,6 +3,7 @@ package robert_neat.external_institutions_gateway_mock.ui;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -18,6 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * not just that the controller returns 200 -- a bad fragment selector would only surface here.
  */
 @SpringBootTest
+@TestPropertySource(
+        properties =
+                "spring.datasource.url=jdbc:h2:mem:gateway_ui_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE")
 class UiControllerTest {
 
     @Autowired

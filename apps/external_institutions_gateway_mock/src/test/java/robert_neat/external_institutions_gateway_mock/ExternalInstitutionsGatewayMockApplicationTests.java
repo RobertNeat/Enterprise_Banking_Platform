@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -31,6 +32,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * wiec asercje licznosci/kolejnosci unikaja jsonPath length() i sprawdzaja konkretne id/wartosci.
  */
 @SpringBootTest(properties = "gateway.submission.delay-ms=50")
+@TestPropertySource(
+        properties =
+                "spring.datasource.url=jdbc:h2:mem:gateway_app_tests;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE")
 class ExternalInstitutionsGatewayMockApplicationTests {
 
     @Autowired

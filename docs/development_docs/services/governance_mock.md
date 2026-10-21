@@ -2,7 +2,7 @@
 
 Serwis Spring Boot 4.1.1 (Java 25), wewnętrzny (bez portu na hoście), wołany wyłącznie przez `banking_backend`. Port wewnętrzny: `10524` (`server.port` w `application.properties`, nadpisywalny przez env `SERVER_PORT` — zmienna środowiskowa ma priorytet nad plikiem properties, więc `deploy/compose.yml` działa bez zmian w kodzie).
 
-Stan trwały w dedykowanej instancji PostgreSQL (kontener `mocks-postgres` w `deploy/compose.yml`/`compose.dev.yml`, osobnej od instancji `banking_backend`), schema `governance` — Spring Data JPA + Liquibase (ten sam mechanizm co `banking_backend`, zob. `db/changelog/`). Każdy zmigrowany mock dostaje własny schema w tej samej instancji — dziś `identity_access_mock` (schema `identity_access`); `external_institutions_gateway_mock` wciąż czeka na migrację. Zależności pom.xml: `spring-boot-starter-web`, `spring-boot-starter-actuator`, `spring-boot-starter-thymeleaf`, `spring-boot-starter-data-jpa`, `postgresql`, `spring-boot-starter-liquibase`, `spring-boot-starter-test`.
+Stan trwały w dedykowanej instancji PostgreSQL (kontener `mocks-postgres` w `deploy/compose.yml`/`compose.dev.yml`, osobnej od instancji `banking_backend`), schema `governance` — Spring Data JPA + Liquibase (ten sam mechanizm co `banking_backend`, zob. `db/changelog/`). Każdy zmigrowany mock dostaje własny schema w tej samej instancji — `identity_access_mock` (schema `identity_access`), `external_institutions_gateway_mock` (schema `gateway`). Zależności pom.xml: `spring-boot-starter-web`, `spring-boot-starter-actuator`, `spring-boot-starter-thymeleaf`, `spring-boot-starter-data-jpa`, `postgresql`, `spring-boot-starter-liquibase`, `spring-boot-starter-test`.
 
 ## Panel operatorski (`/`)
 
@@ -64,7 +64,7 @@ Wymaga działającej instancji `mocks-postgres` (np. wystawionej na `127.0.0.1:1
 
 ## Reset danych
 
-Stan żyje teraz w wolumenie Dockera `mocks-postgres-data` (kontener `mocks-postgres`, współdzielony z `identity_access_mock`), nie w pamięci procesu — restart kontenera `governance-mock` NIE czyści danych. Usunięcie całego wolumenu `mocks-postgres-data` resetuje OBA schematy (`governance` i `identity_access`) — żeby zresetować wyłącznie dane tego mocka, trzeba usunąć tylko tabele schematu `governance` (np. `DROP SCHEMA governance CASCADE;` w `psql`), nie cały wolumen. NIE używać `docker compose down -v` — to usuwa też wolumen `postgres-data` (dane `banking_backend`).
+Stan żyje teraz w wolumenie Dockera `mocks-postgres-data` (kontener `mocks-postgres`, współdzielony z `identity_access_mock`/`external_institutions_gateway_mock`), nie w pamięci procesu — restart kontenera `governance-mock` NIE czyści danych. Usunięcie całego wolumenu `mocks-postgres-data` resetuje WSZYSTKIE TRZY schematy (`governance`, `identity_access`, `gateway`) — żeby zresetować wyłącznie dane tego mocka, trzeba usunąć tylko tabele schematu `governance` (np. `DROP SCHEMA governance CASCADE;` w `psql`), nie cały wolumen. NIE używać `docker compose down -v` — to usuwa też wolumen `postgres-data` (dane `banking_backend`).
 
 ## Do uzupełnienia w innych częściach aplikacji
 

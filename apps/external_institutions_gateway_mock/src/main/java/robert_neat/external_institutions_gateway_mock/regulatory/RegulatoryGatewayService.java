@@ -1,68 +1,65 @@
 package robert_neat.external_institutions_gateway_mock.regulatory;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
-import jakarta.annotation.PostConstruct;
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Pseudo-losowa, ale deterministyczna decyzja (hash reportId mod 10 == 0 -> REJECTED, ~90% ACCEPTED),
  * zeby testy i wywolujacy mogli celowo wywolac znany wynik.
+ *
+ * <p>resolve() runs on a delayed-executor thread, not the request thread, so it cannot use
+ * {@code @Transactional} (a self-invocation bypasses the Spring AOP proxy entirely) -- it uses an
+ * injected {@link TransactionTemplate} instead. The resolve task for a submission is always
+ * scheduled only after that submission's insert/seed has committed (see submit()'s
+ * afterCommit synchronization and the ApplicationReadyEvent reschedule below for PENDING rows left
+ * over from Liquibase seeding) -- otherwise resolve()'s row lock could run before the insert is
+ * visible to other transactions and silently find nothing to update.
  */
 @Service
 public class RegulatoryGatewayService {
 
     private static final Set<String> VALID_RECIPIENTS = Set.of("KNF", "NBP", "BFG", "FATCA/CRS");
 
-    // Fixed gateway-side submission ids matching apps/banking_backend's report_submission seed
-    // (db/changelog/seed/010-reporting.sql) so "Sprawdź status" resolves against seeded reports,
-    // not just newly submitted ones.
-    private static final String SEED_SUBMISSION_NBP_014 = "7f3c2a91-4b6e-4d2a-9c1f-2e8b5d6a0f14";
-    private static final String SEED_SUBMISSION_FATCA_009 = "c19e8d42-0a7b-4f3e-8b65-91d4e2f7a308";
-
-    private final Map<String, RegulatorySubmission> submissions = new ConcurrentHashMap<>();
+    private final RegulatorySubmissionRepository regulatorySubmissionRepository;
+    private final TransactionTemplate transactionTemplate;
     private final long delayMs;
-    private final boolean seedMockData;
 
     public RegulatoryGatewayService(
-            @Value("${gateway.submission.delay-ms:2500}") long delayMs,
-            @Value("${gateway.seed-mock-data:true}") boolean seedMockData) {
+            RegulatorySubmissionRepository regulatorySubmissionRepository,
+            TransactionTemplate transactionTemplate,
+            @Value("${gateway.submission.delay-ms:2500}") long delayMs) {
+        this.regulatorySubmissionRepository = regulatorySubmissionRepository;
+        this.transactionTemplate = transactionTemplate;
         this.delayMs = delayMs;
-        this.seedMockData = seedMockData;
     }
 
-    @PostConstruct
-    void seed() {
-        if (!seedMockData) {
-            return;
+    /**
+     * Reschedules resolution for any submission left PENDING by a prior run (e.g. the Liquibase
+     * seed's RPT-NBP-014, or a submission that was mid-flight when the container stopped) -- the
+     * old @PostConstruct-scheduled seed resolve has no equivalent once seeding moves to Liquibase,
+     * so without this the seeded PENDING row would never resolve. resolve() is a no-op once a
+     * submission is no longer PENDING, so scheduling it twice (e.g. once here, once from a fresh
+     * submit()) is harmless.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    void reschedulePendingSubmissions() {
+        for (RegulatorySubmission pending : regulatorySubmissionRepository.findByStatus(SubmissionStatus.PENDING)) {
+            scheduleResolve(pending.submissionId(), pending.reportId());
         }
-        // RPT-NBP-014: still PENDING in the backend seed (submitted, awaiting gateway resolution).
-        // Scheduled to resolve the same way submit() does — otherwise "Sprawdź status" would poll
-        // a submission stuck PENDING forever. Deterministic rule (reportId.hashCode() mod 10 == 0
-        // -> REJECTED) resolves "RPT-NBP-014" to ACCEPTED.
-        submissions.put(SEED_SUBMISSION_NBP_014, new RegulatorySubmission(
-                SEED_SUBMISSION_NBP_014, "RPT-NBP-014", "NBP", "Sprawozdanie płynnościowe LCR/NSFR",
-                "Wrzesień 2026", SubmissionStatus.PENDING, List.of(),
-                Instant.parse("2026-10-03T09:00:00Z"), null));
-        CompletableFuture.runAsync(() -> resolve(SEED_SUBMISSION_NBP_014, "RPT-NBP-014"),
-                CompletableFuture.delayedExecutor(delayMs, MILLISECONDS));
-        // RPT-FATCA-009: already ACCEPTED in the backend seed.
-        submissions.put(SEED_SUBMISSION_FATCA_009, new RegulatorySubmission(
-                SEED_SUBMISSION_FATCA_009, "RPT-FATCA-009", "FATCA/CRS", "Raport rachunków raportowanych",
-                "2025", SubmissionStatus.ACCEPTED, List.of(),
-                Instant.parse("2026-06-20T08:00:00Z"), Instant.parse("2026-06-21T07:30:00Z")));
     }
 
     public RegulatorySubmission submit(RegulatorySubmissionRequest request) {
@@ -80,36 +77,55 @@ public class RegulatoryGatewayService {
         RegulatorySubmission submission = new RegulatorySubmission(
                 submissionId, request.reportId(), request.recipient(), request.name(), request.period(),
                 SubmissionStatus.PENDING, List.of(), Instant.now(), null);
-        submissions.put(submissionId, submission);
+        RegulatorySubmission saved = transactionTemplate.execute(status ->
+                regulatorySubmissionRepository.save(submission));
 
-        CompletableFuture.runAsync(() -> resolve(submissionId, request.reportId()),
-                CompletableFuture.delayedExecutor(delayMs, MILLISECONDS));
+        // Scheduled only after the insert transaction above has committed, so the delayed resolve()
+        // call is guaranteed to see the row.
+        scheduleResolve(submissionId, request.reportId());
 
-        return submission;
+        return saved;
     }
 
     public RegulatorySubmission get(String submissionId) {
-        RegulatorySubmission submission = submissions.get(submissionId);
-        if (submission == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Zgloszenie nie znalezione: " + submissionId);
-        }
-        return submission;
+        return regulatorySubmissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Zgloszenie nie znalezione: " + submissionId));
     }
 
     public List<RegulatorySubmission> list() {
-        return submissions.values().stream()
-                .sorted(Comparator.comparing(RegulatorySubmission::submittedAt))
-                .toList();
+        return regulatorySubmissionRepository.findAllByOrderBySubmittedAtAsc();
     }
 
+    private void scheduleResolve(String submissionId, String reportId) {
+        Runnable schedule = () -> CompletableFuture.runAsync(() -> resolve(submissionId, reportId),
+                CompletableFuture.delayedExecutor(delayMs, MILLISECONDS));
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    schedule.run();
+                }
+            });
+        } else {
+            schedule.run();
+        }
+    }
+
+    /** Locks the row and resolves it; a no-op if another resolve already ran first (status != PENDING). */
     private void resolve(String submissionId, String reportId) {
-        boolean rejected = Math.floorMod(reportId.hashCode(), 10) == 0;
-        SubmissionStatus status = rejected ? SubmissionStatus.REJECTED : SubmissionStatus.ACCEPTED;
-        List<String> errors = rejected
-                ? List.of("Niezgodnosc struktury danych z wymogami odbiorcy")
-                : List.of();
-        submissions.computeIfPresent(submissionId, (key, existing) ->
-                existing.withResolution(status, errors, Instant.now()));
+        transactionTemplate.executeWithoutResult(status -> {
+            RegulatorySubmission existing = regulatorySubmissionRepository.findByIdForUpdate(submissionId)
+                    .orElse(null);
+            if (existing == null || existing.status() != SubmissionStatus.PENDING) {
+                return;
+            }
+            boolean rejected = Math.floorMod(reportId.hashCode(), 10) == 0;
+            SubmissionStatus newStatus = rejected ? SubmissionStatus.REJECTED : SubmissionStatus.ACCEPTED;
+            List<String> errors = rejected
+                    ? List.of("Niezgodnosc struktury danych z wymogami odbiorcy")
+                    : List.of();
+            regulatorySubmissionRepository.save(existing.withResolution(newStatus, errors, Instant.now()));
+        });
     }
 
     private boolean isBlank(String s) {

@@ -2,9 +2,9 @@
 
 Port `10523` eksponowany na hoście wyłącznie dla jego stron `/ui/**` (podgląd rejestru/eksportów do debugowania). REST (`/enforcement/**`, `/fatca-crs/**`, `/regulatory-gateway/**`) jest wołany wyłącznie przez `banking_backend` — `banking_web` nie woła tego serwisu bezpośrednio (ustalone w R1.5, `banking_backend` jest wyłącznym pośrednikiem między `banking_web` i serwisami mockowymi). Port: `10523` (env `SERVER_PORT`, patrz `deploy/compose.yml`). Health: `GET /actuator/health` → `{"status":"UP"}`.
 
-Zmienna `GATEWAY_SEED_MOCK_DATA` (domyślnie `true`) kontroluje seedowanie startowe rejestru zajęć komorniczych zgodne z seedem `banking_backend` — szczegóły w `docs/services/external_institutions_gateway_mock.md`.
+Zmienna `GATEWAY_SEED_MOCK_DATA` (domyślnie `true`) kontroluje seedowanie startowe rejestru zajęć komorniczych i zgłoszeń sprawozdawczych zgodne z seedem `banking_backend` — szczegóły w `docs/development_docs/services/external_institutions_gateway_mock.md`.
 
-Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap`) — reset po restarcie serwisu. Brak bazy danych w tej iteracji (planowana w kolejnej sesji).
+Stan trwały w dedykowanej instancji PostgreSQL (schema `gateway`, Spring Data JPA + Liquibase) — przetrwa restart serwisu. Szczegóły w `docs/development_docs/services/external_institutions_gateway_mock.md`.
 
 CORS: endpointy REST (`/enforcement/**`, `/fatca-crs/**`, `/regulatory-gateway/**`) mają włączony CORS dla originów z `gateway.cors.allowed-origin-patterns` (domyślnie `http://localhost:*,http://127.0.0.1:*`), metody `GET`/`POST`. Strony `/ui/**` nie wymagają CORS (renderowane serwerowo).
 

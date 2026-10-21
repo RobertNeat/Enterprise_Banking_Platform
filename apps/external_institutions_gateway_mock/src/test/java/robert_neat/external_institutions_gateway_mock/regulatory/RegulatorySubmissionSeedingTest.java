@@ -11,7 +11,12 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@TestPropertySource(properties = {"GATEWAY_SEED_MOCK_DATA=true", "gateway.submission.delay-ms=50"})
+@TestPropertySource(
+        properties = {
+            "GATEWAY_SEED_MOCK_DATA=true",
+            "gateway.submission.delay-ms=50",
+            "spring.datasource.url=jdbc:h2:mem:gateway_regulatory_seeding_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"
+        })
 class RegulatorySubmissionSeedingTest {
 
     @Autowired

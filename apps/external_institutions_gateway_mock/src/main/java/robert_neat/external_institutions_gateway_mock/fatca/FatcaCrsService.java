@@ -2,13 +2,11 @@ package robert_neat.external_institutions_gateway_mock.fatca;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * XML wygenerowany recznie (String-builder), zgodnie z zasada projektu: brak JAXB jako nowej zaleznosci.
@@ -17,8 +15,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class FatcaCrsService {
 
-    private final Map<String, FatcaCrsExport> exports = new ConcurrentHashMap<>();
+    private final FatcaCrsExportRepository fatcaCrsExportRepository;
 
+    public FatcaCrsService(FatcaCrsExportRepository fatcaCrsExportRepository) {
+        this.fatcaCrsExportRepository = fatcaCrsExportRepository;
+    }
+
+    @Transactional
     public FatcaCrsExport export(FatcaCrsExportRequest request) {
         if (isBlank(request.reportId()) || isBlank(request.period()) || isBlank(request.recipient())
                 || request.records() == null) {
@@ -32,14 +35,12 @@ public class FatcaCrsService {
 
         String xml = buildXml(request);
         FatcaCrsExport created = new FatcaCrsExport(request.reportId(), request.period(), Instant.now(), xml);
-        exports.put(request.reportId(), created);
-        return created;
+        return fatcaCrsExportRepository.save(created);
     }
 
+    @Transactional(readOnly = true)
     public List<FatcaCrsExport> list() {
-        return exports.values().stream()
-                .sorted(Comparator.comparing(FatcaCrsExport::generatedAt))
-                .toList();
+        return fatcaCrsExportRepository.findAllByOrderByGeneratedAtAsc();
     }
 
     private String buildXml(FatcaCrsExportRequest request) {
