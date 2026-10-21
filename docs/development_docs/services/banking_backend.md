@@ -634,6 +634,24 @@ klientów: ten mock zwraca `ProblemDetail` (RFC 9457, pole `detail`), nie `{"mes
    severity="HIGH")`, potem i tak zwraca `503`; podwójna awaria (governance_mock też niedostępny)
    nie maskuje oryginalnego błędu. Ta sama `callGateway()` jest reużywana przez
    `ReportingActionsService` (F7) — jeden helper, dwa wołający.
+5. **ZJC-03 — rodzaj zajęcia i "kwota wolna".** `kind` (`ALIMONY`\|`NON_ALIMONY`) przyjmowany z
+   `RegisterEnforcementRequest.kind()`, domyślnie `NON_ALIMONY` gdy pominięte (zgodność z klientami
+   sprzed ZJC-03). `EnforcementActionsService.validateKindAndProtectedAmount()` odrzuca `400` gdy:
+   `kind` nierozpoznane, `protectedAmount` ujemne, `protectedAmount` przekracza limit per `kind`, lub
+   `blockedAmount` jest `null`/ujemne. Walidacja biegnie PRZED wywołaniem bramy (brak efektu
+   ubocznego przy błędnym żądaniu). Limity jako `@Value` (konwencja projektu — proste property, nie
+   `@ConfigurationProperties`), konfigurowalne przez
+   `banking.enforcement.protected-amount-limit.non-alimony` (domyślnie `3604.50`) i
+   `...alimony` (domyślnie `0.00`):
+   - `NON_ALIMONY` = 75% minimalnego wynagrodzenia brutto na 2026 r. (4806 PLN, Rozporządzenie RM z
+     11.09.2025, Dz.U. 2025 poz. 1242), zgodnie z art. 54 ust. 1 Prawa bankowego (zwolnienie środków
+     na rachunku bankowym od zajęcia komorniczego).
+   - `ALIMONY` = 0.00 — w tym demo zajęcie alimentacyjne nie korzysta z art. 54 (uproszczenie
+     symulacyjne, nie ustalony fakt prawny co do zakresu wyjątku; wartość łatwa do zmiany).
+   - Wartości orientacyjne na potrzeby demo/edukacji, nie wiążąca porada prawna — do weryfikacji
+     prawnej przed jakimkolwiek użyciem produkcyjnym.
+   Brak nowej migracji Liquibase: `CHECK (kind IN ('ALIMONY', 'NON_ALIMONY'))` istniał od R1.5
+   (`db/changelog/schema/009-enforcement.sql`).
 
 ### F7 — raport regulacyjny: złożenie → status przyjęcia/odrzucenia (R4)
 

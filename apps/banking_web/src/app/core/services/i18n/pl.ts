@@ -356,6 +356,15 @@ export const pl: Record<string, string> = {
   'enforcement.wizard.transferredAmount': 'Kwota przekazana',
   'enforcement.wizard.protectedAmount': 'Kwota wolna od zajęcia',
   'enforcement.wizard.summary': 'Sprawdź dane przed zatwierdzeniem',
+  'enforcement.wizard.kind': 'Rodzaj zajęcia',
+  'enforcement.kind.alimony': 'Alimentacyjne',
+  'enforcement.kind.nonAlimony': 'Inne (niealimentacyjne)',
+  'enforcement.wizard.protectedAmountLimitHint':
+    'Orientacyjny limit kwoty wolnej dla wybranego rodzaju zajęcia: {{limit}} PLN. Wartość konfigurowalna, zgodna z art. 54 Prawa bankowego (2026) — nie jest wiążącą poradą prawną.',
+  'enforcement.wizard.protectedAmountExceedsLimit':
+    'Kwota wolna przekracza limit dla wybranego rodzaju zajęcia ({{limit}} PLN).',
+  'enforcement.error.protectedAmountExceedsLimit':
+    'Kwota wolna przekracza dopuszczalny limit dla wybranego rodzaju zajęcia.',
 
   'reporting.title': 'Raportowanie regulacyjne i zarządcze',
   'reporting.subtitle': 'KNF, NBP, BFG, FATCA/CRS, LCR, NSFR',

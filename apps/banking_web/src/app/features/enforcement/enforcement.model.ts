@@ -1,6 +1,7 @@
 import { StatusSeverity } from '../../shared/components/status-tag.component';
 
 export type EnforcementStatus = 'registered' | 'active' | 'settled' | 'closed';
+export type EnforcementKind = 'ALIMONY' | 'NON_ALIMONY';
 
 export const ENFORCEMENT_SEVERITY: Record<EnforcementStatus, StatusSeverity> = {
   registered: 'info',
@@ -25,6 +26,7 @@ export interface RegisterEnforcementRequest {
   bailiff: string;
   caseNumber: string;
   customer: string;
+  kind: EnforcementKind;
   blockedAmount: number;
   protectedAmount?: number;
 }

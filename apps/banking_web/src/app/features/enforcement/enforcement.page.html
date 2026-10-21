@@ -169,6 +169,22 @@
           id="enforcement-wizard-amounts-step"
           class="wizard-field-group"
         >
+          <div class="field" id="enforcement-wizard-kind-field">
+            <label for="enforcement-wizard-kind-select" class="required">
+              {{ 'enforcement.wizard.kind' | translate }}
+            </label>
+            <p-select
+              id="enforcement-wizard-kind-select"
+              [pt]="{ dropdown: { id: 'enforcement-wizard-kind-select-dropdown-btn' } }"
+              formControlName="kind"
+              [options]="kindOptions"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              [fluid]="true"
+            />
+          </div>
+
           <div class="field" id="enforcement-wizard-blocked-amount-field">
             <label for="enforcement-wizard-blocked-amount-input" class="required">
               {{ 'enforcement.wizard.blockedAmount' | translate }}
@@ -213,6 +229,20 @@
                 {{ 'wizard.validation.min' | translate: { min: 0 } }}
               </small>
             }
+            @if (amountsGroup.errors?.['protectedAmountExceedsLimit'] && amountsGroup.touched) {
+              <small id="enforcement-wizard-protected-amount-limit-error" class="error">
+                {{
+                  'enforcement.wizard.protectedAmountExceedsLimit'
+                    | translate: { limit: selectedKindLimit() }
+                }}
+              </small>
+            }
+            <p id="enforcement-wizard-protected-amount-limit-hint" class="hint">
+              {{
+                'enforcement.wizard.protectedAmountLimitHint'
+                  | translate: { limit: selectedKindLimit() }
+              }}
+            </p>
           </div>
         </div>
       }
@@ -235,6 +265,15 @@
             <dt>{{ 'enforcement.wizard.caseNumber' | translate }}</dt>
             <dd id="enforcement-wizard-summary-case-number">
               {{ detailsGroup.controls.caseNumber.value }}
+            </dd>
+
+            <dt>{{ 'enforcement.wizard.kind' | translate }}</dt>
+            <dd id="enforcement-wizard-summary-kind">
+              @if (amountsGroup.controls.kind.value === 'ALIMONY') {
+                {{ 'enforcement.kind.alimony' | translate }}
+              } @else {
+                {{ 'enforcement.kind.nonAlimony' | translate }}
+              }
             </dd>
 
             <dt>{{ 'enforcement.wizard.blockedAmount' | translate }}</dt>

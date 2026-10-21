@@ -357,6 +357,15 @@ export const en: Record<string, string> = {
   'enforcement.wizard.transferredAmount': 'Transferred amount',
   'enforcement.wizard.protectedAmount': 'Protected amount',
   'enforcement.wizard.summary': 'Review details before confirming',
+  'enforcement.wizard.kind': 'Garnishment kind',
+  'enforcement.kind.alimony': 'Alimony',
+  'enforcement.kind.nonAlimony': 'Other (non-alimony)',
+  'enforcement.wizard.protectedAmountLimitHint':
+    'Indicative protected-amount limit for the selected kind: {{limit}} PLN. Configurable value, aligned with art. 54 Prawa bankowego (2026) — not binding legal advice.',
+  'enforcement.wizard.protectedAmountExceedsLimit':
+    'The protected amount exceeds the limit for the selected garnishment kind ({{limit}} PLN).',
+  'enforcement.error.protectedAmountExceedsLimit':
+    'The protected amount exceeds the allowed limit for the selected garnishment kind.',
 
   'reporting.title': 'Regulatory & Management Reporting',
   'reporting.subtitle': 'KNF, NBP, BFG, FATCA/CRS, LCR, NSFR',

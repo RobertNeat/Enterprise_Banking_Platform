@@ -516,7 +516,7 @@ przekazuje kod klientowi kanałem pozakanałowym (symulowane w UI jako podpowied
 
 - `GET /enforcement` → `EnforcementCaseDto[]`
 - `POST /enforcement` (F6) → `EnforcementCaseDto`. Request: `{ "bailiff", "caseNumber", "customer",
-  "blockedAmount", "protectedAmount"? }` (BEZ `transferredAmount` — nic nie jest przekazane w
+  "kind"?, "blockedAmount", "protectedAmount"? }` (BEZ `transferredAmount` — nic nie jest przekazane w
   momencie rejestracji). Woła `external_institutions_gateway_mock` `POST /enforcement/incoming`,
   zapisuje `EnforcementCase` z `status='registered'` i `gatewayEnforcementId` z odpowiedzi bramy.
   Zajęcia seedowane (`db/changelog/seed/009-enforcement.sql`) mają `gatewayEnforcementId` wypełniony
@@ -524,6 +524,10 @@ przekazuje kod klientowi kanałem pozakanałowym (symulowane w UI jako podpowied
   działają identycznie jak na nowo zarejestrowanych. Audytuje `ENFORCEMENT_REGISTERED`. `503` +
   incydent ICT (`source="EXTERNAL_INSTITUTIONS_GATEWAY"`) jeśli brama nieosiągalna — ścieżka
   analogiczna do F4 (`card_processor_mock`).
+  **ZJC-03** — `kind` (`ALIMONY`\|`NON_ALIMONY`, domyślnie `NON_ALIMONY` gdy pominięte) steruje
+  limitem "kwoty wolnej" (`protectedAmount`): `400` gdy `protectedAmount` przekracza limit per `kind`
+  lub `kind` jest nierozpoznane, lub `blockedAmount` jest ujemne/brak. Limity są konfigurowalne
+  (`banking.enforcement.protected-amount-limit.{non-alimony,alimony}`, patrz `services/banking_backend.md`).
 - `POST /enforcement/{id}/request-transfer-approval` (F6, maker-checker) →
   `{ "enforcementCase": EnforcementCaseDto, "approvalId" }`. Otwiera approval w `governance_mock`
   (`type="ENFORCEMENT_TRANSFER"`), zapisuje `approvalId` na encji (kolumna `approval_id`, już

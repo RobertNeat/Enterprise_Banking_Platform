@@ -92,6 +92,76 @@ describe('EnforcementPage', () => {
     expect(errorSpy).toHaveBeenCalledWith('enforcement.error.forbidden');
   });
 
+  // --- ZJC-03: kind + protected-amount limit (mirrors backend's 400, see EnforcementActionsService) ---
+
+  it('NON_ALIMONY at the protected-amount limit (3604.50) keeps the amounts step valid', () => {
+    storeSession('PRC-30678', 1);
+    const page = createPage();
+    const amounts = (page as any).form.controls.amounts;
+    amounts.patchValue({ kind: 'NON_ALIMONY', blockedAmount: 5000, protectedAmount: 3604.5 });
+
+    expect(amounts.valid).toBe(true);
+  });
+
+  it('NON_ALIMONY above the protected-amount limit makes the amounts step invalid', () => {
+    storeSession('PRC-30678', 1);
+    const page = createPage();
+    const amounts = (page as any).form.controls.amounts;
+    amounts.patchValue({ kind: 'NON_ALIMONY', blockedAmount: 5000, protectedAmount: 3604.51 });
+
+    expect(amounts.valid).toBe(false);
+    expect(amounts.errors?.['protectedAmountExceedsLimit']).toBe(true);
+  });
+
+  it('ALIMONY with a positive protected amount makes the amounts step invalid (limit is 0.00)', () => {
+    storeSession('PRC-30678', 1);
+    const page = createPage();
+    const amounts = (page as any).form.controls.amounts;
+    amounts.patchValue({ kind: 'ALIMONY', blockedAmount: 2000, protectedAmount: 1 });
+
+    expect(amounts.valid).toBe(false);
+  });
+
+  it('ALIMONY with protectedAmount 0 is valid', () => {
+    storeSession('PRC-30678', 1);
+    const page = createPage();
+    const amounts = (page as any).form.controls.amounts;
+    amounts.patchValue({ kind: 'ALIMONY', blockedAmount: 2000, protectedAmount: 0 });
+
+    expect(amounts.valid).toBe(true);
+  });
+
+  it('submitWizard() sends kind in the POST /enforcement body', async () => {
+    storeSession('PRC-30678', 1);
+    const page = createPage();
+    const form = (page as any).form;
+    form.controls.details.patchValue({
+      customer: 'CUST-001',
+      bailiff: 'Komornik Jan Kowalski',
+      caseNumber: 'KM 99/26',
+    });
+    form.controls.amounts.patchValue({
+      kind: 'ALIMONY',
+      blockedAmount: 1000,
+      protectedAmount: 0,
+    });
+
+    const promise = page.submitWizard();
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/enforcement`);
+    expect(req.request.body.kind).toBe('ALIMONY');
+    req.flush({
+      id: 'EN-9999',
+      customer: 'Jan Wiśniewski',
+      bailiff: 'Komornik Jan Kowalski',
+      caseNumber: 'KM 99/26',
+      blockedAmount: 1000,
+      transferredAmount: 0,
+      protectedAmount: 0,
+      status: 'registered',
+    });
+    await promise;
+  });
+
   it('openHistoryDialog() opens the dialog and loads audit events scoped to ENFORCEMENT_CASE', () => {
     storeSession('PRC-30678', 1);
     const page = createPage();

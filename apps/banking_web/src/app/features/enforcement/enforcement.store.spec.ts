@@ -37,6 +37,7 @@ describe('EnforcementStore', () => {
       bailiff: created.bailiff,
       caseNumber: created.caseNumber,
       customer: 'CUST-002',
+      kind: 'NON_ALIMONY',
       blockedAmount: created.blockedAmount,
       protectedAmount: created.protectedAmount,
     });

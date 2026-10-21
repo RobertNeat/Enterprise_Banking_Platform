@@ -1,6 +1,8 @@
 package robert_neat.banking_backend.enforcement;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -20,6 +22,7 @@ import robert_neat.banking_backend.reporting.RegulatoryGatewayUnavailableExcepti
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -52,6 +55,9 @@ class EnforcementActionsControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private EnforcementCaseRepository enforcementCases;
+
     @MockitoBean
     private RegulatoryGatewayClient gatewayClient;
 
@@ -77,6 +83,118 @@ class EnforcementActionsControllerTest {
 
         verify(governanceClient).recordAuditEvent(eq("PRC-00001"), eq("ENFORCEMENT_REGISTERED"),
                 eq("ENFORCEMENT_CASE"), anyString(), any());
+    }
+
+    // --- ZJC-03: kind + protected-amount limit validation ---
+
+    @Test
+    void registerAtNonAlimonyProtectedAmountLimitSucceeds() throws Exception {
+        // 3604.50 == banking.enforcement.protected-amount-limit.non-alimony default — boundary (<=), not exceeded.
+        given(gatewayClient.registerEnforcement(anyString(), anyString(), eq("CUST-001"), any(BigDecimal.class), any()))
+                .willReturn(new EnforcementIncomingResponse(
+                        "gw-limit-ok", "CUST-001", "Komornik Jan Kowalski", "KM 10/26",
+                        new BigDecimal("5000.00"), null, new BigDecimal("3604.50"), "registered",
+                        Instant.now(), null));
+
+        mockMvc.perform(post("/enforcement").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"bailiff":"Komornik Jan Kowalski","caseNumber":"KM 10/26","customer":"CUST-001",
+                                 "kind":"NON_ALIMONY","blockedAmount":5000.00,"protectedAmount":3604.50}"""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.protectedAmount").value(3604.50));
+    }
+
+    @Test
+    void registerAboveNonAlimonyProtectedAmountLimitIsBadRequest() throws Exception {
+        mockMvc.perform(post("/enforcement").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"bailiff":"Komornik Jan Kowalski","caseNumber":"KM 11/26","customer":"CUST-001",
+                                 "kind":"NON_ALIMONY","blockedAmount":5000.00,"protectedAmount":3604.51}"""))
+                .andExpect(status().isBadRequest());
+
+        verify(gatewayClient, never()).registerEnforcement(anyString(), anyString(), anyString(), any(), any());
+    }
+
+    @Test
+    void registerAlimonyWithZeroProtectedAmountSucceedsAndPersistsKind() throws Exception {
+        given(gatewayClient.registerEnforcement(anyString(), anyString(), eq("CUST-001"), any(BigDecimal.class), any()))
+                .willReturn(new EnforcementIncomingResponse(
+                        "gw-alimony-ok", "CUST-001", "Komornik Jan Kowalski", "KM 12/26",
+                        new BigDecimal("2000.00"), null, BigDecimal.ZERO, "registered",
+                        Instant.now(), null));
+
+        String body = mockMvc.perform(post("/enforcement").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"bailiff":"Komornik Jan Kowalski","caseNumber":"KM 12/26","customer":"CUST-001",
+                                 "kind":"ALIMONY","blockedAmount":2000.00,"protectedAmount":0}"""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String caseId = com.jayway.jsonpath.JsonPath.read(body, "$.id");
+
+        assertThat(enforcementCases.findById(caseId).orElseThrow().getKind()).isEqualTo("ALIMONY");
+    }
+
+    @Test
+    void registerAlimonyWithPositiveProtectedAmountIsBadRequest() throws Exception {
+        // ALIMONY default limit is 0.00 (see EnforcementActionsService javadoc) — any positive
+        // protectedAmount exceeds it.
+        mockMvc.perform(post("/enforcement").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"bailiff":"Komornik Jan Kowalski","caseNumber":"KM 13/26","customer":"CUST-001",
+                                 "kind":"ALIMONY","blockedAmount":2000.00,"protectedAmount":1.00}"""))
+                .andExpect(status().isBadRequest());
+
+        verify(gatewayClient, never()).registerEnforcement(anyString(), anyString(), anyString(), any(), any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"FOO", "non_alimony", ""})
+    void registerWithUnknownKindIsBadRequest(String kind) throws Exception {
+        mockMvc.perform(post("/enforcement").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"bailiff":"Komornik Jan Kowalski","caseNumber":"KM 14/26","customer":"CUST-001",
+                                 "kind":"%s","blockedAmount":1000.00,"protectedAmount":100.00}""".formatted(kind)))
+                .andExpect(status().isBadRequest());
+
+        verify(gatewayClient, never()).registerEnforcement(anyString(), anyString(), anyString(), any(), any());
+    }
+
+    @Test
+    void registerWithNegativeBlockedAmountIsBadRequest() throws Exception {
+        mockMvc.perform(post("/enforcement").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"bailiff":"Komornik Jan Kowalski","caseNumber":"KM 15/26","customer":"CUST-001",
+                                 "kind":"NON_ALIMONY","blockedAmount":-1.00,"protectedAmount":100.00}"""))
+                .andExpect(status().isBadRequest());
+
+        verify(gatewayClient, never()).registerEnforcement(anyString(), anyString(), anyString(), any(), any());
+    }
+
+    @Test
+    void registerWithoutKindDefaultsToNonAlimony() throws Exception {
+        // Pre-ZJC-03 callers that never send kind must keep working, defaulted to NON_ALIMONY.
+        given(gatewayClient.registerEnforcement(anyString(), anyString(), eq("CUST-001"), any(BigDecimal.class), any()))
+                .willReturn(new EnforcementIncomingResponse(
+                        "gw-default-kind", "CUST-001", "Komornik Jan Kowalski", "KM 16/26",
+                        new BigDecimal("1000.00"), null, new BigDecimal("100.00"), "registered",
+                        Instant.now(), null));
+
+        String body = mockMvc.perform(post("/enforcement").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"bailiff":"Komornik Jan Kowalski","caseNumber":"KM 16/26","customer":"CUST-001",
+                                 "blockedAmount":1000.00,"protectedAmount":100.00}"""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String caseId = com.jayway.jsonpath.JsonPath.read(body, "$.id");
+
+        assertThat(enforcementCases.findById(caseId).orElseThrow().getKind()).isEqualTo("NON_ALIMONY");
     }
 
     @Test

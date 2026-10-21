@@ -1,7 +1,13 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -18,10 +24,35 @@ import { WizardDialogComponent, WizardStep } from '../../shared/components/wizar
 import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
 import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
 import { EnforcementStore } from './enforcement.store';
-import { ENFORCEMENT_SEVERITY, EnforcementCase } from './enforcement.model';
+import { ENFORCEMENT_SEVERITY, EnforcementCase, EnforcementKind } from './enforcement.model';
 
 /** Domyślna kwota wolna od zajęcia (PLN) — zgodna z istniejącymi danymi demo. */
 const DEFAULT_PROTECTED_AMOUNT = 1631.4;
+
+/**
+ * ZJC-03 — limity kwoty wolnej per rodzaj zajęcia, lustrzane wobec
+ * EnforcementActionsService (banking.enforcement.protected-amount-limit.*). Tylko do podglądu/
+ * ostrzeżenia w kreatorze — backend jest autorytatywny i waliduje ponownie (400 przy przekroczeniu).
+ * NON_ALIMONY: 75% minimalnego wynagrodzenia brutto 2026 (4806 PLN, Dz.U. 2025 poz. 1242) = 3604.50 PLN
+ * (art. 54 ust. 1 Prawa bankowego). ALIMONY: 0.00 — zajęcie alimentacyjne nie korzysta z tego
+ * zwolnienia w tym demo. Wartości orientacyjne, konfigurowalne, nie są wiążącą poradą prawną.
+ */
+const PROTECTED_AMOUNT_LIMITS: Record<EnforcementKind, number> = {
+  NON_ALIMONY: 3604.5,
+  ALIMONY: 0,
+};
+
+/** Mirrors the backend's 400: protectedAmount must not exceed the selected kind's limit. */
+function protectedAmountWithinLimitValidator(group: AbstractControl): ValidationErrors | null {
+  const kind = group.get('kind')?.value as EnforcementKind | null;
+  const protectedAmount = group.get('protectedAmount')?.value as number | null;
+  if (!kind || protectedAmount == null) {
+    return null;
+  }
+  return protectedAmount > PROTECTED_AMOUNT_LIMITS[kind]
+    ? { protectedAmountExceedsLimit: true }
+    : null;
+}
 
 interface CustomerOption {
   id: string;
@@ -95,16 +126,32 @@ export class EnforcementPage {
       bailiff: this.fb.nonNullable.control('', [Validators.required]),
       caseNumber: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(5)]),
     }),
-    amounts: this.fb.nonNullable.group({
-      blockedAmount: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0)]),
-      protectedAmount: this.fb.nonNullable.control(DEFAULT_PROTECTED_AMOUNT, [
-        Validators.required,
-        Validators.min(0),
-      ]),
-    }),
+    amounts: this.fb.nonNullable.group(
+      {
+        kind: this.fb.nonNullable.control<EnforcementKind>('NON_ALIMONY', [Validators.required]),
+        blockedAmount: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0)]),
+        protectedAmount: this.fb.nonNullable.control(DEFAULT_PROTECTED_AMOUNT, [
+          Validators.required,
+          Validators.min(0),
+        ]),
+      },
+      { validators: protectedAmountWithinLimitValidator },
+    ),
   });
 
+  protected readonly kindOptions: { label: string; value: EnforcementKind }[] = [
+    { label: 'enforcement.kind.nonAlimony', value: 'NON_ALIMONY' },
+    { label: 'enforcement.kind.alimony', value: 'ALIMONY' },
+  ];
+
   private readonly formTick = toSignal(this.form.valueChanges, { initialValue: null });
+
+  /** Limit kwoty wolnej dla aktualnie wybranego rodzaju zajęcia — do ostrzeżenia w kreatorze. */
+  protected readonly selectedKindLimit = computed(() => {
+    this.formTick();
+    const kind = this.form.controls.amounts.controls.kind.value;
+    return PROTECTED_AMOUNT_LIMITS[kind];
+  });
 
   protected get detailsGroup() {
     return this.form.controls.details;
@@ -162,6 +209,7 @@ export class EnforcementPage {
         bailiff: details.bailiff,
         caseNumber: details.caseNumber,
         customer: details.customer!,
+        kind: amounts.kind,
         blockedAmount: amounts.blockedAmount,
         protectedAmount: amounts.protectedAmount,
       });
@@ -169,8 +217,15 @@ export class EnforcementPage {
       this.wizardVisible.set(false);
       this.wizardStep.set(0);
       this.resetForm();
-    } catch {
-      this.notify.error('enforcement.error.generic');
+    } catch (error) {
+      // 400 = protectedAmount exceeds the selected kind's limit (backend-enforced, see
+      // EnforcementActionsService.validateKindAndProtectedAmount()) — distinct toast from the
+      // generic failure so the user knows to lower the amount or change the kind.
+      if (error instanceof HttpErrorResponse && error.status === 400) {
+        this.notify.error('enforcement.error.protectedAmountExceedsLimit');
+      } else {
+        this.notify.error('enforcement.error.generic');
+      }
     } finally {
       this.registering.set(false);
     }
@@ -259,7 +314,7 @@ export class EnforcementPage {
   private resetForm(): void {
     this.form.reset({
       details: { customer: null, bailiff: '', caseNumber: '' },
-      amounts: { blockedAmount: 0, protectedAmount: DEFAULT_PROTECTED_AMOUNT },
+      amounts: { kind: 'NON_ALIMONY', blockedAmount: 0, protectedAmount: DEFAULT_PROTECTED_AMOUNT },
     });
   }
 

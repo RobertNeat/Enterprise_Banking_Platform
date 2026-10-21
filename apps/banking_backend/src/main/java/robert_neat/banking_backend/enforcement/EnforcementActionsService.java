@@ -2,12 +2,14 @@ package robert_neat.banking_backend.enforcement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import robert_neat.banking_backend.approvals.ApprovalRecord;
 import robert_neat.banking_backend.approvals.ApprovalsService;
 import robert_neat.banking_backend.approvals.GovernanceClient;
+import robert_neat.banking_backend.common.InvalidRequestException;
 import robert_neat.banking_backend.common.InvalidStageTransitionException;
 import robert_neat.banking_backend.common.NotFoundException;
 import robert_neat.banking_backend.customer.Customer;
@@ -46,6 +48,8 @@ public class EnforcementActionsService {
     private final GovernanceClient governanceClient;
     private final ApprovalsService approvalsService;
     private final EnforcementIdGenerator idGenerator;
+    private final BigDecimal nonAlimonyProtectedAmountLimit;
+    private final BigDecimal alimonyProtectedAmountLimit;
 
     public EnforcementActionsService(
             EnforcementCaseRepository enforcementCases,
@@ -53,18 +57,32 @@ public class EnforcementActionsService {
             RegulatoryGatewayClient gatewayClient,
             GovernanceClient governanceClient,
             ApprovalsService approvalsService,
-            EnforcementIdGenerator idGenerator) {
+            EnforcementIdGenerator idGenerator,
+            @Value("${banking.enforcement.protected-amount-limit.non-alimony:3604.50}")
+            BigDecimal nonAlimonyProtectedAmountLimit,
+            @Value("${banking.enforcement.protected-amount-limit.alimony:0.00}")
+            BigDecimal alimonyProtectedAmountLimit) {
         this.enforcementCases = enforcementCases;
         this.customers = customers;
         this.gatewayClient = gatewayClient;
         this.governanceClient = governanceClient;
         this.approvalsService = approvalsService;
         this.idGenerator = idGenerator;
+        this.nonAlimonyProtectedAmountLimit = nonAlimonyProtectedAmountLimit;
+        this.alimonyProtectedAmountLimit = alimonyProtectedAmountLimit;
     }
 
     public EnforcementCaseDto register(RegisterEnforcementRequest request, String employeeId) {
         Customer customer = customers.findById(request.customer())
                 .orElseThrow(() -> new NotFoundException("Customer not found: " + request.customer()));
+
+        // kind defaults to NON_ALIMONY when omitted, so pre-ZJC-03 callers that never sent it keep working.
+        String kind = request.kind() != null ? request.kind() : "NON_ALIMONY";
+        BigDecimal protectedAmount = request.protectedAmount() != null ? request.protectedAmount() : BigDecimal.ZERO;
+        validateKindAndProtectedAmount(kind, protectedAmount);
+        if (request.blockedAmount() == null || request.blockedAmount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new InvalidRequestException("blockedAmount must be zero or positive");
+        }
 
         EnforcementIncomingResponse gatewayResponse = callGateway("register", null, () ->
                 gatewayClient.registerEnforcement(
@@ -77,10 +95,9 @@ public class EnforcementActionsService {
         enforcementCase.setCustomer(customer);
         enforcementCase.setBailiff(request.bailiff());
         enforcementCase.setCaseNumber(request.caseNumber());
-        enforcementCase.setKind("NON_ALIMONY"); // mock data carries no alimony signal (see seed comment)
+        enforcementCase.setKind(kind);
         enforcementCase.setBlockedAmount(request.blockedAmount());
-        enforcementCase.setProtectedAmount(
-                request.protectedAmount() != null ? request.protectedAmount() : BigDecimal.ZERO);
+        enforcementCase.setProtectedAmount(protectedAmount);
         enforcementCase.setStatus("registered");
         enforcementCases.save(enforcementCase);
 
@@ -171,6 +188,30 @@ public class EnforcementActionsService {
                     "HIGH");
         } catch (RuntimeException ictFailure) {
             log.warn("Failed to record ICT incident for gateway outage ({}): {}", operation, ictFailure.getMessage());
+        }
+    }
+
+    /**
+     * ZJC-03 — "kwota wolna" (protected-amount) ceiling per garnishment kind. NON_ALIMONY mirrors
+     * art. 54 ust. 1 Prawa bankowego: 75% of the 2026 statutory minimum gross wage (4806 PLN per
+     * Rozporządzenie RM z 11.09.2025, Dz.U. 2025 poz. 1242) = 3604.50 PLN. ALIMONY defaults to 0.00:
+     * alimony enforcement is not covered by the art. 54 bank-account exemption, so no protected
+     * amount applies here by default. Both are simulation defaults for this demo, not binding legal
+     * advice — override via banking.enforcement.protected-amount-limit.{non-alimony,alimony}.
+     */
+    private void validateKindAndProtectedAmount(String kind, BigDecimal protectedAmount) {
+        BigDecimal limit = switch (kind) {
+            case "NON_ALIMONY" -> nonAlimonyProtectedAmountLimit;
+            case "ALIMONY" -> alimonyProtectedAmountLimit;
+            default -> throw new InvalidRequestException("kind must be one of ALIMONY, NON_ALIMONY");
+        };
+        if (protectedAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new InvalidRequestException("protectedAmount must not be negative");
+        }
+        if (protectedAmount.compareTo(limit) > 0) {
+            throw new InvalidRequestException(
+                    "protectedAmount " + protectedAmount + " exceeds the " + kind
+                            + " protected-amount limit (" + limit + ")");
         }
     }
 
