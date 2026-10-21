@@ -174,4 +174,108 @@ class CaseActionsControllerTest {
                         .content("{}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void startOnNewCaseMovesToInProgressAndAudits() throws Exception {
+        // CS-10225 is seeded with status 'new'.
+        given(governanceClient.recordAuditEvent(eq("PRC-00001"), eq("CASE_STATUS_CHANGED"),
+                eq("CUSTOMER_CASE"), eq("CS-10225"), anyString()))
+                .willReturn("audit-start-1");
+
+        mockMvc.perform(post("/cases/CS-10225/start").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("inProgress"));
+
+        verify(governanceClient).recordAuditEvent(eq("PRC-00001"), eq("CASE_STATUS_CHANGED"),
+                eq("CUSTOMER_CASE"), eq("CS-10225"), eq("new -> inProgress"));
+    }
+
+    @Test
+    void startOnInProgressCaseIsConflict() throws Exception {
+        // CS-10229 is seeded with status 'inProgress'.
+        mockMvc.perform(post("/cases/CS-10229/start").with(testJwt()))
+                .andExpect(status().isConflict());
+
+        verifyNoInteractions(governanceClient);
+    }
+
+    @Test
+    void startOnEscalatedCaseIsConflict() throws Exception {
+        // CS-10231 is seeded with status 'escalated'.
+        mockMvc.perform(post("/cases/CS-10231/start").with(testJwt()))
+                .andExpect(status().isConflict());
+
+        verifyNoInteractions(governanceClient);
+    }
+
+    @Test
+    void startOnResolvedCaseIsConflict() throws Exception {
+        // CS-10219 is seeded with status 'resolved'.
+        mockMvc.perform(post("/cases/CS-10219/start").with(testJwt()))
+                .andExpect(status().isConflict());
+
+        verifyNoInteractions(governanceClient);
+    }
+
+    @Test
+    void startRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/cases/CS-10225/start"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void resolveOnNewCaseMovesToResolvedAndAudits() throws Exception {
+        // CS-10225 is seeded with status 'new'.
+        given(governanceClient.recordAuditEvent(eq("PRC-00001"), eq("CASE_STATUS_CHANGED"),
+                eq("CUSTOMER_CASE"), eq("CS-10225"), anyString()))
+                .willReturn("audit-resolve-1");
+
+        mockMvc.perform(post("/cases/CS-10225/resolve").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("resolved"));
+
+        verify(governanceClient).recordAuditEvent(eq("PRC-00001"), eq("CASE_STATUS_CHANGED"),
+                eq("CUSTOMER_CASE"), eq("CS-10225"), eq("new -> resolved"));
+    }
+
+    @Test
+    void resolveOnInProgressCaseMovesToResolved() throws Exception {
+        // CS-10229 is seeded with status 'inProgress'.
+        mockMvc.perform(post("/cases/CS-10229/resolve").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("resolved"));
+    }
+
+    @Test
+    void resolveOnEscalatedCaseMovesToResolved() throws Exception {
+        // CS-10231 is seeded with status 'escalated' — this is the key path per the CAS plan item:
+        // a case only ever leaves 'escalated' via resolve.
+        mockMvc.perform(post("/cases/CS-10231/resolve").with(testJwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("resolved"));
+    }
+
+    @Test
+    void resolveOnAlreadyResolvedCaseIsConflict() throws Exception {
+        // CS-10219 is seeded with status 'resolved'.
+        mockMvc.perform(post("/cases/CS-10219/resolve").with(testJwt()))
+                .andExpect(status().isConflict());
+
+        verifyNoInteractions(governanceClient);
+    }
+
+    @Test
+    void resolveReturns503WhenGovernanceMockUnavailable() throws Exception {
+        given(governanceClient.recordAuditEvent(anyString(), anyString(), anyString(), anyString(), any()))
+                .willThrow(new GovernanceUnavailableException("down", new RuntimeException()));
+
+        mockMvc.perform(post("/cases/CS-10225/resolve").with(testJwt()))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void resolveRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/cases/CS-10225/resolve"))
+                .andExpect(status().isUnauthorized());
+    }
 }

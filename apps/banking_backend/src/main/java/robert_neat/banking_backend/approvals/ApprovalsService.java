@@ -3,9 +3,11 @@ package robert_neat.banking_backend.approvals;
 import org.springframework.stereotype.Service;
 import robert_neat.banking_backend.auth.RoleCode;
 import robert_neat.banking_backend.auth.UnmappedRoleException;
+import robert_neat.banking_backend.common.BankTimeZone;
 import robert_neat.banking_backend.customer.Employee;
 import robert_neat.banking_backend.customer.EmployeeRepository;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +30,9 @@ import java.util.Optional;
 @Service
 public class ApprovalsService {
 
+    private static final DateTimeFormatter AUDIT_TIMESTAMP_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(BankTimeZone.ZONE);
+
     private final GovernanceClient governanceClient;
     private final EmployeeRepository employeeRepository;
 
@@ -42,6 +47,19 @@ public class ApprovalsService {
 
     public ApprovalRecord get(String id) {
         return withRequester(governanceClient.getApproval(id));
+    }
+
+    /**
+     * Read-side of the audit trail ("Historia" dialog) — otherwise a straight proxy, the only
+     * transformation is formatting timestamp to Europe/Warsaw local time (see BankTimeZone) so the
+     * frontend doesn't need its own Instant/timezone handling, matching EbankingUserDto.lastLogin.
+     */
+    public List<AuditEventDto> listAuditEvents(String entityType, String entityId) {
+        return governanceClient.listAuditEvents(entityType, entityId).stream()
+                .map(e -> new AuditEventDto(
+                        e.id(), e.actor(), e.action(), e.entityType(), e.entityId(),
+                        AUDIT_TIMESTAMP_FORMAT.format(e.timestamp()), e.details()))
+                .toList();
     }
 
     public ApprovalRecord decide(String id, String decision, String checkerEmployeeId, int checkerSeniorityLevel) {

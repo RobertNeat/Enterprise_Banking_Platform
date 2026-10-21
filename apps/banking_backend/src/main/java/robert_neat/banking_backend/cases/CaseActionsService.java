@@ -149,6 +149,45 @@ public class CaseActionsService {
         return new EscalateCaseResponse(CaseService.toDto(customerCase, now), slaCheck.escalated());
     }
 
+    /** CAS lifecycle — only 'new' may start; audited as CASE_STATUS_CHANGED in governance_mock. */
+    public CustomerCaseDto start(String caseId, String employeeId) {
+        CustomerCase customerCase = customerCases.findById(caseId)
+                .orElseThrow(() -> new NotFoundException("Case not found: " + caseId));
+        if (!"new".equals(customerCase.getStatus())) {
+            throw new InvalidStageTransitionException(
+                    "Case " + caseId + " cannot be started from status " + customerCase.getStatus());
+        }
+
+        String fromStatus = customerCase.getStatus();
+        governanceClient.recordAuditEvent(employeeId, "CASE_STATUS_CHANGED", "CUSTOMER_CASE", caseId,
+                fromStatus + " -> inProgress");
+        customerCase.setStatus("inProgress");
+        customerCases.save(customerCase);
+
+        return CaseService.toDto(customerCase, Instant.now());
+    }
+
+    /**
+     * CAS lifecycle — 'new'/'inProgress'/'escalated' may resolve; 'resolved' is terminal (409).
+     * A case never leaves 'escalated' other than through resolve, so escalation-SLA deduplication
+     * (status filter in the planned @Scheduled sweep) keeps working.
+     */
+    public CustomerCaseDto resolve(String caseId, String employeeId) {
+        CustomerCase customerCase = customerCases.findById(caseId)
+                .orElseThrow(() -> new NotFoundException("Case not found: " + caseId));
+        if ("resolved".equals(customerCase.getStatus())) {
+            throw new InvalidStageTransitionException("Case " + caseId + " is already resolved");
+        }
+
+        String fromStatus = customerCase.getStatus();
+        governanceClient.recordAuditEvent(employeeId, "CASE_STATUS_CHANGED", "CUSTOMER_CASE", caseId,
+                fromStatus + " -> resolved");
+        customerCase.setStatus("resolved");
+        customerCases.save(customerCase);
+
+        return CaseService.toDto(customerCase, Instant.now());
+    }
+
     private long slaHoursFor(String priority) {
         return switch (priority) {
             case "high" -> 24;

@@ -73,4 +73,24 @@ describe('CollectionsStore', () => {
 
     expect(store.cases().find((c) => c.id === item.id)?.stage).toBe('external');
   });
+
+  it('findActions() gets /collections/{id}/actions', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/collections`).flush(COLLECTIONS_CASES);
+    const item = COLLECTIONS_CASES[0]; // DBT-6601
+    const actions = [
+      {
+        actionType: 'REMINDER_SENT',
+        performedAt: '2026-07-15T10:00:00Z',
+        performedBy: 'PRC-30678',
+        governanceAuditEventId: null,
+      },
+    ];
+
+    const promise = store.findActions(item.id);
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/collections/${item.id}/actions`);
+    expect(req.request.method).toBe('GET');
+    req.flush(actions);
+
+    expect(await promise).toEqual(actions);
+  });
 });

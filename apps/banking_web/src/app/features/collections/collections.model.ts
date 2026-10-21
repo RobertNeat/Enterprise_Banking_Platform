@@ -20,3 +20,13 @@ export interface CollectionsCase {
   outstandingAmount: number;
   stage: CollectionsStage;
 }
+
+/** GET /collections/{id}/actions — windykacyjne akcje (remind/proposeSettlement/transferExternal). */
+export type CollectionsActionType = 'REMINDER_SENT' | 'SETTLEMENT_PROPOSED' | 'EXTERNAL_TRANSFER';
+
+export interface CollectionsAction {
+  actionType: CollectionsActionType;
+  performedAt: string;
+  performedBy: string;
+  governanceAuditEventId: string | null;
+}

@@ -39,4 +39,16 @@ public class CaseController {
     public EscalateCaseResponse escalate(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
         return caseActionsService.escalate(id, jwt.getSubject());
     }
+
+    /** CAS lifecycle — only 'new' -> 'inProgress'; 409 otherwise. */
+    @PostMapping("/{id}/start")
+    public CustomerCaseDto start(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
+        return caseActionsService.start(id, jwt.getSubject());
+    }
+
+    /** CAS lifecycle — 'new'/'inProgress'/'escalated' -> 'resolved'; 409 if already resolved. */
+    @PostMapping("/{id}/resolve")
+    public CustomerCaseDto resolve(@PathVariable String id, @AuthenticationPrincipal Jwt jwt) {
+        return caseActionsService.resolve(id, jwt.getSubject());
+    }
 }

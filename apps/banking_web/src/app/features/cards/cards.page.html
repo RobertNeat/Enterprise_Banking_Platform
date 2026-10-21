@@ -58,6 +58,15 @@
             severity="danger"
             (click)="fileChargeback(card)"
           />
+          <p-button
+            [id]="'cards-row-' + card.id + '-history-btn'"
+            [pt]="{ root: { id: 'cards-row-' + card.id + '-history-btn-root' } }"
+            [label]="'common.history' | translate"
+            [text]="true"
+            size="small"
+            severity="secondary"
+            (click)="openHistoryDialog(card)"
+          />
         </td>
       </tr>
     </ng-template>
@@ -188,3 +197,11 @@
     />
   </div>
 </p-dialog>
+
+<app-audit-history-dialog
+  dialogId="cards-history-dialog"
+  [visible]="historyDialogOpen()"
+  [events]="historyStore.events()"
+  [loading]="historyStore.loading()"
+  (visibleChange)="$event ? null : closeHistoryDialog()"
+/>

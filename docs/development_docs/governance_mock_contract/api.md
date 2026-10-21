@@ -91,7 +91,7 @@ Request:
 
 ### `GET /audit-events?entityType=APPROVAL&entityId=uuid`
 
-Lista, opcjonalne filtry `entityType` i `entityId` (dokładne dopasowanie, `entityType` bez rozróżniania wielkości liter). Sortowana po `timestamp`.
+Lista, opcjonalne filtry `entityType` i `entityId` (dokładne dopasowanie, `entityType` bez rozróżniania wielkości liter). Sortowana po `timestamp`. Konsumowane przez `banking_backend`'s `GET /audit-events` (proxy, zob. `banking_backend_contract/api.md`).
 
 ## ICT incident registry (DORA)
 

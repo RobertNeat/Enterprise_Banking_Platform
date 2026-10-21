@@ -90,4 +90,103 @@ describe('LoanDetailPage', () => {
 
     expect((component as any).loan().id).toBe('');
   });
+
+  it('openHistoryDialog() opens the dialog and loads audit events scoped to LOAN_APPLICATION', () => {
+    configure('LN-80231');
+
+    const fixture = TestBed.createComponent(LoanDetailPage);
+    const component = fixture.componentInstance;
+
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80231`).flush({
+      ...LOAN_APPLICATIONS[0],
+      installments: [],
+      stageTransitions: [],
+    });
+
+    component.openHistoryDialog();
+    expect((component as any).historyDialogOpen()).toBe(true);
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${apiBaseUrl.bankingBackend}/audit-events` &&
+        r.params.get('entityType') === 'LOAN_APPLICATION' &&
+        r.params.get('entityId') === 'LN-80231',
+    );
+    req.flush([]);
+
+    component.closeHistoryDialog();
+    expect((component as any).historyDialogOpen()).toBe(false);
+  });
+
+  it('renders stageTransitions sorted by transitionedAt, even when loan() comes from the store', () => {
+    configure('LN-80231');
+
+    const fixture = TestBed.createComponent(LoanDetailPage);
+    const component = fixture.componentInstance;
+
+    // LoansStore's /loans response makes loan() resolve from the store (plain LoanApplication,
+    // no stageTransitions) — the timeline must still come from the separate /loans/{id} fetch.
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
+
+    const transitions = [
+      {
+        fromStage: 'decision',
+        toStage: 'contract',
+        transitionedAt: '2026-09-10T09:00:00Z',
+        transitionedBy: 'PRC-30678',
+        approvalId: 'APR-1002',
+      },
+      {
+        fromStage: 'application',
+        toStage: 'decision',
+        transitionedAt: '2026-09-01T09:00:00Z',
+        transitionedBy: 'PRC-30678',
+        approvalId: null,
+      },
+    ];
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80231`).flush({
+      ...LOAN_APPLICATIONS[0],
+      installments: [],
+      stageTransitions: transitions,
+    });
+
+    expect((component as any).stageTransitions()).toEqual([transitions[1], transitions[0]]);
+  });
+
+  it('refreshes stageTransitions after advanceStage()', async () => {
+    // LN-80255 (Agro-Bud) is seeded in stage 'decision' — canAdvance() requires that stage, and
+    // loan() prefers LoansStore's own (unmodified) record, so the stage override has to live there.
+    configure('LN-80255');
+
+    const fixture = TestBed.createComponent(LoanDetailPage);
+    const component = fixture.componentInstance;
+    const seeded = LOAN_APPLICATIONS.find((l) => l.id === 'LN-80255')!;
+
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans`).flush(LOAN_APPLICATIONS);
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80255`).flush({
+      ...seeded,
+      installments: [],
+      stageTransitions: [],
+    });
+
+    const advancePromise = component.advanceStage();
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/loans/LN-80255/advance-stage`);
+    const newTransition = {
+      fromStage: 'decision',
+      toStage: 'contract',
+      transitionedAt: '2026-10-20T09:00:00Z',
+      transitionedBy: 'PRC-30678',
+      approvalId: 'APR-1003',
+    };
+    req.flush({
+      ...seeded,
+      stage: 'contract',
+      installments: [],
+      stageTransitions: [newTransition],
+    });
+    await advancePromise;
+
+    expect((component as any).stageTransitions()).toEqual([newTransition]);
+  });
 });

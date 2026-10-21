@@ -19,6 +19,12 @@ export interface RegulatoryReport {
 
 export type GatewaySubmissionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
+export const GATEWAY_SUBMISSION_SEVERITY: Record<GatewaySubmissionStatus, StatusSeverity> = {
+  PENDING: 'info',
+  ACCEPTED: 'success',
+  REJECTED: 'danger',
+};
+
 export interface ReportSubmission {
   gatewaySubmissionId: string;
   gatewayStatus: GatewaySubmissionStatus;

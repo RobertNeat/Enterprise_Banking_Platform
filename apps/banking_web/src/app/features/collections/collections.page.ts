@@ -1,17 +1,25 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { CollectionsStore } from './collections.store';
-import { COLLECTIONS_SEVERITY, CollectionsCase } from './collections.model';
+import { COLLECTIONS_SEVERITY, CollectionsAction, CollectionsCase } from './collections.model';
 
 @Component({
   selector: 'app-collections-page',
   standalone: true,
-  imports: [DecimalPipe, ButtonModule, TableModule, TranslatePipe, StatusTagComponent],
+  imports: [
+    DecimalPipe,
+    ButtonModule,
+    DialogModule,
+    TableModule,
+    TranslatePipe,
+    StatusTagComponent,
+  ],
   templateUrl: './collections.page.html',
 })
 export class CollectionsPage {
@@ -46,5 +54,30 @@ export class CollectionsPage {
     } catch {
       this.notify.warn('toast.actionBlocked');
     }
+  }
+
+  // --- Historia akcji windykacyjnych (GET /collections/{id}/actions) ---
+
+  protected readonly actionsDialogOpen = signal(false);
+  protected readonly actionsLoading = signal(false);
+  protected readonly actions = signal<CollectionsAction[]>([]);
+
+  async openActionsDialog(item: CollectionsCase): Promise<void> {
+    this.actionsDialogOpen.set(true);
+    this.actionsLoading.set(true);
+    try {
+      const result = await this.store.findActions(item.id);
+      this.actions.set(result);
+    } catch {
+      this.actions.set([]);
+      this.notify.error('collections.actionsHistory.error');
+    } finally {
+      this.actionsLoading.set(false);
+    }
+  }
+
+  closeActionsDialog(): void {
+    this.actionsDialogOpen.set(false);
+    this.actions.set([]);
   }
 }

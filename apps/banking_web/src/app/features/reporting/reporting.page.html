@@ -91,9 +91,66 @@
                 (click)="checkStatus(r)"
               />
             }
+            <p-button
+              [id]="'reporting-row-' + r.id + '-submissions-history-btn'"
+              [pt]="{ root: { id: 'reporting-row-' + r.id + '-submissions-history-btn-root' } }"
+              [label]="'reporting.submissionsHistory.title' | translate"
+              [text]="true"
+              size="small"
+              severity="secondary"
+              (click)="openSubmissionsDialog(r)"
+            />
           </td>
         </tr>
       }
     </ng-template>
   </p-table>
 </div>
+
+<p-dialog
+  id="reporting-submissions-dialog"
+  [pt]="{ pcCloseButton: { root: { id: 'reporting-submissions-dialog-close-btn' } } }"
+  [visible]="submissionsDialogOpen()"
+  (visibleChange)="$event ? null : closeSubmissionsDialog()"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '48rem', maxWidth: '95vw' }"
+  [header]="'reporting.submissionsHistory.title' | translate"
+>
+  <p-table
+    id="reporting-submissions-table"
+    [value]="submissions()"
+    [rows]="10"
+    [loading]="submissionsLoading()"
+  >
+    <ng-template #header>
+      <tr>
+        <th>{{ 'reporting.submissionsHistory.gatewaySubmissionId' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+        <th>{{ 'reporting.submissionsHistory.submittedAt' | translate }}</th>
+        <th>{{ 'reporting.submissionsHistory.resolvedAt' | translate }}</th>
+        <th>{{ 'reporting.submissionsHistory.validationErrors' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-submission let-i="rowIndex">
+      <tr [id]="'reporting-submissions-row-' + i">
+        <td>{{ submission.gatewaySubmissionId }}</td>
+        <td>
+          <app-status-tag
+            [tagId]="'reporting-submissions-row-' + i + '-status'"
+            [labelKey]="'reporting.submissionsHistory.status.' + submission.gatewayStatus"
+            [severity]="submissionSeverity[submission.gatewayStatus]"
+          />
+        </td>
+        <td>{{ submission.submittedAt }}</td>
+        <td>{{ submission.resolvedAt || '—' }}</td>
+        <td>{{ submission.validationErrors || '—' }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="5" id="reporting-submissions-empty">{{ 'common.noResults' | translate }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-dialog>

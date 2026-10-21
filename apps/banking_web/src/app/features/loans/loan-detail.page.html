@@ -17,6 +17,15 @@
     </p>
   </div>
   <div class="page-header__actions">
+    <p-button
+      id="loan-detail-history-btn"
+      [pt]="{ root: { id: 'loan-detail-history-btn-root' } }"
+      [label]="'common.history' | translate"
+      icon="pi pi-history"
+      severity="secondary"
+      [text]="true"
+      (click)="openHistoryDialog()"
+    />
     @if (canAdvance()) {
       <p-button
         id="loan-detail-advance-stage-btn"
@@ -112,3 +121,42 @@
     </ng-template>
   </p-table>
 </div>
+
+<div class="card-section" id="loan-detail-stage-transitions-section">
+  <h2 id="loan-detail-stage-transitions-title">{{ 'loans.stageTransitions.title' | translate }}</h2>
+  <p-table id="loan-detail-stage-transitions-table" [value]="stageTransitions()" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'loans.stageTransitions.from' | translate }}</th>
+        <th>{{ 'loans.stageTransitions.to' | translate }}</th>
+        <th>{{ 'history.timestamp' | translate }}</th>
+        <th>{{ 'history.actor' | translate }}</th>
+        <th>{{ 'loans.stageTransitions.approvalId' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-transition let-i="rowIndex">
+      <tr [id]="'loan-detail-stage-transitions-row-' + i">
+        <td>{{ transition.fromStage || '—' }}</td>
+        <td>{{ transition.toStage }}</td>
+        <td>{{ transition.transitionedAt }}</td>
+        <td>{{ transition.transitionedBy }}</td>
+        <td>{{ transition.approvalId || '—' }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="5" id="loan-detail-stage-transitions-empty">
+          {{ 'common.noResults' | translate }}
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<app-audit-history-dialog
+  dialogId="loan-detail-history-dialog"
+  [visible]="historyDialogOpen()"
+  [events]="historyStore.events()"
+  [loading]="historyStore.loading()"
+  (visibleChange)="$event ? null : closeHistoryDialog()"
+/>

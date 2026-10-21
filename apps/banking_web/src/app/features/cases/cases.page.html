@@ -59,21 +59,62 @@
             [severity]="severity[item.status]"
           />
         </td>
-        <td>
+        <td class="actions-cell">
+          @if (item.status === 'new') {
+            <p-button
+              [id]="'cases-row-' + item.id + '-start-btn'"
+              [pt]="{ root: { id: 'cases-row-' + item.id + '-start-btn-root' } }"
+              [label]="'cases.start' | translate"
+              [text]="true"
+              size="small"
+              severity="info"
+              (click)="start(item)"
+            />
+          }
+          @if (item.status !== 'resolved') {
+            <p-button
+              [id]="'cases-row-' + item.id + '-resolve-btn'"
+              [pt]="{ root: { id: 'cases-row-' + item.id + '-resolve-btn-root' } }"
+              [label]="'cases.resolve' | translate"
+              [text]="true"
+              size="small"
+              severity="success"
+              (click)="resolve(item)"
+            />
+          }
+          @if (item.status !== 'resolved' && item.status !== 'escalated') {
+            <p-button
+              [id]="'cases-row-' + item.id + '-escalate-btn'"
+              [pt]="{ root: { id: 'cases-row-' + item.id + '-escalate-btn-root' } }"
+              [label]="'cases.escalate' | translate"
+              [text]="true"
+              size="small"
+              severity="danger"
+              (click)="escalate(item)"
+            />
+          }
           <p-button
-            [id]="'cases-row-' + item.id + '-escalate-btn'"
-            [pt]="{ root: { id: 'cases-row-' + item.id + '-escalate-btn-root' } }"
-            [label]="'cases.escalate' | translate"
+            [id]="'cases-row-' + item.id + '-history-btn'"
+            [pt]="{ root: { id: 'cases-row-' + item.id + '-history-btn-root' } }"
+            [label]="'common.history' | translate"
             [text]="true"
             size="small"
-            severity="danger"
-            (click)="escalate(item)"
+            severity="secondary"
+            (click)="openHistoryDialog(item)"
           />
         </td>
       </tr>
     </ng-template>
   </p-table>
 </div>
+
+<app-audit-history-dialog
+  dialogId="cases-history-dialog"
+  [visible]="historyDialogOpen()"
+  [events]="historyStore.events()"
+  [loading]="historyStore.loading()"
+  (visibleChange)="$event ? null : closeHistoryDialog()"
+/>
 
 <app-wizard-dialog
   dialogId="cases-wizard"

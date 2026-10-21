@@ -9,51 +9,30 @@
   <app-kpi-card
     cardId="dashboard-kpi-loans-active"
     labelKey="dashboard.kpi.loansActive"
-    value="18 420"
-    trend="up"
-    trendLabel="+3.2%"
+    [value]="kpiLoansActive()"
   />
   <app-kpi-card
     cardId="dashboard-kpi-loans-value"
     labelKey="dashboard.kpi.loansValue"
-    value="512,4 mln PLN"
-    trend="up"
-    trendLabel="+2.1%"
+    [value]="kpiLoansValue()"
   />
   <app-kpi-card
     cardId="dashboard-kpi-cards-issued"
     labelKey="dashboard.kpi.cardsIssued"
-    value="64 910"
-    trend="up"
-    trendLabel="+1.4%"
+    [value]="kpiCardsIssued()"
   />
-  <app-kpi-card
-    cardId="dashboard-kpi-npl"
-    labelKey="dashboard.kpi.npl"
-    value="3,8%"
-    trend="down"
-    trendLabel="-0.3 p.p."
-  />
-  <app-kpi-card cardId="dashboard-kpi-lcr" labelKey="dashboard.kpi.lcr" value="142%" trend="flat" />
-  <app-kpi-card
-    cardId="dashboard-kpi-nsfr"
-    labelKey="dashboard.kpi.nsfr"
-    value="118%"
-    trend="flat"
-  />
+  <app-kpi-card cardId="dashboard-kpi-npl" labelKey="dashboard.kpi.npl" [value]="kpiNpl()" />
+  <app-kpi-card cardId="dashboard-kpi-lcr" labelKey="dashboard.kpi.lcr" [value]="kpiLcr()" />
+  <app-kpi-card cardId="dashboard-kpi-nsfr" labelKey="dashboard.kpi.nsfr" [value]="kpiNsfr()" />
   <app-kpi-card
     cardId="dashboard-kpi-cases-open"
     labelKey="dashboard.kpi.casesOpen"
-    value="312"
-    trend="down"
-    trendLabel="-18"
+    [value]="kpiCasesOpen()"
   />
   <app-kpi-card
     cardId="dashboard-kpi-collections-overdue"
     labelKey="dashboard.kpi.collectionsOverdue"
-    value="24,6 mln PLN"
-    trend="up"
-    trendLabel="+1.1%"
+    [value]="kpiCollectionsOverdue()"
   />
 </div>
 
@@ -150,6 +129,7 @@
           <th>{{ 'dashboard.ictIncidents.description' | translate }}</th>
           <th>{{ 'dashboard.ictIncidents.createdAt' | translate }}</th>
           <th>{{ 'dashboard.ictIncidents.severity' | translate }}</th>
+          <th></th>
         </tr>
       </ng-template>
       <ng-template #body let-item>
@@ -162,6 +142,19 @@
               [tagId]="'dashboard-ict-incidents-row-' + item.id + '-severity'"
               [labelKey]="'dashboard.ictIncidents.severity.' + item.severity"
               [severity]="ictIncidentSeverity[item.severity]"
+            />
+          </td>
+          <td class="actions-cell">
+            <p-button
+              [id]="'dashboard-ict-incidents-row-' + item.id + '-resolve-btn'"
+              [pt]="{
+                root: { id: 'dashboard-ict-incidents-row-' + item.id + '-resolve-btn-root' },
+              }"
+              [label]="'dashboard.ictIncidents.resolve' | translate"
+              [text]="true"
+              size="small"
+              severity="success"
+              (click)="resolveIctIncident(item)"
             />
           </td>
         </tr>

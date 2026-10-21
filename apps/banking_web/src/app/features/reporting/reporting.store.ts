@@ -2,7 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
-import { RefreshSubmissionStatusResponse, RegulatoryReport } from './reporting.model';
+import {
+  RefreshSubmissionStatusResponse,
+  RegulatoryReport,
+  ReportSubmission,
+} from './reporting.model';
 
 /**
  * Zasilane z banking_backend (GET /reporting/reports). F7 (R4) — submit()/refreshSubmissionStatus()
@@ -46,6 +50,15 @@ export class ReportingStore {
     );
     this.replace(response.report);
     return response;
+  }
+
+  /** GET /reporting/reports/{id}/submissions — historia zgłoszeń do bramy (panel prezentacyjny). */
+  async findSubmissions(id: string): Promise<ReportSubmission[]> {
+    return firstValueFrom(
+      this.http.get<ReportSubmission[]>(
+        `${this.apiBaseUrl.bankingBackend}/reporting/reports/${id}/submissions`,
+      ),
+    );
   }
 
   private replace(report: RegulatoryReport): void {

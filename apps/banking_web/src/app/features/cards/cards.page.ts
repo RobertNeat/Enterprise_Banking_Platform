@@ -11,6 +11,8 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
+import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
+import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
 import { NEUTRAL_TAG_SEVERITY } from '../../shared/utils/status-severity';
 import { CardsStore } from './cards.store';
 import {
@@ -34,6 +36,7 @@ import {
     ReactiveFormsModule,
     TranslatePipe,
     StatusTagComponent,
+    AuditHistoryDialogComponent,
   ],
   templateUrl: './cards.page.html',
 })
@@ -42,6 +45,7 @@ export class CardsPage {
   private readonly fb = inject(FormBuilder);
   private readonly store = inject(CardsStore);
   protected readonly i18n = inject(TranslationService);
+  protected readonly historyStore = inject(AuditHistoryStore);
 
   protected readonly cards = this.store.cards;
   protected readonly authorizations = this.store.authorizations;
@@ -144,5 +148,19 @@ export class CardsPage {
 
   chargebacksForAuthorization(authorizationId: string) {
     return this.chargebacks().filter((cb) => cb.cardAuthorizationId === authorizationId);
+  }
+
+  // --- Ślad audytowy ("Historia") ---
+
+  protected readonly historyDialogOpen = signal(false);
+
+  openHistoryDialog(card: PaymentCard): void {
+    this.historyDialogOpen.set(true);
+    void this.historyStore.load('PAYMENT_CARD', card.id);
+  }
+
+  closeHistoryDialog(): void {
+    this.historyDialogOpen.set(false);
+    this.historyStore.clear();
   }
 }

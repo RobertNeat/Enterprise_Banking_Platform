@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -12,6 +12,8 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
+import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
+import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
 import { PRIORITY_SEVERITY, Priority } from '../../shared/utils/status-severity';
 import { CasesStore } from './cases.store';
 import { CASE_SEVERITY, CustomerCase } from './cases.model';
@@ -36,6 +38,7 @@ type CaseType = (typeof CASE_TYPES)[number];
     InputTextModule,
     SelectModule,
     WizardDialogComponent,
+    AuditHistoryDialogComponent,
   ],
   templateUrl: './cases.page.html',
   styleUrl: './cases.page.css',
@@ -47,6 +50,7 @@ export class CasesPage {
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = inject(ApiBaseUrlService);
   protected readonly i18n = inject(TranslationService);
+  protected readonly historyStore = inject(AuditHistoryStore);
 
   protected readonly cases = this.store.cases;
   protected readonly severity = CASE_SEVERITY;
@@ -180,5 +184,55 @@ export class CasesPage {
     } catch {
       this.notify.error('cases.error.generic');
     }
+  }
+
+  /** CAS lifecycle — only 'new' may start; backend returns 409 otherwise. */
+  async start(item: CustomerCase): Promise<void> {
+    if (item.status !== 'new') {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    try {
+      await this.store.start(item.id);
+      this.notify.success('toast.saved');
+    } catch (error) {
+      this.handleActionError(error);
+    }
+  }
+
+  /** CAS lifecycle — 'new'/'inProgress'/'escalated' may resolve; backend returns 409 if already resolved. */
+  async resolve(item: CustomerCase): Promise<void> {
+    if (item.status === 'resolved') {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    try {
+      await this.store.resolve(item.id);
+      this.notify.success('toast.saved');
+    } catch (error) {
+      this.handleActionError(error);
+    }
+  }
+
+  private handleActionError(error: unknown): void {
+    if (error instanceof HttpErrorResponse && error.status === 409) {
+      this.notify.warn('toast.actionBlocked');
+      return;
+    }
+    this.notify.error('cases.error.generic');
+  }
+
+  // --- Ślad audytowy ("Historia") ---
+
+  protected readonly historyDialogOpen = signal(false);
+
+  openHistoryDialog(item: CustomerCase): void {
+    this.historyDialogOpen.set(true);
+    void this.historyStore.load('CUSTOMER_CASE', item.id);
+  }
+
+  closeHistoryDialog(): void {
+    this.historyDialogOpen.set(false);
+    this.historyStore.clear();
   }
 }

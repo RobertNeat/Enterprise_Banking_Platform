@@ -66,6 +66,15 @@
               (click)="openTransferDialog(item)"
             />
           }
+          <p-button
+            [id]="'enforcement-row-' + item.id + '-history-btn'"
+            [pt]="{ root: { id: 'enforcement-row-' + item.id + '-history-btn-root' } }"
+            [label]="'common.history' | translate"
+            [text]="true"
+            size="small"
+            severity="secondary"
+            (click)="openHistoryDialog(item)"
+          />
         </td>
       </tr>
     </ng-template>
@@ -290,3 +299,11 @@
     />
   </div>
 </p-dialog>
+
+<app-audit-history-dialog
+  dialogId="enforcement-history-dialog"
+  [visible]="historyDialogOpen()"
+  [events]="historyStore.events()"
+  [loading]="historyStore.loading()"
+  (visibleChange)="$event ? null : closeHistoryDialog()"
+/>

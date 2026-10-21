@@ -1,6 +1,8 @@
 package robert_neat.banking_backend.dashboard;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,5 +41,11 @@ public class DashboardController {
     @GetMapping("/ict-incidents")
     public List<IctIncidentAlertDto> findIctIncidentAlerts() {
         return dashboardService.findIctIncidentAlerts();
+    }
+
+    /** DSH-05 — proxy to governance_mock's POST /ict-incidents/{id}/resolve. */
+    @PostMapping("/ict-incidents/{id}/resolve")
+    public IctIncidentAlertDto resolveIctIncident(@PathVariable String id) {
+        return dashboardService.resolveIctIncident(id);
     }
 }

@@ -74,4 +74,36 @@ describe('CasesStore', () => {
     expect(result.escalated).toBe(true);
     expect(store.cases()[0].status).toBe('escalated');
   });
+
+  it('start() posts to /cases/{id}/start and replaces the case with the updated status', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/cases`).flush(CUSTOMER_CASES);
+
+    const updated = { ...CUSTOMER_CASES[0], status: 'inProgress' as const };
+    const promise = store.start(CUSTOMER_CASES[0].id);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/cases/${CUSTOMER_CASES[0].id}/start`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(updated);
+    const result = await promise;
+
+    expect(result.status).toBe('inProgress');
+    expect(store.cases()[0].status).toBe('inProgress');
+  });
+
+  it('resolve() posts to /cases/{id}/resolve and replaces the case with the updated status', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/cases`).flush(CUSTOMER_CASES);
+
+    const updated = { ...CUSTOMER_CASES[0], status: 'resolved' as const };
+    const promise = store.resolve(CUSTOMER_CASES[0].id);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/cases/${CUSTOMER_CASES[0].id}/resolve`,
+    );
+    expect(req.request.method).toBe('POST');
+    req.flush(updated);
+    const result = await promise;
+
+    expect(result.status).toBe('resolved');
+    expect(store.cases()[0].status).toBe('resolved');
+  });
 });

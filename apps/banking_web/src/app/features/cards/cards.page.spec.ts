@@ -86,4 +86,23 @@ describe('CardsPage', () => {
 
     expect((page as any).chargebackDialogOpen()).toBe(false);
   });
+
+  it('openHistoryDialog() opens the dialog and loads audit events scoped to PAYMENT_CARD', () => {
+    const page = createPage();
+    const card = PAYMENT_CARDS.find((c) => c.id === 'CRD-5521')!;
+
+    page.openHistoryDialog(card);
+    expect((page as any).historyDialogOpen()).toBe(true);
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${apiBaseUrl.bankingBackend}/audit-events` &&
+        r.params.get('entityType') === 'PAYMENT_CARD' &&
+        r.params.get('entityId') === 'CRD-5521',
+    );
+    req.flush([]);
+
+    page.closeHistoryDialog();
+    expect((page as any).historyDialogOpen()).toBe(false);
+  });
 });

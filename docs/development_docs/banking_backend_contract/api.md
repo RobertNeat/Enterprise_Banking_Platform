@@ -112,6 +112,36 @@ wywołanie `governance_mock`, poza zakresem tego proxy):
 - `404`/`409` przekazane 1:1 z `governance_mock` (nieznany approval / już zdecydowany).
 - `200 OK` sukces, zwraca zaktualizowany wpis (jak `GET /approvals/{id}`).
 
+## GET /audit-events (proxy do governance_mock)
+
+Proxy do `governance_mock`'s `GET /audit-events?entityType&entityId` — ślad audytowy zapisywany przez
+`recordAuditEvent` (approvals/GovernanceClient). Oba query param opcjonalne; gdy puste/`null`,
+`GovernanceClient.listAuditEvents` CAŁKOWICIE je pomija w zapytaniu do `governance_mock` (nie wysyła
+pustego stringa) — `governance_mock`'s `AuditService.list` porównuje `entityType`/`entityId` przez
+`equalsIgnoreCase`/`equals`, więc puste wartości dopasowałyby się do niczego i zwróciły `[]` zamiast
+"brak filtra" (ten sam wzorzec co `listApprovals` ze `status`). Backend niczego nie
+wzbogaca/filtruje — czysty proxy. Wymaga JWT. `GovernanceUnavailableException` → `503` (jak w
+`/approvals`). Zasila dialog „Historia” w widokach szczegółów wniosku, sprawy, karty i zajęcia.
+
+```json
+[
+  {
+    "id": "uuid", "actor": "PRC-10234", "action": "LOAN_STAGE_CHANGED",
+    "entityType": "LOAN_APPLICATION", "entityId": "LN-80203",
+    "timestamp": "2026-10-10 10:00", "details": "application -> decision"
+  }
+]
+```
+
+`timestamp` jest sformatowany przez backend na `yyyy-MM-dd HH:mm` w strefie `Europe/Warsaw` (ta sama
+konwencja co `EbankingUserDto.lastLogin`, zob. `common/BankTimeZone`) — frontend wyświetla string
+bez własnej konwersji strefy czasowej.
+
+Wartości `entityType` używane dziś przez producentów zdarzeń (do przekazania z frontendu):
+`LOAN_APPLICATION` (wnioski kredytowe), `CUSTOMER_CASE` (sprawy), `PAYMENT_CARD` (karty),
+`ENFORCEMENT_CASE` (zajęcia). `entityId` to id encji (np. `loanId`/`caseId`/`cardId`/
+`enforcementCaseId`).
+
 ## Macierz pokrycia pól (widok → model TS → backend)
 
 Reguły spłaszczania wspólne dla całego kontraktu:
@@ -147,8 +177,8 @@ Reguły spłaszczania wspólne dla całego kontraktu:
 `loan-detail.page.ts` zagnieżdża harmonogram (`Installment[]`, pola `no/dueDate/principal/interest/status`)
 i etapy (`LOAN_STAGES`, stepper UI). Endpoint szczegółu zwraca jedną odpowiedź złożoną: wniosek +
 `installments` (z `installment` tabeli, `installmentNo`→`no`) + `stageTransitions` (z
-`loan_stage_transition`, dodatkowe pole nieużywane dziś przez UI, ale wystawione bo "zasilamy
-wszystkim do czego backend ma dostęp" — patrz sekcja DTO niżej).
+`loan_stage_transition`) — renderowane jako osobna sekcja (tabela przejść etapów, sortowana po
+`transitionedAt`) pod harmonogramem spłat.
 
 **GAP (udokumentowany, bez zmiany schematu):** tylko 2 z 13 wniosków (`LN-80231`, `LN-80203`) mają
 realne wiersze w `installment`. Pozostałe 11 (w tym 5 zaślepek z `collections.data.ts`) nie mają
@@ -220,8 +250,8 @@ demo z realnym zegarem po prostu przegapiło zakotwiczone terminy seeda.
 | `outstandingAmount` | `collections_case.outstanding_amount` |
 | `stage` | `collections_case.stage` |
 
-`collections_action` (historia wezwań/ugód) bez konsumenta na liście — wystawiona pod
-`/collections/{id}/actions`.
+`collections_action` (historia wezwań/ugód) — `GET /collections/{id}/actions`, panel "Historia akcji
+windykacyjnych" w dialogu na liście.
 
 ### contact-center (`contact-center.page.ts`)
 
@@ -274,8 +304,8 @@ zawsze `CUST-001`, przyszła iteracja może dodać wybór klienta w UI).
 | `dueDate` | `regulatory_report.due_date` |
 | `status` | `regulatory_report.status` |
 
-`report_submission` (historia zgłoszeń do bramy) bez konsumenta na liście — wystawiona pod
-`/reporting/{id}/submissions`.
+`report_submission` (historia zgłoszeń do bramy, z `validationErrors`) — `GET /reporting/reports/{id}/submissions`,
+panel "Historia zgłoszeń do bramy" w dialogu na liście.
 
 ### risk (`risk.page.ts`)
 
@@ -307,15 +337,13 @@ po `createdAt` desc robi `DashboardService`, nie governance_mock). Pola: `id`, `
 `severity` (`LOW|MEDIUM|HIGH`), `createdAt`. `GovernanceUnavailableException` → `503` (jak w `/approvals`).
 Konsumowane przez `dashboard.page.ts` w osobnej karcie "Incydenty ICT (DORA)" obok Alertów regulacyjnych.
 
-KPI kafelki (`app-kpi-card`) i wykresy (`trendData`, `productData`) są dziś hardkodowanymi literałami
-w `dashboard.page.ts` bez importu z `.data.ts` i bez żadnego konsumenta backendu obecnie. Backend
-wystawia `GET /dashboard/kpi-snapshot/latest` (najnowszy wiersz `dashboard_kpi_snapshot` po
-`snapshot_date`) i `GET /dashboard/portfolio-trend` (wszystkie `portfolio_trend_point`, sort po
-`snapshot_date`), bo backend ma do tych danych dostęp — **ale `dashboard.page.ts` NIE jest przepisany
-na ich konsumowanie** w tej iteracji: zamiana literałów na dynamiczne wykresy wymagałaby zmiany
-struktury widoku (inny zestaw miesięcy/kategorii niż w migawce, inny typ wykresu), co wykracza poza
-„zasilenie istniejących widoków danymi" zgodnie z briefem zadania. Endpointy są gotowe do podłączenia
-w przyszłej iteracji.
+KPI kafelki (`app-kpi-card`) i wykres trendu (`trendData`) konsumują `GET /dashboard/kpi-snapshot/latest`
+(najnowszy wiersz `dashboard_kpi_snapshot` po `snapshot_date`; `404` jeśli brak danych — kafelki wtedy
+pokazują placeholder `—`) i `GET /dashboard/portfolio-trend` (wszystkie `portfolio_trend_point`, sort
+po `snapshot_date` asc, robi to backend). Wykres "portfel wg produktu" (`productData`) agreguje
+`GET /loans` po polu `product` na frontendzie (backend nie wystawia takiej agregacji). Różnica skali
+między migawką KPI (dziesiątki tysięcy kredytów) a wykresem produktów (13 wniosków z seeda) jest
+zamierzona, zob. `services/banking_backend.md` pkt 22.
 
 ### Pozostałe encje bez widoku-konsumenta (wystawione bo backend ma do nich dostęp)
 

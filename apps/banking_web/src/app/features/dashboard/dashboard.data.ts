@@ -89,6 +89,49 @@ export const REGULATORY_ALERTS: RegulatoryAlert[] = [
   },
 ];
 
+/** GET /dashboard/kpi-snapshot/latest response shape — 404 when no snapshot is seeded. */
+export interface KpiSnapshot {
+  snapshotDate: string;
+  activeLoansCount: number;
+  loanPortfolioTotal: number;
+  cardsIssuedCount: number;
+  nplRatio: number;
+  lcrRatio: number;
+  nsfrRatio: number;
+  openCasesCount: number;
+  collectionsOverdueTotal: number;
+}
+
+/** GET /dashboard/portfolio-trend response shape — all points, sorted by snapshotDate asc server-side. */
+export interface PortfolioTrendPoint {
+  snapshotDate: string;
+  portfolioTotal: number;
+}
+
+export const KPI_SNAPSHOT: KpiSnapshot = {
+  snapshotDate: '2026-10-05',
+  activeLoansCount: 18420,
+  loanPortfolioTotal: 512400000.0,
+  cardsIssuedCount: 64910,
+  nplRatio: 3.8,
+  lcrRatio: 142.0,
+  nsfrRatio: 118.0,
+  openCasesCount: 312,
+  collectionsOverdueTotal: 24600000.0,
+};
+
+export const PORTFOLIO_TREND: PortfolioTrendPoint[] = [
+  { snapshotDate: '2026-01-05', portfolioTotal: 412000000.0 },
+  { snapshotDate: '2026-02-05', portfolioTotal: 428000000.0 },
+  { snapshotDate: '2026-03-05', portfolioTotal: 441000000.0 },
+  { snapshotDate: '2026-04-05', portfolioTotal: 455000000.0 },
+  { snapshotDate: '2026-05-05', portfolioTotal: 468000000.0 },
+  { snapshotDate: '2026-06-05', portfolioTotal: 479000000.0 },
+  { snapshotDate: '2026-07-05', portfolioTotal: 491000000.0 },
+  { snapshotDate: '2026-08-05', portfolioTotal: 503000000.0 },
+  { snapshotDate: '2026-09-05', portfolioTotal: 512000000.0 },
+];
+
 export const ICT_INCIDENTS: IctIncidentAlert[] = [
   {
     id: 'inc-1',

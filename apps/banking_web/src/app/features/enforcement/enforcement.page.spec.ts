@@ -91,4 +91,24 @@ describe('EnforcementPage', () => {
 
     expect(errorSpy).toHaveBeenCalledWith('enforcement.error.forbidden');
   });
+
+  it('openHistoryDialog() opens the dialog and loads audit events scoped to ENFORCEMENT_CASE', () => {
+    storeSession('PRC-30678', 1);
+    const page = createPage();
+    const item = ENFORCEMENT_CASES[0];
+
+    page.openHistoryDialog(item);
+    expect((page as any).historyDialogOpen()).toBe(true);
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${apiBaseUrl.bankingBackend}/audit-events` &&
+        r.params.get('entityType') === 'ENFORCEMENT_CASE' &&
+        r.params.get('entityId') === item.id,
+    );
+    req.flush([]);
+
+    page.closeHistoryDialog();
+    expect((page as any).historyDialogOpen()).toBe(false);
+  });
 });

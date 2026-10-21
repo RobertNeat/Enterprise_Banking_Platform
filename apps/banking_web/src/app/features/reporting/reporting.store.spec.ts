@@ -69,4 +69,27 @@ describe('ReportingStore', () => {
 
     expect(store.reports().find((r) => r.id === report.id)?.status).toBe('accepted');
   });
+
+  it('findSubmissions() gets /reporting/reports/{id}/submissions', async () => {
+    httpMock.expectOne(`${apiBaseUrl.bankingBackend}/reporting/reports`).flush(REGULATORY_REPORTS);
+    const report = REGULATORY_REPORTS[1]; // RPT-NBP-014
+    const submissions = [
+      {
+        gatewaySubmissionId: 'sub-1',
+        gatewayStatus: 'ACCEPTED',
+        validationErrors: null,
+        submittedAt: '2026-10-03T11:00:00Z',
+        resolvedAt: '2026-10-03T11:05:00Z',
+      },
+    ];
+
+    const promise = store.findSubmissions(report.id);
+    const req = httpMock.expectOne(
+      `${apiBaseUrl.bankingBackend}/reporting/reports/${report.id}/submissions`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush(submissions);
+
+    expect(await promise).toEqual(submissions);
+  });
 });

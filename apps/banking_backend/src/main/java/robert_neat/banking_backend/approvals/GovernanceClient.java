@@ -127,6 +127,43 @@ public class GovernanceClient {
         return responses == null ? List.of() : List.of(responses);
     }
 
+    /**
+     * Mirrors POST /ict-incidents/{id}/resolve — DSH-05 write-side of the dashboard's ICT
+     * incidents card. governance_mock returns 404 for an unknown id and 409 if already resolved;
+     * both surface through GovernanceException via the existing exchange() mapping.
+     */
+    public GovernanceIctIncidentResponse resolveIctIncident(String id) {
+        return exchange(() -> restClient.post()
+                .uri("/ict-incidents/{id}/resolve", id)
+                .retrieve()
+                .body(GovernanceIctIncidentResponse.class));
+    }
+
+    /**
+     * Mirrors GET /audit-events?entityType&entityId — read-side of the audit trail that
+     * recordAuditEvent writes to. Used by the "Historia" dialog on loan/case/card/enforcement
+     * detail views. Both params are optional upstream, but a blank one must be OMITTED from the
+     * request rather than sent as an empty string: governance_mock's AuditService.list() compares
+     * entityType/entityId with equalsIgnoreCase/equals, so an empty string would match nothing and
+     * silently return [] instead of "no filter" (same pitfall listApprovals avoids for status).
+     */
+    public List<GovernanceAuditEventResponse> listAuditEvents(String entityType, String entityId) {
+        GovernanceAuditEventResponse[] responses = exchange(() -> restClient.get()
+                .uri(uriBuilder -> {
+                    uriBuilder.path("/audit-events");
+                    if (entityType != null && !entityType.isBlank()) {
+                        uriBuilder.queryParam("entityType", entityType);
+                    }
+                    if (entityId != null && !entityId.isBlank()) {
+                        uriBuilder.queryParam("entityId", entityId);
+                    }
+                    return uriBuilder.build();
+                })
+                .retrieve()
+                .body(GovernanceAuditEventResponse[].class));
+        return responses == null ? List.of() : List.of(responses);
+    }
+
     private <T> T exchange(Supplier<T> call) {
         try {
             return call.get();

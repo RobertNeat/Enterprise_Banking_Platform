@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
-import { CollectionsCase } from './collections.model';
+import { CollectionsAction, CollectionsCase } from './collections.model';
 
 /**
  * Zasilane z banking_backend (GET /collections). F3 (R4) — remind/proposeSettlement/
@@ -36,6 +36,15 @@ export class CollectionsStore {
   /** 409 if the case is still 'monitoring'/'reminder'. */
   async transferExternal(id: string): Promise<CollectionsCase> {
     return this.postAction(id, 'transfer-external');
+  }
+
+  /** GET /collections/{id}/actions — historia akcji windykacyjnych (panel prezentacyjny). */
+  async findActions(id: string): Promise<CollectionsAction[]> {
+    return firstValueFrom(
+      this.http.get<CollectionsAction[]>(
+        `${this.apiBaseUrl.bankingBackend}/collections/${id}/actions`,
+      ),
+    );
   }
 
   private async postAction(id: string, action: string): Promise<CollectionsCase> {

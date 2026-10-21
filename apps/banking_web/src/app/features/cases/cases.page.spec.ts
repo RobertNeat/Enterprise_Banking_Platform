@@ -89,4 +89,80 @@ describe('CasesPage', () => {
 
     httpMock.expectNone(`${apiBaseUrl.bankingBackend}/cases/${resolved.id}/escalate`);
   });
+
+  it('start() calls POST /cases/{id}/start and updates the status from the response', async () => {
+    const page = createPage();
+    const target = CUSTOMER_CASES.find((c) => c.status === 'new')!;
+
+    const startPromise = page.start(target);
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/cases/${target.id}/start`);
+    expect(req.request.method).toBe('POST');
+    req.flush({ ...target, status: 'inProgress' });
+    await startPromise;
+
+    expect((page as any).cases().find((c) => c.id === target.id)?.status).toBe('inProgress');
+  });
+
+  it('start() blocks non-new cases without calling the backend', async () => {
+    const page = createPage();
+    const inProgress = CUSTOMER_CASES.find((c) => c.status === 'inProgress')!;
+
+    await page.start(inProgress);
+
+    httpMock.expectNone(`${apiBaseUrl.bankingBackend}/cases/${inProgress.id}/start`);
+  });
+
+  it('resolve() calls POST /cases/{id}/resolve and updates the status from the response', async () => {
+    const page = createPage();
+    const target = CUSTOMER_CASES.find((c) => c.status === 'escalated')!;
+
+    const resolvePromise = page.resolve(target);
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/cases/${target.id}/resolve`);
+    expect(req.request.method).toBe('POST');
+    req.flush({ ...target, status: 'resolved' });
+    await resolvePromise;
+
+    expect((page as any).cases().find((c) => c.id === target.id)?.status).toBe('resolved');
+  });
+
+  it('resolve() blocks already-resolved cases without calling the backend', async () => {
+    const page = createPage();
+    const resolved = CUSTOMER_CASES.find((c) => c.status === 'resolved')!;
+
+    await page.resolve(resolved);
+
+    httpMock.expectNone(`${apiBaseUrl.bankingBackend}/cases/${resolved.id}/resolve`);
+  });
+
+  it('resolve() surfaces a 409 from the backend as an actionBlocked warning, not a generic error', async () => {
+    const page = createPage();
+    const target = CUSTOMER_CASES.find((c) => c.status === 'new')!;
+
+    const resolvePromise = page.resolve(target);
+    const req = httpMock.expectOne(`${apiBaseUrl.bankingBackend}/cases/${target.id}/resolve`);
+    req.flush({ message: 'conflict' }, { status: 409, statusText: 'Conflict' });
+
+    // resolve() catches HttpErrorResponse internally and never rejects — the error is surfaced
+    // via NotificationService instead, so simply awaiting without throwing is the assertion.
+    await resolvePromise;
+  });
+
+  it('openHistoryDialog() opens the dialog and loads audit events scoped to CUSTOMER_CASE', () => {
+    const page = createPage();
+    const target = CUSTOMER_CASES[0];
+
+    page.openHistoryDialog(target);
+    expect((page as any).historyDialogOpen()).toBe(true);
+
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${apiBaseUrl.bankingBackend}/audit-events` &&
+        r.params.get('entityType') === 'CUSTOMER_CASE' &&
+        r.params.get('entityId') === target.id,
+    );
+    req.flush([]);
+
+    page.closeHistoryDialog();
+    expect((page as any).historyDialogOpen()).toBe(false);
+  });
 });

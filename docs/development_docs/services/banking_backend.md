@@ -315,7 +315,9 @@ punktu; status poniżej odzwierciedla wynik.
     źródłem pomyłek przy przyszłych zmianach danych demo.
 22. Skala migawki `dashboard_kpi_snapshot`/`portfolio_trend_point` (dziesiątki tysięcy kredytów/kart,
     setki milionów PLN) jest o rzędy wielkości większa niż liczba wierszy w pozostałych seedach
-    (13 wniosków kredytowych, 5 kart) — zgodne 1:1 z `dashboard.page.html`/`.ts` i z opisem w
+    (13 wniosków kredytowych, 5 kart). `dashboard.page.ts` konsumuje oba zbiory równolegle: kafelki
+    KPI i wykres trendu z migawki, wykres "portfel wg produktu" z agregacji `GET /loans` po `product`
+    (policzalne ze stanu seeda). Różnica skali między tymi dwoma wykresami jest zgodna z opisem w
     `data_model.md` ("migawka niewyliczalna z innych tabel w tej iteracji"), czyli świadoma decyzja
     architektoniczna, nie błąd. Odnotowane, żeby nikt później nie próbował "naprawiać" sumowania.
 
@@ -392,6 +394,14 @@ mocków (zob. F4/F6/F7 niżej), odczyt przez `dashboard/DashboardService.findIct
 `GET /dashboard/ict-incidents` zwraca TOP 5 najnowszych incydentów `OPEN`, konsumowane przez osobną
 kartę na pulpicie obok alertów regulacyjnych.
 
+`AuditEventsController`/`GET /audit-events?entityType&entityId` — proxy czystego odczytu do
+`governance_mock`'s `GET /audit-events`, zasila dialog „Historia” we `banking_web` (loan-detail,
+cases, cards, enforcement — zob. `shared/audit-history/*` we frontendzie). Oba parametry opcjonalne;
+`GovernanceClient.listAuditEvents` pomija blank/`null` param w zapytaniu do `governance_mock`
+CAŁKOWICIE (nie wysyła go jako pusty string) — `governance_mock`'s filtr robi
+`equalsIgnoreCase`/`equals`, więc pusty string dopasowałby się do niczego i zwrócił `[]` zamiast "brak
+filtra" (ten sam wzorzec co `listApprovals` ze `status`).
+
 Reguła maker-checker wymuszana PO STRONIE BACKENDU (nie tylko UI), w `ApprovalsService.decide()`:
 1. `requestedBy` approvala (zawsze `employeeId` typu `PRC-xxxxx`) jest tą samą osobą co wołający →
    403 (self-approval), bez wołania `governance_mock`.
@@ -459,7 +469,7 @@ request/response. Przepływ:
 
 ### F8 — sprawa klienta: termin ustawowy, SLA, eskalacja (R2)
 
-`cases/CaseActionsService` rozszerza `CaseController`/`CaseService` o dwa mutujące endpointy:
+`cases/CaseActionsService` rozszerza `CaseController`/`CaseService` o cztery mutujące endpointy:
 
 1. `POST /cases` — **termin ustawowy i SLA są wyliczane przez backend, nie przyjmowane z
    formularza** (zgodnie z `docs/banking_web_functions(concise).md`, sekcja "Sprawy klientów i
@@ -482,6 +492,17 @@ request/response. Przepływ:
    `escalationSource='MANUAL'`. Oba przypadki ustawiają `status='escalated'`. `409` jeśli sprawa jest
    już `escalated` lub `resolved` (governance_mock nie deduplikuje wpisów audytowych dla powtórnych
    wywołań tej samej sprawy — bez tego gate'u klik dwa razy na "Eskaluj" dopisałby drugi audit event).
+3. `POST /cases/{id}/start` — tylko `new`→`inProgress`, `409` w każdym innym statusie. Zapisuje
+   `recordAuditEvent(action=CASE_STATUS_CHANGED, details="new -> inProgress")` przed zapisem encji.
+4. `POST /cases/{id}/resolve` — `new`/`inProgress`/`escalated`→`resolved`, `409` jeśli sprawa jest już
+   `resolved` (status terminalny). Sprawa nigdy nie wychodzi z `escalated` inaczej niż przez `resolve`
+   — na tym będzie oparta deduplikacja planowanej automatycznej eskalacji SLA (`@Scheduled`, filtr
+   `status IN ('new','inProgress')`). Zapisuje `recordAuditEvent(action=CASE_STATUS_CHANGED,
+   details="<fromStatus> -> resolved")`, nie nadpisuje `escalatedAt`/`escalationSource`/
+   `governanceAuditEventId` (to pola historii eskalacji, nie resolve). Przyciski "Rozpocznij"/"Zamknij"
+   w wierszu listy (`banking_web` `features/cases/cases.page.*`) są widoczne zależnie od statusu
+   wiersza; `escalate`/`start`/`resolve` w `cases.store.ts` POST-ują i podstawiają zwrócony DTO w
+   sygnale listy.
 
 **Wzorzec do ponownego użycia w R3/R4**: obsługa niedostępności mocka (connection refused →
 dedykowany `*UnavailableException` → `503`; 4xx mocka → przekazanie 1:1 statusu/komunikatu) jest

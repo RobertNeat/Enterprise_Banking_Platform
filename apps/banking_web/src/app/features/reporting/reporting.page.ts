@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { ReportingStore } from './reporting.store';
-import { REPORT_SEVERITY } from './reporting.model';
+import { GATEWAY_SUBMISSION_SEVERITY, REPORT_SEVERITY, ReportSubmission } from './reporting.model';
 import { buildReportsCsv } from './reporting.csv';
 
 @Component({
@@ -18,6 +19,7 @@ import { buildReportsCsv } from './reporting.csv';
   imports: [
     FormsModule,
     ButtonModule,
+    DialogModule,
     SelectModule,
     TableModule,
     TranslatePipe,
@@ -33,6 +35,7 @@ export class ReportingPage {
 
   protected readonly reports = this.store.reports;
   protected readonly severity = REPORT_SEVERITY;
+  protected readonly submissionSeverity = GATEWAY_SUBMISSION_SEVERITY;
   protected readonly recipientFilter = signal<string>('all');
 
   protected readonly recipientOptions = [
@@ -95,5 +98,30 @@ export class ReportingPage {
     } catch {
       this.notify.error('reporting.error.generic');
     }
+  }
+
+  // --- Historia zgłoszeń do bramy (GET /reporting/reports/{id}/submissions) ---
+
+  protected readonly submissionsDialogOpen = signal(false);
+  protected readonly submissionsLoading = signal(false);
+  protected readonly submissions = signal<ReportSubmission[]>([]);
+
+  async openSubmissionsDialog(report: { id: string }): Promise<void> {
+    this.submissionsDialogOpen.set(true);
+    this.submissionsLoading.set(true);
+    try {
+      const result = await this.store.findSubmissions(report.id);
+      this.submissions.set(result);
+    } catch {
+      this.submissions.set([]);
+      this.notify.error('reporting.submissionsHistory.error');
+    } finally {
+      this.submissionsLoading.set(false);
+    }
+  }
+
+  closeSubmissionsDialog(): void {
+    this.submissionsDialogOpen.set(false);
+    this.submissions.set([]);
   }
 }

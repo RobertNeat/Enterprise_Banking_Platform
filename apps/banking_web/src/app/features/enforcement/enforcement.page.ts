@@ -15,6 +15,8 @@ import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { AuthService } from '../../core/services/auth.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
+import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
+import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
 import { EnforcementStore } from './enforcement.store';
 import { ENFORCEMENT_SEVERITY, EnforcementCase } from './enforcement.model';
 
@@ -41,6 +43,7 @@ interface CustomerOption {
     TranslatePipe,
     StatusTagComponent,
     WizardDialogComponent,
+    AuditHistoryDialogComponent,
   ],
   templateUrl: './enforcement.page.html',
 })
@@ -51,6 +54,7 @@ export class EnforcementPage {
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = inject(ApiBaseUrlService);
   private readonly auth = inject(AuthService);
+  protected readonly historyStore = inject(AuditHistoryStore);
 
   private readonly wizard = viewChild.required(WizardDialogComponent);
 
@@ -257,5 +261,19 @@ export class EnforcementPage {
       details: { customer: null, bailiff: '', caseNumber: '' },
       amounts: { blockedAmount: 0, protectedAmount: DEFAULT_PROTECTED_AMOUNT },
     });
+  }
+
+  // --- Ślad audytowy ("Historia") ---
+
+  protected readonly historyDialogOpen = signal(false);
+
+  openHistoryDialog(item: EnforcementCase): void {
+    this.historyDialogOpen.set(true);
+    void this.historyStore.load('ENFORCEMENT_CASE', item.id);
+  }
+
+  closeHistoryDialog(): void {
+    this.historyDialogOpen.set(false);
+    this.historyStore.clear();
   }
 }

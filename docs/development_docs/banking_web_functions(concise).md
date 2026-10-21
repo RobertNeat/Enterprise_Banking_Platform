@@ -26,6 +26,7 @@ Zestawienie funkcji mających solidne pokrycie w UI (ekran + podłączony handle
 - <a id="krd-03"></a>**[KRD-03]** Przesuwanie wniosku do kolejnego etapu cyklu życia
 - <a id="krd-04"></a>**[KRD-04]** Harmonogram spłat (kapitał, odsetki, status raty)
 - <a id="krd-05"></a>**[KRD-05]** Nowy wniosek kredytowy — kreator 4-etapowy (wnioskodawca → produkt i kwota → scoring i DSTI → podsumowanie)
+- <a id="krd-06"></a>**[KRD-06]** Dialog „Historia” — ślad audytowy wniosku (`GET /audit-events?entityType=LOAN_APPLICATION`)
 
 ## Karty płatnicze
 
@@ -33,6 +34,7 @@ Zestawienie funkcji mających solidne pokrycie w UI (ekran + podłączony handle
 - <a id="krt-02"></a>**[KRT-02]** Blokada / odblokowanie karty
 - <a id="krt-03"></a>**[KRT-03]** Zgłoszenie chargebacku (symulacja)
 - <a id="krt-04"></a>**[KRT-04]** Lista ostatnich autoryzacji karty
+- <a id="krt-05"></a>**[KRT-05]** Dialog „Historia” — ślad audytowy karty (`GET /audit-events?entityType=PAYMENT_CARD`)
 
 ## Ryzyko kredytowe
 
@@ -56,6 +58,7 @@ Zestawienie funkcji mających solidne pokrycie w UI (ekran + podłączony handle
 - <a id="zjc-01"></a>**[ZJC-01]** Lista zajęć komorniczych (komornik, sygnatura, kwoty, status)
 - <a id="zjc-02"></a>**[ZJC-02]** Przekazanie należności do organu (tylko dla zajęć aktywnych)
 - <a id="zjc-03"></a>**[ZJC-03]** Rejestracja nowego zajęcia — kreator 3-etapowy (komornik i sprawa → kwoty → podsumowanie)
+- <a id="zjc-04"></a>**[ZJC-04]** Dialog „Historia” — ślad audytowy zajęcia (`GET /audit-events?entityType=ENFORCEMENT_CASE`)
 
 ## Raportowanie
 
@@ -68,6 +71,7 @@ Zestawienie funkcji mających solidne pokrycie w UI (ekran + podłączony handle
 - <a id="cas-01"></a>**[CAS-01]** Lista spraw z priorytetem, terminem ustawowym i pozostałym czasem SLA
 - <a id="cas-02"></a>**[CAS-02]** Eskalacja sprawy
 - <a id="cas-03"></a>**[CAS-03]** Rejestracja nowej sprawy — kreator 3-etapowy (dane sprawy → priorytet i terminy → podsumowanie)
+- <a id="cas-04"></a>**[CAS-04]** Dialog „Historia” — ślad audytowy sprawy (`GET /audit-events?entityType=CUSTOMER_CASE`)
 
 ## Windykacja
 
@@ -90,11 +94,14 @@ Część funkcji UI pozostaje bez integracji backendowej — nie są to usterki,
 niepodłączone w tej iteracji: czat z klientem [KKT-04](#kkt-04) (czysto frontendowa symulacja, brak
 tabeli), eksport CSV raportów [RPT-02](#rpt-02) (ogólny CSV, nie format FATCA/CRS — backend nigdy nie
 woła `POST /fatca-crs/export`, mimo że ten endpoint istnieje w `external_institutions_gateway_mock`),
-kafelki KPI i wykresy na pulpicie ([DSH-01](#dsh-01)/[DSH-02](#dsh-02)/[DSH-03](#dsh-03) — nadal
-literały w `dashboard.page.ts`, mimo że backend wystawia `GET /dashboard/kpi-snapshot/latest` i
-`GET /dashboard/portfolio-trend`), oraz harmonogram spłat dla wniosków bez wierszy w `installment`
-([KRD-04](#krd-04) — fallback: generowany runtime we frontendzie, zob. GAP w
-`docs/banking_backend_contract/api.md`).
+oraz harmonogram spłat dla wniosków bez wierszy w `installment` ([KRD-04](#krd-04) — fallback:
+generowany runtime we frontendzie, zob. GAP w `docs/banking_backend_contract/api.md`).
+
+Kafelki KPI i wykresy na pulpicie ([DSH-01](#dsh-01)/[DSH-02](#dsh-02)/[DSH-03](#dsh-03)) są
+podłączone pod `GET /dashboard/kpi-snapshot/latest` (kafelki KPI), `GET /dashboard/portfolio-trend`
+(wykres trendu portfela) i agregację `GET /loans` po `product` na frontendzie (wykres "portfel wg
+produktu") — różnica skali między migawką KPI a liczbą wniosków kredytowych jest zamierzona, zob.
+`services/banking_backend.md` pkt 22.
 
 ---
 
@@ -377,9 +384,11 @@ sequenceDiagram
 
 `BB->>CR: Przelicza koszyk IFRS 9` jest akcją ręczną (`POST /risk/collateral/{id}/reclassify`, pracownik
 wpisuje `daysPastDue` w UI), nie automatycznym przeliczeniem w tle. `BB-->>WEB: Aktualizuje KPI na
-pulpicie` nie jest jeszcze podłączone — kafelki KPI i wykresy w `dashboard.page.ts` pozostają
-literałami, mimo że backend wystawia gotowe endpointy (`GET /dashboard/kpi-snapshot/latest`,
-`GET /dashboard/portfolio-trend`), zob. "Uwaga" wyżej i GAP w `docs/banking_backend_contract/api.md`.
+pulpicie` jest umowną etykietą na diagramie, nie realnym łączem — reklasyfikacja zabezpieczenia nie
+odświeża `dashboard_kpi_snapshot`: ta migawka jest niezależnym seedem (zob. `services/banking_backend.md`
+pkt 22), a pulpit ([DSH-01](#dsh-01)/[DSH-02](#dsh-02)/[DSH-03](#dsh-03)) jest podłączony pod
+`GET /dashboard/kpi-snapshot/latest`, `GET /dashboard/portfolio-trend` i agregację `GET /loans` po
+`product` (zob. "Uwaga" wyżej).
 
 ## F4 — Autoryzacja karty, blokada i chargeback
 

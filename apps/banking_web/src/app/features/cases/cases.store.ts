@@ -48,4 +48,22 @@ export class CasesStore {
     this.update(id, () => response.customerCase);
     return response;
   }
+
+  /** CAS lifecycle — only 'new' -> 'inProgress'; backend returns 409 otherwise. */
+  async start(id: string): Promise<CustomerCase> {
+    const updated = await firstValueFrom(
+      this.http.post<CustomerCase>(`${this.apiBaseUrl.bankingBackend}/cases/${id}/start`, {}),
+    );
+    this.update(id, () => updated);
+    return updated;
+  }
+
+  /** CAS lifecycle — 'new'/'inProgress'/'escalated' -> 'resolved'; backend returns 409 if already resolved. */
+  async resolve(id: string): Promise<CustomerCase> {
+    const updated = await firstValueFrom(
+      this.http.post<CustomerCase>(`${this.apiBaseUrl.bankingBackend}/cases/${id}/resolve`, {}),
+    );
+    this.update(id, () => updated);
+    return updated;
+  }
 }

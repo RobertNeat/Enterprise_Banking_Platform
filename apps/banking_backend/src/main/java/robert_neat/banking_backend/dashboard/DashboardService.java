@@ -98,4 +98,17 @@ public class DashboardService {
                         incident.createdAt()))
                 .toList();
     }
+
+    /**
+     * DSH-05 — proxies governance_mock's POST /ict-incidents/{id}/resolve so the dashboard's
+     * "Rozwiąż" button has somewhere to call. Not a DB write, so it opts out of the class's
+     * read-only transaction like findIctIncidentAlerts() does.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public IctIncidentAlertDto resolveIctIncident(String id) {
+        GovernanceIctIncidentResponse resolved = governanceClient.resolveIctIncident(id);
+        return new IctIncidentAlertDto(
+                resolved.id(), resolved.source(), resolved.description(), resolved.severity(),
+                resolved.createdAt());
+    }
 }

@@ -61,8 +61,55 @@
             severity="danger"
             (click)="transferExternal(item)"
           />
+          <p-button
+            [id]="'collections-row-' + item.id + '-actions-history-btn'"
+            [pt]="{ root: { id: 'collections-row-' + item.id + '-actions-history-btn-root' } }"
+            [label]="'collections.actionsHistory.title' | translate"
+            [text]="true"
+            size="small"
+            severity="secondary"
+            (click)="openActionsDialog(item)"
+          />
         </td>
       </tr>
     </ng-template>
   </p-table>
 </div>
+
+<p-dialog
+  id="collections-actions-dialog"
+  [pt]="{ pcCloseButton: { root: { id: 'collections-actions-dialog-close-btn' } } }"
+  [visible]="actionsDialogOpen()"
+  (visibleChange)="$event ? null : closeActionsDialog()"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '40rem', maxWidth: '95vw' }"
+  [header]="'collections.actionsHistory.title' | translate"
+>
+  <p-table
+    id="collections-actions-table"
+    [value]="actions()"
+    [rows]="10"
+    [loading]="actionsLoading()"
+  >
+    <ng-template #header>
+      <tr>
+        <th>{{ 'history.timestamp' | translate }}</th>
+        <th>{{ 'collections.actionsHistory.actionType' | translate }}</th>
+        <th>{{ 'history.actor' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-action let-i="rowIndex">
+      <tr [id]="'collections-actions-row-' + i">
+        <td>{{ action.performedAt }}</td>
+        <td>{{ 'collections.actionsHistory.actionType.' + action.actionType | translate }}</td>
+        <td>{{ action.performedBy }}</td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="3" id="collections-actions-empty">{{ 'common.noResults' | translate }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</p-dialog>

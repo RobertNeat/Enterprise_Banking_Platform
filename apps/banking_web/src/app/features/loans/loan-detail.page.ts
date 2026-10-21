@@ -9,6 +9,8 @@ import { TranslatePipe } from '../../core/services/translate.pipe';
 import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
+import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
+import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
 import { buildSchedule } from './loans.data';
 import {
   INSTALLMENT_SEVERITY,
@@ -16,6 +18,8 @@ import {
   LOAN_STAGES,
   LOAN_STAGE_SEVERITY,
   LoanApplication,
+  LoanDetail,
+  LoanStageTransitionEntry,
 } from './loans.model';
 import { LoansStore } from './loans.store';
 
@@ -42,6 +46,7 @@ const EMPTY_LOAN: LoanApplication = {
     TableModule,
     TranslatePipe,
     StatusTagComponent,
+    AuditHistoryDialogComponent,
   ],
   templateUrl: './loan-detail.page.html',
 })
@@ -52,6 +57,7 @@ export class LoanDetailPage {
   private readonly store = inject(LoansStore);
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = inject(ApiBaseUrlService);
+  protected readonly historyStore = inject(AuditHistoryStore);
 
   protected readonly stages = LOAN_STAGES;
   protected readonly stageSeverity = LOAN_STAGE_SEVERITY;
@@ -59,6 +65,16 @@ export class LoanDetailPage {
 
   private readonly fetchedLoan = signal<LoanApplication | null>(null);
   private readonly fetchedInstallments = signal<Installment[] | null>(null);
+  private readonly fetchedTransitions = signal<LoanStageTransitionEntry[]>([]);
+
+  /**
+   * loan() może zwrócić LoanApplication z LoansStore (bez stageTransitions), więc oś przejść
+   * etapów ma własny signal zasilany tym samym GET /loans/{id} i POST /advance-stage, które
+   * zwracają pełny LoanDetail.
+   */
+  protected readonly stageTransitions = computed(() =>
+    [...this.fetchedTransitions()].sort((a, b) => a.transitionedAt.localeCompare(b.transitionedAt)),
+  );
 
   protected readonly loan = computed(() => {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
@@ -87,21 +103,18 @@ export class LoanDetailPage {
     // (direct navigation, loan not yet in the store) is handled the same way: the fetched
     // loan becomes the fallback the `loan` computed uses once the store doesn't have it.
     if (id) {
-      this.http
-        .get<LoanApplication & { installments: Installment[] }>(
-          `${this.apiBaseUrl.bankingBackend}/loans/${id}`,
-        )
-        .subscribe({
-          next: (detail) => {
-            this.fetchedLoan.set(detail);
-            this.fetchedInstallments.set(detail.installments);
-          },
-          error: () => {
-            // Unknown id — EMPTY_LOAN / locally-generated schedule fallback keeps the
-            // template rendering without throwing (e.g. a wizard-created loan with no
-            // backend row yet).
-          },
-        });
+      this.http.get<LoanDetail>(`${this.apiBaseUrl.bankingBackend}/loans/${id}`).subscribe({
+        next: (detail) => {
+          this.fetchedLoan.set(detail);
+          this.fetchedInstallments.set(detail.installments);
+          this.fetchedTransitions.set(detail.stageTransitions ?? []);
+        },
+        error: () => {
+          // Unknown id — EMPTY_LOAN / locally-generated schedule fallback keeps the
+          // template rendering without throwing (e.g. a wizard-created loan with no
+          // backend row yet).
+        },
+      });
     }
   }
 
@@ -126,9 +139,24 @@ export class LoanDetailPage {
       const updated = await this.store.advanceStage(this.loan().id);
       this.fetchedLoan.set(updated);
       this.fetchedInstallments.set(updated.installments);
+      this.fetchedTransitions.set(updated.stageTransitions ?? []);
       this.notify.success('toast.saved');
     } catch {
       this.notify.error('loans.error.generic');
     }
+  }
+
+  // --- Ślad audytowy ("Historia") ---
+
+  protected readonly historyDialogOpen = signal(false);
+
+  openHistoryDialog(): void {
+    this.historyDialogOpen.set(true);
+    void this.historyStore.load('LOAN_APPLICATION', this.loan().id);
+  }
+
+  closeHistoryDialog(): void {
+    this.historyDialogOpen.set(false);
+    this.historyStore.clear();
   }
 }
