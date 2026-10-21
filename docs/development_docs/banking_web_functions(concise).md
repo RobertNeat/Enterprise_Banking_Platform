@@ -557,8 +557,8 @@ nie ma procesu cyklicznego monitorującego otwarte sprawy w tle. Automatyczna, c
 eskalacja bez interakcji pracownika jest pozycją planowaną (patrz "SLA i eskalacja w obsłudze
 spraw" w sekcji "Sprawy klientów i reklamacje").
 
-`Pracownik->>WEB: Łączy zlecenie serwisowe ze sprawą` nie ma odpowiadającego mutującego endpointu —
-`GET /contact-center/dispositions` zwraca `ServiceDisposition.linkedCase` jako pole istniejące w
-danych (ustawione tylko przez seed), ale nie ma `POST`/`PUT` do powiązania zlecenia serwisowego ze
-sprawą z poziomu UI (zob. `docs/banking_backend_contract/api.md`, sekcja "Contact center" — wyłącznie
-`GET`). Ta funkcja jest pozycją planowaną, nie zaimplementowaną.
+`Pracownik->>WEB: Łączy zlecenie serwisowe ze sprawą` realizuje `PUT
+/contact-center/dispositions/{id}/case` (`{ "caseId" }`) — `contact-center.page.ts` udostępnia pole
+na ID sprawy przy każdej dyspozycji; backend odrzuca próbę powiązania z `404` (nieznana dyspozycja
+lub sprawa) albo `400` (puste `caseId` lub sprawa innego klienta, zob.
+`docs/banking_backend_contract/api.md`, sekcja "Contact center").

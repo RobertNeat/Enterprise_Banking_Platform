@@ -385,3 +385,13 @@ app-status-tag {
 .chat-window__composer input {
   flex: 1;
 }
+
+.link-case-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.link-case-cell input {
+  width: 9rem;
+}

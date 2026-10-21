@@ -3,6 +3,19 @@
     <h1 id="contact-title">{{ 'contact.title' | translate }}</h1>
     <p id="contact-subtitle">{{ 'contact.subtitle' | translate }}</p>
   </div>
+  <div class="page-header__actions" id="contact-customer-select-field">
+    <p-select
+      id="contact-customer-select"
+      [pt]="{ dropdown: { id: 'contact-customer-select-dropdown-btn' } }"
+      [options]="customerOptions()"
+      optionLabel="label"
+      optionValue="value"
+      [placeholder]="'contact.selectCustomer' | translate"
+      [ngModel]="selectedCustomerId()"
+      (ngModelChange)="onCustomerChange($event)"
+      appendTo="body"
+    />
+  </div>
 </div>
 
 <div class="panel-grid" id="contact-top-panel-grid">
@@ -85,6 +98,7 @@
           <th>{{ 'contact.disposition.type' | translate }}</th>
           <th>{{ 'contact.linkedCase' | translate }}</th>
           <th>{{ 'contact.disposition.status' | translate }}</th>
+          <th></th>
         </tr>
       </ng-template>
       <ng-template #body let-item>
@@ -98,6 +112,27 @@
               [labelKey]="'cases.status.' + item.status"
               [severity]="caseSeverity[item.status]"
             />
+          </td>
+          <td>
+            <div class="link-case-cell" [id]="'contact-dispositions-row-' + item.id + '-link-case'">
+              <input
+                [id]="'contact-dispositions-row-' + item.id + '-link-case-input'"
+                pInputText
+                type="text"
+                [placeholder]="'contact.linkCase.placeholder' | translate"
+                [ngModel]="caseIdDraft(item)"
+                (ngModelChange)="onCaseIdDraftChange(item, $event)"
+              />
+              <p-button
+                [id]="'contact-dispositions-row-' + item.id + '-link-case-btn'"
+                [pt]="{
+                  root: { id: 'contact-dispositions-row-' + item.id + '-link-case-btn-root' },
+                }"
+                [label]="'contact.linkCase.action' | translate"
+                [text]="true"
+                (click)="linkCase(item)"
+              />
+            </div>
           </td>
         </tr>
       </ng-template>

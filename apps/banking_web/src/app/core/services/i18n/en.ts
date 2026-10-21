@@ -321,6 +321,10 @@ export const en: Record<string, string> = {
   'contact.linkedCase': 'Linked case',
   'contact.chatPlaceholder': 'Type a message…',
   'contact.chatMock': 'This is a simulated messenger for the e-banking channel.',
+  'contact.selectCustomer': 'Select customer',
+  'contact.linkCase.placeholder': 'Case ID (e.g. CS-10229)',
+  'contact.linkCase.action': 'Link',
+  'contact.linkCase.error': 'Could not link the disposition to the case.',
 
   'enforcement.title': 'Enforcement & Garnishment',
   'enforcement.subtitle': 'Garnishment registration, fund holds, protected amount',

@@ -1,9 +1,16 @@
 import {
   ChatMessage,
   ContactHistoryEntry,
+  CustomerOption,
   CustomerProfile,
   ServiceDisposition,
 } from './contact-center.model';
+
+/** KKT — fixture dla selektora klienta w testach (GET /customers). */
+export const CUSTOMERS: CustomerOption[] = [
+  { id: 'CUST-001', fullName: 'Jan Wiśniewski', segment: 'retail' },
+  { id: 'CUST-002', fullName: 'Katarzyna Zając', segment: 'retail' },
+];
 
 export const CUSTOMER_PROFILE: CustomerProfile = {
   name: 'Jan Wiśniewski',

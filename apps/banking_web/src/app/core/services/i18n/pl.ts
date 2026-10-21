@@ -320,6 +320,10 @@ export const pl: Record<string, string> = {
   'contact.linkedCase': 'Powiązana sprawa',
   'contact.chatPlaceholder': 'Wpisz wiadomość…',
   'contact.chatMock': 'To jest symulacja komunikatora w kanale bankowości elektronicznej.',
+  'contact.selectCustomer': 'Wybór klienta',
+  'contact.linkCase.placeholder': 'ID sprawy (np. CS-10229)',
+  'contact.linkCase.action': 'Powiąż',
+  'contact.linkCase.error': 'Nie udało się powiązać dyspozycji ze sprawą.',
 
   'enforcement.title': 'Zajęcia komornicze i tytuły wykonawcze',
   'enforcement.subtitle': 'Rejestracja zajęć, blokady środków, ochrona kwoty wolnej',

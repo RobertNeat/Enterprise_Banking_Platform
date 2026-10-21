@@ -261,11 +261,17 @@ windykacyjnych" w dialogu na liście.
 | `ServiceDisposition.linkedCase` | `service_disposition.customer_case_id` | |
 | `ContactHistoryEntry.id/channelKey/summary` | `contact_history_entry` (`channel_key`, `summary`) | |
 | `ContactHistoryEntry.date` | `contact_history_entry.occurred_at` | kolumna jest `DATE` (bez godziny) — frontend ma `'2026-10-05 09:12'`; backend zwraca `yyyy-MM-dd` (ucięta godzina, zgodne z typem kolumny, odnotowane jako znana rozbieżność w `data_model.md` pkt 18) |
-| `CustomerProfile` | agregat: `customer` + COUNT `loan_application`/`payment_card`/`customer_case` | `riskRating` = `customer.risk_rating`; klient wybrany po `customerId` (parametr), domyślnie `CUST-001` dla zgodności z dzisiejszym statycznym widokiem. Kosmetyczny GAP: `profile.segment` zwraca `customer.segment` (`retail`/`business`), podczas gdy `contact-center.data.ts` miało wolny tekst `'Retail — Premium'` — backend nie przechowuje tej etykiety marketingowej, uznane za drobne/nieistotne dla testów |
+| `CustomerProfile` | agregat: `customer` + COUNT `loan_application`/`payment_card`/`customer_case` | `riskRating` = `customer.risk_rating`; klient wybrany przez selektor w UI (zasilany `GET /customers`), domyślnie pierwszy klient z listy. Kosmetyczny GAP: `profile.segment` zwraca `customer.segment` (`retail`/`business`), podczas gdy `contact-center.data.ts` miało wolny tekst `'Retail — Premium'` — backend nie przechowuje tej etykiety marketingowej, uznane za drobne/nieistotne dla testów |
 | `ChatMessage`/`INITIAL_CHAT` | brak tabeli | poza zakresem — czysto frontendowe (potwierdzone w `data_model.md`) |
 
-`GET /contact-center/profile/{customerId}` — parametr opcjonalny na poziomie frontendu (dziś
-zawsze `CUST-001`, przyszła iteracja może dodać wybór klienta w UI).
+`GET /contact-center/dispositions` i `GET /contact-center/history` przyjmują opcjonalny parametr
+`customerId` (brak → wszystkie wiersze). Dyspozycje nie mają własnej kolumny `customer_id` —
+filtrowanie idzie przez `service_disposition.customer_case_id` → `customer_case.customer_id`.
+
+`PUT /contact-center/dispositions/{id}/case` → `ServiceDispositionDto`. Body: `{ "caseId" }`.
+Łączy dyspozycję z inną sprawą (F8). `404` jeśli dyspozycja lub sprawa nieznana; `400` jeśli
+`caseId` jest puste lub sprawa należy do innego klienta niż obecna sprawa dyspozycji (ochrona przed
+odtworzeniem błędu z seeda opisanego w `services/banking_backend.md`).
 
 ### ebanking (`ebanking.page.ts`)
 
@@ -472,9 +478,12 @@ miało i nie ma formularza do ręcznego tworzenia autoryzacji.
 
 ### Contact center
 
-- `GET /contact-center/dispositions` → `ServiceDispositionDto[]`
-- `GET /contact-center/history` → `ContactHistoryEntryDto[]`
+- `GET /contact-center/dispositions?customerId=` → `ServiceDispositionDto[]` (`customerId` opcjonalny)
+- `GET /contact-center/history?customerId=` → `ContactHistoryEntryDto[]` (`customerId` opcjonalny)
 - `GET /contact-center/profile/{customerId}` → `CustomerProfileDto` (404 jeśli klient nieznany)
+- `PUT /contact-center/dispositions/{id}/case` (F8) → `ServiceDispositionDto`. Request: `{ "caseId" }`.
+  `404` jeśli dyspozycja lub sprawa nieznana; `400` jeśli `caseId` puste lub sprawa należy do innego
+  klienta niż obecna sprawa dyspozycji.
 
 ### Ebanking
 

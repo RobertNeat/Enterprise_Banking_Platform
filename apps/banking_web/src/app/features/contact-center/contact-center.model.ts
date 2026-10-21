@@ -31,3 +31,10 @@ export interface CustomerProfile {
   riskRating: string;
   openCases: number;
 }
+
+/** KKT — zasila selektor klienta (GET /customers); tylko pola potrzebne w tym widoku. */
+export interface CustomerOption {
+  id: string;
+  fullName: string;
+  segment: string;
+}
