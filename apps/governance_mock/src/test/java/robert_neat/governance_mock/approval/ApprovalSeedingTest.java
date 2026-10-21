@@ -10,7 +10,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-@TestPropertySource(properties = "GOVERNANCE_SEED_MOCK_DATA=true")
+@TestPropertySource(
+        properties = {
+            "GOVERNANCE_SEED_MOCK_DATA=true",
+            "spring.datasource.url=jdbc:h2:mem:approval_seeding_on;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE"
+        })
 class ApprovalSeedingTest {
 
     @Autowired

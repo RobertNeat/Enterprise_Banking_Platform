@@ -4,7 +4,7 @@ Serwis wewnętrzny (bez portu na hoście), wołany wyłącznie przez `banking_ba
 
 Zmienna `GOVERNANCE_SEED_MOCK_DATA` (domyślnie `true`) kontroluje seedowanie startowe kolejki zatwierdzeń zgodne z seedem `banking_backend` — szczegóły w `docs/services/governance_mock.md`.
 
-Stan przechowywany wyłącznie w pamięci procesu (`ConcurrentHashMap`) — reset po restarcie serwisu. Brak bazy danych w tej iteracji.
+Stan trwały w dedykowanej instancji PostgreSQL (schema `governance`, Spring Data JPA + Liquibase) — przetrwa restart serwisu. Szczegóły w `docs/development_docs/services/governance_mock.md`.
 
 Błędy walidacyjne i konfliktowe zwracają `ProblemDetail` (RFC 9457), np.:
 

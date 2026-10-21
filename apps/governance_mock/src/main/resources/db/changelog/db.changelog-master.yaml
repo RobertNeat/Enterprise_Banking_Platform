@@ -1,0 +1,8 @@
+# Schema first, then seed data. Every seed changeset carries context:mock-data and only runs
+# when GOVERNANCE_SEED_MOCK_DATA=true (see MockDataContextConfig in this module).
+databaseChangeLog:
+  - include: { file: schema/001-approval.sql, relativeToChangelogFile: true }
+  - include: { file: schema/002-audit.sql, relativeToChangelogFile: true }
+  - include: { file: schema/003-incident.sql, relativeToChangelogFile: true }
+
+  - include: { file: seed/001-approval.sql, relativeToChangelogFile: true }

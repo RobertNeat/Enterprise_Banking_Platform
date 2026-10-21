@@ -22,6 +22,13 @@ services:
     ports:
       - "127.0.0.1:${BANKING_DB_HOST_PORT:-10526}:5432"
 
+  mocks-postgres:
+    # internal: true nie publikuje portów - dopięcie do sieci default (jak postgres powyżej).
+    networks:
+      - default
+    ports:
+      - "127.0.0.1:${MOCKS_DB_HOST_PORT:-10527}:5432"
+
   banking-web:
     # Wymaga lokalnego builda przed `up --build`: pnpm --filter banking-web build
     # (unika pnpm install/supply-chain check w kontenerze - zob. angular.local.Dockerfile).

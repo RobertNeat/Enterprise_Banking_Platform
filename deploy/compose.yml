@@ -14,8 +14,12 @@
 # `banking_backend` (moduły domenowe w przepływach) i zostają w sieci
 # wewnętrznej bez portu na hoście.
 #
-# Dane: tylko `banking_backend` czyta/pisze do PostgreSQL (Spring Data JPA);
-# serwisy mockowe trzymają stan tylko w pamięci procesu.
+# Dane: `banking_backend` czyta/pisze do własnej instancji PostgreSQL (`postgres`,
+# Spring Data JPA). Od migracji `governance_mock` na trwały storage istnieje też
+# druga, wspólna instancja PostgreSQL dla serwisów mockowych (`mocks-postgres`) —
+# każdy zmigrowany mock dostaje własny schema w tej samej instancji (`governance_mock`
+# już ma schema `governance`; `identity_access_mock`/`external_institutions_gateway_mock`
+# wciąż trzymają stan tylko w pamięci procesu, do migracji w kolejnych zadaniach).
 name: enterprise-banking-platform
 
 services:
@@ -30,6 +34,27 @@ services:
       POSTGRES_PASSWORD: ${BANKING_DB_PASSWORD:?BANKING_DB_PASSWORD is required in config.env}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - banking-internal
+
+  mocks-postgres:
+    # Druga, osobna instancja PostgreSQL — wyłącznie dla serwisów mockowych migrowanych na trwały
+    # storage (zob. docs/development_docs/currentwork/plan.md). Każdy mock dostaje własny schema w
+    # tej samej instancji; dziś tylko governance_mock (schema "governance").
+    image: 192.168.1.162:5000/library/postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MOCKS_DB_NAME:-mocks}
+      POSTGRES_USER: ${MOCKS_DB_USER:-mocks}
+      POSTGRES_PASSWORD: ${MOCKS_DB_PASSWORD:-mocks}
+    volumes:
+      - mocks-postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -163,6 +188,12 @@ services:
     environment:
       SERVER_PORT: ${GOVERNANCE_MOCK_CONTAINER_PORT:-10524}
       GOVERNANCE_SEED_MOCK_DATA: ${GOVERNANCE_SEED_MOCK_DATA:-true}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://mocks-postgres:5432/${MOCKS_DB_NAME:-mocks}
+      SPRING_DATASOURCE_USERNAME: ${MOCKS_DB_USER:-mocks}
+      SPRING_DATASOURCE_PASSWORD: ${MOCKS_DB_PASSWORD:-mocks}
+    depends_on:
+      mocks-postgres:
+        condition: service_healthy
     networks:
       - banking-internal
     healthcheck:
@@ -204,3 +235,4 @@ networks:
 
 volumes:
   postgres-data:
+  mocks-postgres-data:

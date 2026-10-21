@@ -1,23 +1,24 @@
 package robert_neat.governance_mock.incident;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
-
-/** In-memory ICT incident registry (DORA). No audit coupling per spec — only approvals/SLA auto-audit. */
+/** ICT incident registry (DORA), persisted via JPA. No audit coupling per spec — only approvals/SLA auto-audit. */
 @Service
 public class IctIncidentService {
 
-    private final Map<String, IctIncident> incidents = new ConcurrentHashMap<>();
+    private final IctIncidentRepository incidentRepository;
 
+    public IctIncidentService(IctIncidentRepository incidentRepository) {
+        this.incidentRepository = incidentRepository;
+    }
+
+    @Transactional
     public IctIncident create(String source, String description, Severity severity) {
         if (isBlank(source) || isBlank(description) || severity == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -25,8 +26,7 @@ public class IctIncidentService {
         }
         String id = UUID.randomUUID().toString();
         IctIncident incident = new IctIncident(id, source, description, severity, IncidentStatus.OPEN, Instant.now(), null);
-        incidents.put(id, incident);
-        return incident;
+        return incidentRepository.save(incident);
     }
 
     /**
@@ -35,28 +35,29 @@ public class IctIncidentService {
      * parameters (same mechanism as ApprovalService.list/ApprovalController#list), so Spring MVC's
      * default enum conversion throws and the module's default error handling turns that into a 400.
      */
+    @Transactional(readOnly = true)
     public List<IctIncident> list(IncidentStatus status, Severity severity) {
-        return incidents.values().stream()
-                .filter(i -> status == null || i.status() == status)
-                .filter(i -> severity == null || i.severity() == severity)
-                .sorted(Comparator.comparing(IctIncident::createdAt))
-                .toList();
+        if (status != null && severity != null) {
+            return incidentRepository.findByStatusAndSeverityOrderByCreatedAtAsc(status, severity);
+        }
+        if (status != null) {
+            return incidentRepository.findByStatusOrderByCreatedAtAsc(status);
+        }
+        if (severity != null) {
+            return incidentRepository.findBySeverityOrderByCreatedAtAsc(severity);
+        }
+        return incidentRepository.findAllByOrderByCreatedAtAsc();
     }
 
+    @Transactional
     public IctIncident resolve(String id) {
-        AtomicReference<IctIncident> updated = new AtomicReference<>();
-        incidents.compute(id, (key, existing) -> {
-            if (existing == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Incydent ICT nie znaleziony: " + id);
-            }
-            if (existing.status() == IncidentStatus.RESOLVED) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Incydent ICT juz rozwiazany: " + id);
-            }
-            IctIncident result = existing.resolved(Instant.now());
-            updated.set(result);
-            return result;
-        });
-        return updated.get();
+        IctIncident existing = incidentRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Incydent ICT nie znaleziony: " + id));
+        if (existing.status() == IncidentStatus.RESOLVED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Incydent ICT juz rozwiazany: " + id);
+        }
+        IctIncident resolved = existing.resolved(Instant.now());
+        return incidentRepository.save(resolved);
     }
 
     private boolean isBlank(String s) {
