@@ -349,7 +349,7 @@ pokazują placeholder `—`) i `GET /dashboard/portfolio-trend` (wszystkie `port
 po `snapshot_date` asc, robi to backend). Wykres "portfel wg produktu" (`productData`) agreguje
 `GET /loans` po polu `product` na frontendzie (backend nie wystawia takiej agregacji). Różnica skali
 między migawką KPI (dziesiątki tysięcy kredytów) a wykresem produktów (13 wniosków z seeda) jest
-zamierzona, zob. `services/banking_backend.md` pkt 22.
+zamierzona, zob. `services/banking_backend.md` pkt 21.
 
 ### Pozostałe encje bez widoku-konsumenta (wystawione bo backend ma do nich dostęp)
 

@@ -288,32 +288,26 @@ punktu; status poniżej odzwierciedla wynik.
     pierwszego etapu `application` — pierwsze realne przejście w cyklu życia pożyczki nie jest
     reprezentowalne. Wymaga decyzji architektonicznej (np. `from_stage` nullable albo sentinel
     `'none'`), poza zakresem drobnych poprawek.
-16. **Niekompletny łańcuch `loan_stage_transition` dla `LN-80203`**: przejścia `application→scoring`
-    (16.03), `contract→disbursement` (28.03), `schedule→collections` (06.07) — brakuje ogniw
-    `scoring→affordability→decision→contract` i `disbursement→schedule`. Dla `LN-80231` łańcuch jest
-    kompletny do etapu `contract`. Naprawa wymagałaby dodania nowych wierszy (zmiana liczności seeda i
-    `EXPECTED_COUNTS`), więc pozostawiono jako obserwację.
-17. **`case_type` bez `CHECK`** (`schema/006-cases.sql`) i brak faktycznego zróżnicowania terminu
-    30 vs 60 dni w seedzie — wszystkie 5 wierszy używają 30 dni niezależnie od `case_type`
-    (`complaint`/`restructuring_request`/`inquiry`), mimo że `data_model.md` opisuje `case_type` jako
-    "steruje terminem ustawowym 30/60 dni". Wymaga decyzji: dodać `CHECK` z listą wartości i tabelę
-    dni w `data_model.md`, oraz zróżnicować przykładowe dane.
+17. **Brak zróżnicowania terminu 30 vs 60 dni w seedzie `customer_case`** — wszystkie 5 wierszy mają
+    `statutory_deadline = registered_at + 30 dni` niezależnie od `case_type`
+    (`complaint`/`restructuring_request`/`inquiry`), mimo że `CaseActionsService.create` liczy 60 dni
+    dla `restructuring_request` na nowo tworzonych sprawach (`CS-10229` jest zaszyty w seedzie, nie
+    przechodzi przez `create`, więc nie odzwierciedla tej reguły). Do rozważenia: zróżnicować
+    przykładowe dane seeda, żeby demonstrowały obie ścieżki.
 18. **`contact_history_entry.occurred_at DATE`** ucina komponent godziny obecny w źródle
     (`contact-center.data.ts` ma np. `'2026-10-05 09:12'`) — zgodne z typem kolumny w schemacie, ale
     traci informację względem źródła. Do rozważenia: `TIMESTAMP WITH TIME ZONE`, jeśli godzina kontaktu
     ma znaczenie biznesowe (SLA kanału).
-19. **`ebanking_user.username` bez `UNIQUE`** (`schema/005-ebanking.sql`) — pole służy jako login,
-    obecne dane są unikalne, ale brak wymuszenia na poziomie schematu.
-20. **Żadne przejście `loan_stage_transition` nie ma wypełnionego `approval_id`**, mimo że
+19. **Żadne przejście `loan_stage_transition` nie ma wypełnionego `approval_id`**, mimo że
     `data_model.md` opisuje przejście do etapu `decision` jako referencjonujące zatwierdzenie z
     `governance_mock`. Niekrytyczne (pole nullable), ale warte uzupełnienia przy integracji z
     governance_mock.
-21. Nazewnictwo w danych demo bywa niejednoznaczne (nie błąd integralności): klientka „Maria Lis”
+20. Nazewnictwo w danych demo bywa niejednoznaczne (nie błąd integralności): klientka „Maria Lis”
     (`CUST-006`) i pracownik „Marek Lis” (`PRC-60003`, skrót w `cases.data.ts`: „M. Lis”) oraz klientka
     „Anna Kowalska” (`CUST-008`) i pracowniczka „Anna Kowalska” (`PRC-60001`, ta sama pisownia) — w
     obu przypadkach mapowanie na właściwy byt w seedzie jest poprawne, ale podobieństwo nazw może być
     źródłem pomyłek przy przyszłych zmianach danych demo.
-22. Skala migawki `dashboard_kpi_snapshot`/`portfolio_trend_point` (dziesiątki tysięcy kredytów/kart,
+21. Skala migawki `dashboard_kpi_snapshot`/`portfolio_trend_point` (dziesiątki tysięcy kredytów/kart,
     setki milionów PLN) jest o rzędy wielkości większa niż liczba wierszy w pozostałych seedach
     (13 wniosków kredytowych, 5 kart). `dashboard.page.ts` konsumuje oba zbiory równolegle: kafelki
     KPI i wykres trendu z migawki, wykres "portfel wg produktu" z agregacji `GET /loans` po `product`
@@ -323,14 +317,16 @@ punktu; status poniżej odzwierciedla wynik.
 
 ### Podsumowanie
 
-- **Znaleziono: 22 problemy/obserwacje.**
+- **Znaleziono: 22 problemy/obserwacje; zamknięto dodatkowo 2 (dawne 16, 19) i zawężono 1 (dawne 17)
+  w kolejnej iteracji — nowe changesety Liquibase, patrz `UNIQUE`/`CHECK` w sekcji schematu i
+  `data_model.md`.**
 - **Naprawiono automatycznie: 5** (pozycje 1-5 — literówki/niekonsekwencje danych nieodziedziczone
   z frontendu, niewymagające zmiany architektury).
 - **Rozstrzygnięte decyzją użytkownika: 8** (pozycje 6-13) — **naprawione: 6** (6, 7, 8, 9, 10, 12
   częściowo — patrz uwaga o brakującej dedykowanej sprawie w punkcie 12), **odstąpiono od planu: 1**
   (11 — `RPT-FATCA-009`, zmiana wymagałaby złamania PK `regulatory_report`), **potwierdzono bez zmian
   kodu: 1** (13 — pozostaje ilustracyjne/offline, decyzja użytkownika).
-- **Odnotowane do rozważenia (dokumentacja/architektura, bez naprawy): 9** (pozycje 14-22).
+- **Odnotowane do rozważenia (dokumentacja/architektura, bez naprawy): 7** (pozycje 14-21).
 - Status testów po poprawkach tej sesji: `apps/credit_risk_mock` **`./mvnw.cmd test` → BUILD SUCCESS,
   25/25 testów przechodzi**; `apps/banking_backend` **`./mvnw.cmd test` → BUILD SUCCESS, 5/5 testów
   przechodzi**, Liquibase: 138 wierszy (bez zmiany liczności, tylko wartości pól w

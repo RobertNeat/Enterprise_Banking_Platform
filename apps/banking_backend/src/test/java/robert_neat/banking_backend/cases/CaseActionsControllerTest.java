@@ -216,6 +216,20 @@ class CaseActionsControllerTest {
     }
 
     @Test
+    void createWithInvalidCaseTypeIsBadRequest() throws Exception {
+        mockMvc.perform(post("/cases").with(testJwt())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"subject":"Reklamacja opłaty","customerId":"CUST-001",
+                                 "priority":"high","caseType":"not_a_real_type"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(
+                        "caseType must be one of: complaint, restructuring_request, inquiry"));
+
+        verifyNoInteractions(governanceClient);
+    }
+
+    @Test
     void createRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/cases")
                         .contentType(MediaType.APPLICATION_JSON)

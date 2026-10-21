@@ -11,3 +11,9 @@ CREATE TABLE ebanking_user (
     last_login TIMESTAMP WITH TIME ZONE,
     permissions VARCHAR(500)
 );
+
+--changeset robert_neat:ebanking_user-002
+-- username is the e-banking login — must be unique across all customers (data_model.md /
+-- banking_backend.md item 19: previously unenforced at schema level, relied only on seed data
+-- happening to be unique).
+ALTER TABLE ebanking_user ADD CONSTRAINT uq_ebanking_user_username UNIQUE (username);

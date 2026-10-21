@@ -62,6 +62,21 @@ INSERT INTO loan_stage_transition (loan_application_id, from_stage, to_stage, ap
                                    transitioned_at, transitioned_by) VALUES
 ('LN-80255', 'scoring', 'decision', '22222222-2222-4222-8222-222222222002', TIMESTAMP WITH TIME ZONE '2026-09-18 12:00:00+02:00', 'PRC-20456');
 
+--changeset robert_neat:seed-loan_stage_transition-003 context:mock-data
+-- LN-80203's chain was missing scoring->affordability->decision->contract and
+-- disbursement->schedule (banking_backend.md item 16) — a new changeset, not an edit of -001,
+-- since -001 already ran on persistent Postgres deployments. Timestamps slot between the existing
+-- application->scoring (-6mo-20d) and contract->disbursement (-6mo-8d) rows, and between
+-- contract->disbursement and schedule->collections (-3mo+2d), keeping the chain contiguous and
+-- chronological. No approval_id, consistent with LN-80231's equivalent rows (item 20: no seeded
+-- transition has approval_id filled in yet).
+INSERT INTO loan_stage_transition (loan_application_id, from_stage, to_stage, approval_id,
+                                   transitioned_at, transitioned_by) VALUES
+('LN-80203', 'scoring', 'affordability', NULL, CURRENT_TIMESTAMP - INTERVAL '6' MONTH - INTERVAL '17' DAY, 'PRC-20456'),
+('LN-80203', 'affordability', 'decision', NULL, CURRENT_TIMESTAMP - INTERVAL '6' MONTH - INTERVAL '14' DAY, 'PRC-20456'),
+('LN-80203', 'decision', 'contract', NULL, CURRENT_TIMESTAMP - INTERVAL '6' MONTH - INTERVAL '11' DAY, 'PRC-10234'),
+('LN-80203', 'disbursement', 'schedule', NULL, CURRENT_TIMESTAMP - INTERVAL '6' MONTH - INTERVAL '7' DAY, 'PRC-10234');
+
 --changeset robert_neat:seed-installment-001 context:mock-data
 -- Partial proof-of-concept schedules (12 rows each, equal principal, declining interest at 7.9%).
 -- LN-80231 has term 240; only its first 12 installments are seeded.

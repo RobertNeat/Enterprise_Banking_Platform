@@ -167,7 +167,7 @@ Referencja analogiczna, source of truth w `card_processor_mock`.
 |---|---|---|
 | id | varchar(10) PK | `EB-1001` |
 | customer_id | varchar(20) FK → customer | |
-| username | varchar(100) | |
+| username | varchar(100) UNIQUE | login do e-bankingu |
 | channel | varchar(10) | `web`\|`mobile` |
 | access_status | varchar(15) | `active`\|`locked`\|`pendingReset` — przełączane po `identity_access_mock` `/ebanking-access/{id}/unlock` |
 | daily_limit | numeric(19,2) | |
@@ -211,7 +211,7 @@ seedowania), a widok 360 jest zapytaniem agregującym `customer` + liczniki `loa
 | subject | varchar(300) | |
 | owner_id | varchar(10) FK → employee | |
 | priority | varchar(10) | `low`\|`medium`\|`high` |
-| case_type | varchar(30) | steruje terminem ustawowym 30/60 dni (ustawa o reklamacjach) |
+| case_type | varchar(30) CHECK IN ('complaint','restructuring_request','inquiry') | steruje terminem ustawowym 30/60 dni (ustawa o reklamacjach); lista zgodna z `CASE_TYPES` w `cases.page.ts` i walidowana też w `CaseActionsService` (400 przed insertem) |
 | registered_at | timestamptz | |
 | statutory_deadline | date | wyliczany z `case_type` + `registered_at`, nie trzymany jako wolny tekst |
 | sla_due_at | timestamptz | zamiast `slaRemainingHours` (countdown) — pochodna, licz różnicę do `sla_due_at` w zapytaniu |

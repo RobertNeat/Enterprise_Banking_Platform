@@ -101,7 +101,7 @@ Kafelki KPI i wykresy na pulpicie ([DSH-01](#dsh-01)/[DSH-02](#dsh-02)/[DSH-03](
 podłączone pod `GET /dashboard/kpi-snapshot/latest` (kafelki KPI), `GET /dashboard/portfolio-trend`
 (wykres trendu portfela) i agregację `GET /loans` po `product` na frontendzie (wykres "portfel wg
 produktu") — różnica skali między migawką KPI a liczbą wniosków kredytowych jest zamierzona, zob.
-`services/banking_backend.md` pkt 22.
+`services/banking_backend.md` pkt 21.
 
 ---
 
@@ -386,7 +386,7 @@ sequenceDiagram
 wpisuje `daysPastDue` w UI), nie automatycznym przeliczeniem w tle. `BB-->>WEB: Aktualizuje KPI na
 pulpicie` jest umowną etykietą na diagramie, nie realnym łączem — reklasyfikacja zabezpieczenia nie
 odświeża `dashboard_kpi_snapshot`: ta migawka jest niezależnym seedem (zob. `services/banking_backend.md`
-pkt 22), a pulpit ([DSH-01](#dsh-01)/[DSH-02](#dsh-02)/[DSH-03](#dsh-03)) jest podłączony pod
+pkt 21), a pulpit ([DSH-01](#dsh-01)/[DSH-02](#dsh-02)/[DSH-03](#dsh-03)) jest podłączony pod
 `GET /dashboard/kpi-snapshot/latest`, `GET /dashboard/portfolio-trend` i agregację `GET /loans` po
 `product` (zob. "Uwaga" wyżej).
 

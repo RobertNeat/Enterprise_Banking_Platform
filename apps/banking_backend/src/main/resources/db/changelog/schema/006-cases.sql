@@ -16,3 +16,11 @@ CREATE TABLE customer_case (
     escalation_source VARCHAR(10) CHECK (escalation_source IN ('MANUAL', 'AUTO_SLA')),
     governance_audit_event_id VARCHAR(36)
 );
+
+--changeset robert_neat:customer_case-002
+-- case_type previously had no CHECK (banking_backend.md item 17) — restricted to the same list the
+-- UI offers (banking_web cases.page.ts CASE_TYPES) and that CaseActionsService now validates in
+-- Java before insert, so an invalid value is rejected as 400 rather than surfacing as a raw
+-- DataIntegrityViolationException (500) from this constraint.
+ALTER TABLE customer_case ADD CONSTRAINT ck_customer_case_case_type
+    CHECK (case_type IN ('complaint', 'restructuring_request', 'inquiry'));

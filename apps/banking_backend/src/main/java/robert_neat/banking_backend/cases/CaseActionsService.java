@@ -38,8 +38,14 @@ public class CaseActionsService {
     private static final int COMPLEX_DEADLINE_DAYS = 60;
     /** Must mirror the CHECK constraint on customer_case.priority (db/changelog/schema/006-cases.sql). */
     private static final List<String> VALID_PRIORITIES = List.of("low", "medium", "high");
-    /** No DB CHECK constraint on case_type (VARCHAR(30) only) — just guard against null/blank/overlong. */
-    private static final int MAX_CASE_TYPE_LENGTH = 30;
+    /**
+     * Must mirror the ck_customer_case_case_type CHECK constraint (db/changelog/schema/006-cases.sql,
+     * changeset customer_case-002) and CASE_TYPES in banking_web cases.page.ts. Validated here so an
+     * invalid value is rejected as 400, not as a raw DataIntegrityViolationException (500) from the
+     * DB constraint.
+     */
+    private static final List<String> VALID_CASE_TYPES =
+            List.of("complaint", "restructuring_request", "inquiry");
 
     private final CustomerCaseRepository customerCases;
     private final CustomerRepository customers;
@@ -108,9 +114,9 @@ public class CaseActionsService {
         if (request.caseType() == null || request.caseType().isBlank()) {
             throw new InvalidRequestException("caseType must not be blank");
         }
-        if (request.caseType().length() > MAX_CASE_TYPE_LENGTH) {
+        if (!VALID_CASE_TYPES.contains(request.caseType())) {
             throw new InvalidRequestException(
-                    "caseType must not exceed " + MAX_CASE_TYPE_LENGTH + " characters");
+                    "caseType must be one of: " + String.join(", ", VALID_CASE_TYPES));
         }
     }
 
