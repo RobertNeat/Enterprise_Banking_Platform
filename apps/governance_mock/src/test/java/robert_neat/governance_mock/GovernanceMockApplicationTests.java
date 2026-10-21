@@ -152,6 +152,43 @@ class GovernanceMockApplicationTests {
     }
 
     @Test
+    void ictIncidentsListFiltersByStatusAndSeverity() throws Exception {
+        String openHighId = extractId(mockMvc.perform(post("/ict-incidents")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"source\":\"CARD_PROCESSOR\",\"description\":\"outage\",\"severity\":\"HIGH\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString());
+
+        String resolvedLowId = extractId(mockMvc.perform(post("/ict-incidents")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"source\":\"PAYMENT_GATEWAY\",\"description\":\"delay\",\"severity\":\"LOW\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString());
+        mockMvc.perform(post("/ict-incidents/" + resolvedLowId + "/resolve"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/ict-incidents").param("status", "OPEN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + openHighId + "')]").exists())
+                .andExpect(jsonPath("$[?(@.id=='" + resolvedLowId + "')]").doesNotExist());
+
+        mockMvc.perform(get("/ict-incidents").param("severity", "LOW"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + resolvedLowId + "')]").exists())
+                .andExpect(jsonPath("$[?(@.id=='" + openHighId + "')]").doesNotExist());
+
+        mockMvc.perform(get("/ict-incidents").param("status", "OPEN").param("severity", "HIGH"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + openHighId + "')]").exists())
+                .andExpect(jsonPath("$[?(@.id=='" + resolvedLowId + "')]").doesNotExist());
+
+        mockMvc.perform(get("/ict-incidents").param("status", "OPEN").param("severity", "LOW"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + openHighId + "')]").doesNotExist())
+                .andExpect(jsonPath("$[?(@.id=='" + resolvedLowId + "')]").doesNotExist());
+    }
+
+    @Test
     void createApprovalMissingTypeReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/approvals")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -164,6 +201,29 @@ class GovernanceMockApplicationTests {
         mockMvc.perform(post("/ict-incidents")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"source\":\"CARD_PROCESSOR\",\"description\":\"outage\",\"severity\":\"CRITICAL\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void listIctIncidentsWithUnrecognizedStatusReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/ict-incidents").param("status", "OPENED"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void listIctIncidentsWithUnrecognizedSeverityReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/ict-incidents").param("severity", "CRITICAL"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void listIctIncidentsWithLowercaseSeverityReturnsBadRequest() throws Exception {
+        // Enum query-param binding is case-sensitive by default (same as GET /approvals?status=...);
+        // only the exact enum constant name matches.
+        mockMvc.perform(get("/ict-incidents").param("severity", "low"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400));
     }

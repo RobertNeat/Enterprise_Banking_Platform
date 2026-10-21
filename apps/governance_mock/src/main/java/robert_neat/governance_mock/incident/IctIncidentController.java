@@ -23,8 +23,10 @@ public class IctIncidentController {
     }
 
     @GetMapping
-    public List<IctIncident> list() {
-        return incidentService.list();
+    public List<IctIncident> list(
+            @RequestParam(required = false) IncidentStatus status,
+            @RequestParam(required = false) Severity severity) {
+        return incidentService.list(status, severity);
     }
 
     @PostMapping("/{id}/resolve")

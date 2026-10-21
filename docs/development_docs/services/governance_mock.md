@@ -14,7 +14,7 @@ Pełny kontrakt JSON: `docs/governance_mock_contract/api.md`.
 
 - **Approval queue (maker-checker)**: `POST /approvals`, `GET /approvals` (filtr `status`), `GET /approvals/{id}`, `POST /approvals/{id}/decide`. Decyzja wymaga `decidedBy != requestedBy` (409 w przeciwnym razie) i statusu `PENDING` (409 jeśli już zdecydowany). Każda decyzja automatycznie dopisuje wpis do audit log.
 - **Audit log**: `POST /audit-events`, `GET /audit-events` (filtry `entityType`, `entityId`).
-- **ICT incident registry (DORA)**: `POST /ict-incidents`, `GET /ict-incidents`, `POST /ict-incidents/{id}/resolve` (409 jeśli już `RESOLVED`).
+- **ICT incident registry (DORA)**: `POST /ict-incidents`, `GET /ict-incidents` (filtry `status`, `severity`), `POST /ict-incidents/{id}/resolve` (409 jeśli już `RESOLVED`).
 - **F8 — SLA/eskalacja spraw klientów**: `POST /cases/{caseId}/sla-check` — eskalacja automatyczna (`escalated: true` + wpis audytowy `AUTO_ESCALATED`) gdy `slaRemainingHours <= 0`.
 - **Health**: `GET /actuator/health` (Spring Boot Actuator, bez dodatkowego endpointu `/health`).
 
@@ -48,6 +48,5 @@ src/main/java/robert_neat/governance_mock/
 - `banking_backend` musi przekazywać stabilne `entityId` (np. id sprawy/wniosku/zajęcia) przy wywołaniach `POST /audit-events` i `POST /cases/{caseId}/sla-check`, aby wpisy audytowe i eskalacje można było korelować z encjami domenowymi.
 - `POST /cases/{caseId}/sla-check` nie ma deduplikacji — wielokrotne wywołanie dla tej samej sprawy przy przekroczonym SLA tworzy kolejne wpisy `AUTO_ESCALATED`. `banking_backend` powinien wywoływać ten endpoint raz per przekroczenie progu (np. przy przejściu z `inProgress` do `escalated`), a nie przy każdym odświeżeniu widoku.
 - Rozwiązanie zatwierdzeń (`decide`) porównuje `decidedBy` i `requestedBy` jako zwykłe stringi (`trim` + ignorowanie wielkości liter) — rozwiązane w R1.5: `banking_backend`'s `/approvals/{id}/decide` proxy ustawia `decidedBy` z `sub` JWT (zawsze `PRC-xxxxx`), nigdy z ciała żądania klienta.
-- `GET /ict-incidents` nie ma filtra po `status`/`severity` — jeśli pulpit (`DSH-05`) będzie potrzebował tylko otwartych incydentów o wysokiej istotności, filtrowanie trzeba będzie dodać po stronie `banking_backend` lub rozszerzyć ten endpoint w kolejnej iteracji.
 - Następna sesja (druga iteracja): zamiana `ConcurrentHashMap` na trwały storage (Spring Data JPA + baza danych) z seederem — kontrakt REST pozostaje bez zmian, zmienia się tylko trwałość stanu.
 - Brak autoryzacji/uwierzytelnienia na poziomie tego serwisu — zakładane jest, że sieć wewnętrzna (`banking-internal`) i `banking_backend` są jedynym wołającym; `identity_access_mock` odpowiada za RBAC na poziomie UI/`banking_backend`.

@@ -29,8 +29,16 @@ public class IctIncidentService {
         return incident;
     }
 
-    public List<IctIncident> list() {
+    /**
+     * status/severity are optional filters; null means no filter on that field. Unrecognized values
+     * are rejected before reaching this method - the controller binds them directly as enum
+     * parameters (same mechanism as ApprovalService.list/ApprovalController#list), so Spring MVC's
+     * default enum conversion throws and the module's default error handling turns that into a 400.
+     */
+    public List<IctIncident> list(IncidentStatus status, Severity severity) {
         return incidents.values().stream()
+                .filter(i -> status == null || i.status() == status)
+                .filter(i -> severity == null || i.severity() == severity)
                 .sorted(Comparator.comparing(IctIncident::createdAt))
                 .toList();
     }

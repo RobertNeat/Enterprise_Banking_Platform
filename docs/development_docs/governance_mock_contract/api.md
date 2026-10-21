@@ -112,7 +112,12 @@ Request:
 
 ### `GET /ict-incidents`
 
-Lista wszystkich incydentów, sortowana po `createdAt`.
+Lista incydentów, sortowana po `createdAt`. Opcjonalne parametry zapytania `status` (`OPEN|RESOLVED`)
+i `severity` (`LOW|MEDIUM|HIGH`), bindowane wprost jako typ enum (tak jak `GET /approvals?status=...`) —
+dopasowanie jest dokładne (rozróżnia wielkość liter, musi być exact match nazwy stałej enum). Można
+podać oba naraz (logiczne AND). Brak parametru = brak filtra na danym polu. Nierozpoznana wartość
+(np. literówka lub inna wielkość liter) zwraca `400 Bad Request` (`ProblemDetail`) — ta sama konwencja
+co w `/approvals`.
 
 ### `POST /ict-incidents/{id}/resolve`
 
