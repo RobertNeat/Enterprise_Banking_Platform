@@ -1,0 +1,42 @@
+import { Translation } from 'primeng/api';
+
+/** Polskie nazwy dni/miesięcy dla kalendarza/datepickera PrimeNG (brak w pakiecie domyślnie). */
+export const PRIMENG_TRANSLATION_PL: Translation = {
+  dayNames: ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'],
+  dayNamesShort: ['nie', 'pon', 'wto', 'śro', 'czw', 'pią', 'sob'],
+  dayNamesMin: ['N', 'P', 'W', 'Ś', 'C', 'P', 'S'],
+  monthNames: [
+    'styczeń',
+    'luty',
+    'marzec',
+    'kwiecień',
+    'maj',
+    'czerwiec',
+    'lipiec',
+    'sierpień',
+    'wrzesień',
+    'październik',
+    'listopad',
+    'grudzień',
+  ],
+  monthNamesShort: [
+    'sty',
+    'lut',
+    'mar',
+    'kwi',
+    'maj',
+    'cze',
+    'lip',
+    'sie',
+    'wrz',
+    'paź',
+    'lis',
+    'gru',
+  ],
+  today: 'Dziś',
+  clear: 'Wyczyść',
+  firstDayOfWeek: 1,
+  choose: 'Wybierz',
+  accept: 'Akceptuj',
+  reject: 'Odrzuć',
+};

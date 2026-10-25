@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -17,6 +16,8 @@ import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { AuthService } from '../../core/services/auth.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
+import { MoneyPipe } from '../../shared/utils/money.pipe';
+import { PercentPipe } from '../../shared/utils/percent.pipe';
 import { LoansStore } from './loans.store';
 import { LoanDetail } from './loans.model';
 import { LOAN_PRODUCTS, LOAN_STAGE_SEVERITY, LoanProduct, LoanSegment } from './loans.model';
@@ -31,7 +32,8 @@ interface CustomerOption {
   selector: 'app-loans-page',
   standalone: true,
   imports: [
-    DecimalPipe,
+    MoneyPipe,
+    PercentPipe,
     FormsModule,
     ReactiveFormsModule,
     TableModule,

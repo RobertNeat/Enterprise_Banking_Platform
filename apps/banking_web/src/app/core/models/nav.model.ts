@@ -60,4 +60,10 @@ export const NAV_ITEMS: NavItem[] = [
     route: '/approvals',
     permission: 'approvals',
   },
+  {
+    labelKey: 'nav.accounts',
+    icon: 'pi pi-users',
+    route: '/accounts',
+    permission: 'accounts-admin',
+  },
 ];

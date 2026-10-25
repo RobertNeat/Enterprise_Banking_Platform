@@ -2,9 +2,11 @@ package robert_neat.banking_backend.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -181,5 +183,74 @@ class AuthControllerTest {
                 .content("{\"employment\":{\"employeeId\":\"PRC-00099\"}}"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.status").value("PENDING_APPROVAL"));
+  }
+
+  @Test
+  void listAccountsRequiresAccountsAdminPermission() throws Exception {
+    mockMvc
+        .perform(get("/auth/accounts").with(testJwt("PRC-00002", 1)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void approveAccountRequiresAccountsAdminPermission() throws Exception {
+    mockMvc
+        .perform(
+            post("/auth/accounts/uuid-1/approve")
+                .with(testJwt("PRC-00002", 1))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"Doradca kredytowy\"}"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void rejectAccountRequiresAccountsAdminPermission() throws Exception {
+    mockMvc
+        .perform(post("/auth/accounts/uuid-1/reject").with(testJwt("PRC-00002", 1)))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void listAccountsProxiesToIdentityAccessMockForAnAdmin() throws Exception {
+    tools.jackson.databind.ObjectMapper mapper = new tools.jackson.databind.ObjectMapper();
+    tools.jackson.databind.JsonNode account =
+        mapper.readTree("{\"id\":\"uuid-1\",\"employeeId\":\"PRC-00099\",\"status\":\"ACTIVE\"}");
+    given(identityAccessClient.listAccounts()).willReturn(List.of(account));
+
+    mockMvc
+        .perform(get("/auth/accounts").with(testJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].employeeId").value("PRC-00099"));
+  }
+
+  @Test
+  void approveAccountProxiesToIdentityAccessMockForAnAdmin() throws Exception {
+    tools.jackson.databind.ObjectMapper mapper = new tools.jackson.databind.ObjectMapper();
+    tools.jackson.databind.JsonNode response =
+        mapper.readTree(
+            "{\"id\":\"uuid-1\",\"employeeId\":\"PRC-00099\",\"role\":\"Doradca kredytowy\",\"status\":\"ACTIVE\"}");
+    given(identityAccessClient.approveAccount(eq("uuid-1"), any())).willReturn(response);
+
+    mockMvc
+        .perform(
+            post("/auth/accounts/uuid-1/approve")
+                .with(testJwt())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"role\":\"Doradca kredytowy\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("ACTIVE"));
+  }
+
+  @Test
+  void rejectAccountProxiesToIdentityAccessMockForAnAdmin() throws Exception {
+    tools.jackson.databind.ObjectMapper mapper = new tools.jackson.databind.ObjectMapper();
+    tools.jackson.databind.JsonNode response =
+        mapper.readTree("{\"id\":\"uuid-1\",\"employeeId\":\"PRC-00099\",\"status\":\"REJECTED\"}");
+    given(identityAccessClient.rejectAccount("uuid-1")).willReturn(response);
+
+    mockMvc
+        .perform(post("/auth/accounts/uuid-1/reject").with(testJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("REJECTED"));
   }
 }

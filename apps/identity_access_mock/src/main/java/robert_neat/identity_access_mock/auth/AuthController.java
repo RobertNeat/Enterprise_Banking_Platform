@@ -38,6 +38,16 @@ public class AuthController {
         return authService.listAccounts();
     }
 
+    @PostMapping("/accounts/{id}/approve")
+    public AccountView approve(@PathVariable String id, @RequestBody ApproveAccountRequest request) {
+        return AccountView.from(authService.approve(id, request));
+    }
+
+    @PostMapping("/accounts/{id}/reject")
+    public AccountView reject(@PathVariable String id) {
+        return AccountView.from(authService.reject(id));
+    }
+
     private String extractToken(String authorizationHeader) {
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             return authorizationHeader.substring("Bearer ".length());

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import robert_neat.identity_access_mock.common.ConflictException;
 import robert_neat.identity_access_mock.common.ForbiddenException;
+import robert_neat.identity_access_mock.common.NotFoundException;
 import robert_neat.identity_access_mock.common.UnauthorizedException;
 import robert_neat.identity_access_mock.common.ValidationException;
 
@@ -84,5 +85,32 @@ public class AuthService {
     @Transactional(readOnly = true)
     public boolean accountExists(String employeeId) {
         return accountRepository.existsByEmployeeId(employeeId);
+    }
+
+    @Transactional
+    public EmployeeAccount approve(String id, ApproveAccountRequest request) {
+        EmployeeAccount account = requirePendingAccount(id);
+        if (!RolePermissions.isKnownRole(request.role())) {
+            throw new ValidationException("Unknown role: " + request.role());
+        }
+        account.setRole(request.role());
+        account.setStatus(AccountStatus.ACTIVE);
+        return account;
+    }
+
+    @Transactional
+    public EmployeeAccount reject(String id) {
+        EmployeeAccount account = requirePendingAccount(id);
+        account.setStatus(AccountStatus.REJECTED);
+        return account;
+    }
+
+    private EmployeeAccount requirePendingAccount(String id) {
+        EmployeeAccount account = accountRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Account not found: " + id));
+        if (account.getStatus() != AccountStatus.PENDING_APPROVAL) {
+            throw new ConflictException("Account is not pending approval: " + account.getStatus());
+        }
+        return account;
     }
 }

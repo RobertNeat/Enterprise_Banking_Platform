@@ -67,7 +67,7 @@
         <td>{{ item.applicant }}</td>
         <td>{{ 'loans.segment.' + item.segment | translate }}</td>
         <td>{{ 'loans.product.' + item.product | translate }}</td>
-        <td>{{ item.requestedAmount | number: '1.0-0' }} PLN</td>
+        <td>{{ item.requestedAmount | money }} PLN</td>
         <td>
           <app-status-tag
             [tagId]="'loans-row-' + item.id + '-stage'"
@@ -214,9 +214,9 @@
               </div>
               <div>
                 <span>{{ 'loans.wizard.dsti' | translate }}:</span>
-                <strong id="loans-wizard-scoring-dsti"
-                  >{{ createdLoan()!.dsti * 100 | number: '1.0-1' }}%</strong
-                >
+                <strong id="loans-wizard-scoring-dsti">{{
+                  createdLoan()!.dsti * 100 | pct
+                }}</strong>
               </div>
             </div>
           }
@@ -248,7 +248,7 @@
           <div>
             <span>{{ 'loans.wizard.amount' | translate }}:</span>
             <strong id="loans-wizard-summary-amount">{{
-              form.controls.requestedAmount.value | number: '1.0-0'
+              form.controls.requestedAmount.value | money
             }}</strong>
           </div>
           <div>
@@ -257,7 +257,9 @@
           </div>
           <div>
             <span>{{ 'loans.wizard.dsti' | translate }}:</span>
-            <strong id="loans-wizard-summary-dsti">{{ createdLoan()?.dsti }}</strong>
+            <strong id="loans-wizard-summary-dsti">{{
+              createdLoan() ? (createdLoan()!.dsti * 100 | pct) : ''
+            }}</strong>
           </div>
         </div>
       }

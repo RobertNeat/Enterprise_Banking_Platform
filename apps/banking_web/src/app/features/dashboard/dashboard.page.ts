@@ -11,6 +11,7 @@ import { ApiBaseUrlService } from '../../core/services/api-base-url.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { KpiCardComponent } from '../../shared/components/kpi-card.component';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
+import { formatCount, formatPercent, numberFormat } from '../../shared/utils/format-number';
 import { CASE_SEVERITY } from '../cases/cases.model';
 import { REPORT_SEVERITY } from '../reporting/reporting.model';
 import { LOAN_PRODUCTS, LoanApplication } from '../loans/loans.model';
@@ -113,23 +114,20 @@ export class DashboardPage {
   );
 
   private millions(value: number): string {
-    const formatted = new Intl.NumberFormat(this.i18n.lang() === 'pl' ? 'pl-PL' : 'en-US', {
+    const formatted = numberFormat({
       maximumFractionDigits: 1,
-      minimumFractionDigits: value % 1_000_000 === 0 ? 0 : 1,
+      minimumFractionDigits: 1,
+      useGrouping: 'always',
     }).format(value / 1_000_000);
     return `${formatted} ${this.i18n.translate('dashboard.kpi.unit.millionsPln')}`;
   }
 
   private count(value: number): string {
-    return new Intl.NumberFormat(this.i18n.lang() === 'pl' ? 'pl-PL' : 'en-US').format(value);
+    return formatCount(value);
   }
 
   private percent(value: number, fractionDigits = 1): string {
-    const formatted = new Intl.NumberFormat(this.i18n.lang() === 'pl' ? 'pl-PL' : 'en-US', {
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
-    }).format(value);
-    return `${formatted}%`;
+    return formatPercent(value, fractionDigits);
   }
 
   protected readonly kpiLoansActive = computed(() => {

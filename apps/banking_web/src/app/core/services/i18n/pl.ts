@@ -13,6 +13,7 @@ export const pl: Record<string, string> = {
   'nav.cases': 'Sprawy klientów',
   'nav.collections': 'Windykacja',
   'nav.approvals': 'Zatwierdzenia',
+  'nav.accounts': 'Użytkownicy',
 
   'common.search': 'Szukaj',
   'common.filter': 'Filtruj',
@@ -46,6 +47,7 @@ export const pl: Record<string, string> = {
   'common.send': 'Wyślij',
   'common.approve': 'Zatwierdź',
   'common.reject': 'Odrzuć',
+  'common.role': 'Rola',
 
   'toast.info.title': 'Informacja',
   'toast.success.title': 'Sukces',
@@ -80,6 +82,7 @@ export const pl: Record<string, string> = {
   'auth.login.demoAccountsHint': 'Kliknij, aby uzupełnić formularz danymi logowania.',
   'auth.login.error.invalidCredentials': 'Niepoprawny identyfikator pracownika lub hasło.',
   'auth.login.error.pendingApproval': 'Konto czeka na zatwierdzenie przez administratora.',
+  'auth.login.error.rejected': 'Rejestracja tego konta została odrzucona przez administratora.',
   'auth.login.error.unavailable': 'Usługa logowania jest tymczasowo niedostępna. Spróbuj później.',
   'auth.login.error.generic': 'Nie udało się zalogować. Spróbuj ponownie.',
   'auth.validation.required': 'To pole jest wymagane.',
@@ -435,6 +438,23 @@ export const pl: Record<string, string> = {
   'approvals.error.forbidden':
     'Niewystarczający poziom uprawnień do zatwierdzenia tego wniosku (lub wniosek własny).',
   'approvals.error.generic': 'Nie udało się zapisać decyzji.',
+
+  'accounts.title': 'Zarządzanie użytkownikami',
+  'accounts.subtitle': 'Zatwierdzanie i odrzucanie zarejestrowanych kont pracowników',
+  'accounts.pendingTitle': 'Oczekujące na zatwierdzenie',
+  'accounts.decidedTitle': 'Zatwierdzone i odrzucone',
+  'accounts.noPending': 'Brak kont oczekujących na zatwierdzenie.',
+  'accounts.employeeId': 'Identyfikator pracownika',
+  'accounts.name': 'Imię i nazwisko',
+  'accounts.email': 'E-mail',
+  'accounts.status.ACTIVE': 'Aktywne',
+  'accounts.status.PENDING_APPROVAL': 'Oczekujące',
+  'accounts.status.REJECTED': 'Odrzucone',
+  'accounts.approveDialog.title': 'Zatwierdź konto',
+  'accounts.approveDialog.role': 'Rola do przypisania',
+  'accounts.error.forbidden': 'Niewystarczające uprawnienia do zarządzania użytkownikami.',
+  'accounts.error.notPending': 'To konto nie czeka już na zatwierdzenie.',
+  'accounts.error.generic': 'Nie udało się zapisać decyzji.',
 
   'collections.title': 'Windykacja',
   'collections.subtitle': 'Opóźnienia, wezwania, ugody, restrukturyzacje',

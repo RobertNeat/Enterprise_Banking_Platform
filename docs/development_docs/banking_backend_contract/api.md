@@ -64,6 +64,14 @@ Publiczny (`permitAll`). Passthrough request/response 1:1 do `identity_access_mo
 (zob. `docs/identity_access_mock_contract/api.md` dla kształtu). Response: `201` lub błąd (`400`/`409`)
 przekazany 1:1.
 
+### GET /auth/accounts, POST /auth/accounts/{id}/approve, POST /auth/accounts/{id}/reject
+
+Wymagają uprawnienia `accounts-admin` w JWT claim `permissions` (403 `AccountsAdminAccessException`
+jeśli brak) — sprawdzane w `banking_backend` PRZED forwardem, bo `identity_access_mock` sam nie ma
+takiej kontroli, a `approve` nadaje rolę. Poza tym passthrough 1:1 do `identity_access_mock`'s
+`/auth/accounts*` (zob. `docs/identity_access_mock_contract/api.md` dla kształtu request/response
+i kodów błędów `400`/`404`/`409`).
+
 ### Autoryzacja innych endpointów
 
 Wszystkie endpointy poza `/actuator/health`, `POST /auth/login`, `POST /auth/register` wymagają

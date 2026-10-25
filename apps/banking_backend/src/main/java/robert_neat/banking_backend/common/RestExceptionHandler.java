@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import robert_neat.banking_backend.approvals.GovernanceException;
 import robert_neat.banking_backend.approvals.GovernanceUnavailableException;
 import robert_neat.banking_backend.approvals.InsufficientSeniorityException;
+import robert_neat.banking_backend.auth.AccountsAdminAccessException;
 import robert_neat.banking_backend.auth.IdentityAccessException;
 import robert_neat.banking_backend.auth.IdentityAccessUnavailableException;
 import robert_neat.banking_backend.auth.UnmappedRoleException;
@@ -37,6 +38,12 @@ public class RestExceptionHandler {
   @ExceptionHandler(IdentityAccessException.class)
   public ResponseEntity<ApiError> handleIdentityAccess(IdentityAccessException ex) {
     return ResponseEntity.status(ex.getStatus()).body(new ApiError(ex.getMessage()));
+  }
+
+  /** Caller lacks the "accounts-admin" permission — rejected before identity_access_mock. */
+  @ExceptionHandler(AccountsAdminAccessException.class)
+  public ResponseEntity<ApiError> handleAccountsAdminAccess(AccountsAdminAccessException ex) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ApiError(ex.getMessage()));
   }
 
   @ExceptionHandler(IdentityAccessUnavailableException.class)

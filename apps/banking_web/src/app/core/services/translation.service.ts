@@ -34,9 +34,9 @@ export class TranslationService {
     return text;
   }
 
+  /** Domyślnie 'pl' niezależnie od przeglądarki — to polska platforma bankowa. */
   private detectInitialLang(): Lang {
     const stored = localStorage.getItem(STORAGE_KEY) as Lang | null;
-    if (stored === 'pl' || stored === 'en') return stored;
-    return navigator.language?.toLowerCase().startsWith('pl') ? 'pl' : 'en';
+    return stored === 'pl' || stored === 'en' ? stored : 'pl';
   }
 }

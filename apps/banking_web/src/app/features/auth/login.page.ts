@@ -87,7 +87,15 @@ export class LoginPage {
   private resolveErrorKey(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 401) return 'auth.login.error.invalidCredentials';
-      if (error.status === 403) return 'auth.login.error.pendingApproval';
+      if (error.status === 403) {
+        // identity_access_mock's message is "Account is not active: <status>" (see AuthService) —
+        // distinguishing REJECTED from PENDING_APPROVAL here avoids telling a rejected applicant
+        // their account is merely awaiting approval.
+        const message: string | undefined = error.error?.message;
+        return message?.includes('REJECTED')
+          ? 'auth.login.error.rejected'
+          : 'auth.login.error.pendingApproval';
+      }
       if (error.status === 0 || error.status >= 500) return 'auth.login.error.unavailable';
     }
     return 'auth.login.error.generic';

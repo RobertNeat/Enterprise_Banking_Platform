@@ -35,9 +35,9 @@
         <td>{{ item.customer }}</td>
         <td>{{ item.bailiff }}</td>
         <td>{{ item.caseNumber }}</td>
-        <td>{{ item.blockedAmount | number: '1.0-0' }} PLN</td>
-        <td>{{ item.transferredAmount | number: '1.0-0' }} PLN</td>
-        <td>{{ item.protectedAmount | number: '1.2-2' }} PLN</td>
+        <td>{{ item.blockedAmount | money }} PLN</td>
+        <td>{{ item.transferredAmount | money }} PLN</td>
+        <td>{{ item.protectedAmount | money }} PLN</td>
         <td>
           <app-status-tag
             [tagId]="'enforcement-row-' + item.id + '-status'"
@@ -193,6 +193,7 @@
               inputId="enforcement-wizard-blocked-amount-input"
               formControlName="blockedAmount"
               mode="decimal"
+              [locale]="inputLocale"
               [minFractionDigits]="0"
               [maxFractionDigits]="2"
               suffix=" PLN"
@@ -216,6 +217,7 @@
               inputId="enforcement-wizard-protected-amount-input"
               formControlName="protectedAmount"
               mode="decimal"
+              [locale]="inputLocale"
               [minFractionDigits]="2"
               [maxFractionDigits]="2"
               suffix=" PLN"
@@ -278,12 +280,12 @@
 
             <dt>{{ 'enforcement.wizard.blockedAmount' | translate }}</dt>
             <dd id="enforcement-wizard-summary-blocked-amount">
-              {{ amountsGroup.controls.blockedAmount.value | number: '1.0-2' }} PLN
+              {{ amountsGroup.controls.blockedAmount.value | money }} PLN
             </dd>
 
             <dt>{{ 'enforcement.wizard.protectedAmount' | translate }}</dt>
             <dd id="enforcement-wizard-summary-protected-amount">
-              {{ amountsGroup.controls.protectedAmount.value | number: '1.2-2' }} PLN
+              {{ amountsGroup.controls.protectedAmount.value | money }} PLN
             </dd>
           </dl>
         </div>
@@ -311,6 +313,7 @@
         inputId="enforcement-transfer-amount-input"
         formControlName="transferredAmount"
         mode="decimal"
+        [locale]="inputLocale"
         [minFractionDigits]="0"
         [maxFractionDigits]="2"
         suffix=" PLN"

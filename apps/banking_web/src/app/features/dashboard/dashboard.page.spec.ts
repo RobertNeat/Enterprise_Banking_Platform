@@ -69,14 +69,16 @@ describe('DashboardPage', () => {
 
     flushAll();
 
-    expect(component['kpiLoansActive']()).toBe('18,420');
-    expect(component['kpiLoansValue']()).toBe('512.4 M PLN');
-    expect(component['kpiCardsIssued']()).toBe('64,910');
-    expect(component['kpiNpl']()).toBe('3.8%');
-    expect(component['kpiLcr']()).toBe('142%');
-    expect(component['kpiNsfr']()).toBe('118%');
+    // Amounts/numbers always render pl-PL regardless of UI language (see shared/utils/format-number.ts)
+    // — only the unit label ("M PLN" vs "mln PLN") follows the language toggle.
+    expect(component['kpiLoansActive']()).toBe('18 420');
+    expect(component['kpiLoansValue']()).toBe('512,4 M PLN');
+    expect(component['kpiCardsIssued']()).toBe('64 910');
+    expect(component['kpiNpl']()).toBe('3,8 %');
+    expect(component['kpiLcr']()).toBe('142 %');
+    expect(component['kpiNsfr']()).toBe('118 %');
     expect(component['kpiCasesOpen']()).toBe('312');
-    expect(component['kpiCollectionsOverdue']()).toBe('24.6 M PLN');
+    expect(component['kpiCollectionsOverdue']()).toBe('24,6 M PLN');
   });
 
   it('falls back to the placeholder when the KPI snapshot is not seeded (404)', () => {

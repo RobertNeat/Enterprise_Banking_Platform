@@ -59,7 +59,7 @@ Potrzebne dla F6 (blokada środków) i FATCA/CRS (`balance`).
 | role | varchar(50) | wolny string, 6 wartości demo |
 | business_lines | varchar(200) | CSV kluczy (retail/corporate/risk/collections/compliance/it) |
 | start_date | date | |
-| status | varchar(20) | `PENDING_APPROVAL`\|`ACTIVE` — zgodnie z identity_access_mock |
+| status | varchar(20) | `PENDING_APPROVAL`\|`ACTIVE`\|`REJECTED` — zgodnie z identity_access_mock |
 
 Używane jako FK dla `owner` sprawy, `requestedBy`/`decidedBy` zatwierdzeń (referencyjnie, approval
 queue żyje w governance_mock).

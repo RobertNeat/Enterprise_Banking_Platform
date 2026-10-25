@@ -1,0 +1,136 @@
+<div class="page-header" id="accounts-page-header">
+  <div class="page-header__text">
+    <h1 id="accounts-title">{{ 'accounts.title' | translate }}</h1>
+    <p id="accounts-subtitle">{{ 'accounts.subtitle' | translate }}</p>
+  </div>
+</div>
+
+<div class="card-section" id="accounts-pending-section" style="margin-bottom: 1.5rem">
+  <h2 id="accounts-pending-title">{{ 'accounts.pendingTitle' | translate }}</h2>
+  <p-table id="accounts-pending-table" [value]="pendingAccounts()" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'accounts.employeeId' | translate }}</th>
+        <th>{{ 'accounts.name' | translate }}</th>
+        <th>{{ 'accounts.email' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+        <th>{{ 'common.actions' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-item>
+      <tr [id]="'accounts-pending-row-' + item.id">
+        <td>{{ item.employeeId }}</td>
+        <td>{{ item.firstName }} {{ item.lastName }}</td>
+        <td>{{ item.email }}</td>
+        <td>
+          <app-status-tag
+            [tagId]="'accounts-pending-row-' + item.id + '-status'"
+            [labelKey]="'accounts.status.' + item.status"
+            [severity]="severity[item.status]"
+          />
+        </td>
+        <td>
+          <p-button
+            [id]="'accounts-pending-row-' + item.id + '-approve-btn'"
+            [pt]="{ root: { id: 'accounts-pending-row-' + item.id + '-approve-btn-root' } }"
+            [label]="'common.approve' | translate"
+            [text]="true"
+            size="small"
+            severity="success"
+            [loading]="busyId() === item.id"
+            (click)="openApproveDialog(item)"
+          />
+          <p-button
+            [id]="'accounts-pending-row-' + item.id + '-reject-btn'"
+            [pt]="{ root: { id: 'accounts-pending-row-' + item.id + '-reject-btn-root' } }"
+            [label]="'common.reject' | translate"
+            [text]="true"
+            size="small"
+            severity="danger"
+            [loading]="busyId() === item.id"
+            (click)="reject(item)"
+          />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="5">{{ 'accounts.noPending' | translate }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<div class="card-section" id="accounts-decided-section">
+  <h2 id="accounts-decided-title">{{ 'accounts.decidedTitle' | translate }}</h2>
+  <p-table id="accounts-decided-table" [value]="decidedAccounts()" [rows]="10">
+    <ng-template #header>
+      <tr>
+        <th>{{ 'accounts.employeeId' | translate }}</th>
+        <th>{{ 'accounts.name' | translate }}</th>
+        <th>{{ 'common.role' | translate }}</th>
+        <th>{{ 'common.status' | translate }}</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-item>
+      <tr [id]="'accounts-decided-row-' + item.id">
+        <td>{{ item.employeeId }}</td>
+        <td>{{ item.firstName }} {{ item.lastName }}</td>
+        <td>{{ item.role ?? '—' }}</td>
+        <td>
+          <app-status-tag
+            [tagId]="'accounts-decided-row-' + item.id + '-status'"
+            [labelKey]="'accounts.status.' + item.status"
+            [severity]="severity[item.status]"
+          />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  id="accounts-approve-dialog"
+  [pt]="{ pcCloseButton: { root: { id: 'accounts-approve-dialog-close-btn' } } }"
+  [visible]="approveDialogOpen()"
+  (visibleChange)="$event ? null : closeApproveDialog()"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '28rem', maxWidth: '95vw' }"
+  [header]="'accounts.approveDialog.title' | translate"
+>
+  <div class="field" id="accounts-approve-role-field">
+    <label for="accounts-approve-role-select" class="required">{{
+      'accounts.approveDialog.role' | translate
+    }}</label>
+    <p-select
+      id="accounts-approve-role-select"
+      [pt]="{ dropdown: { id: 'accounts-approve-role-select-dropdown-btn' } }"
+      [ngModel]="selectedRole()"
+      (ngModelChange)="selectedRole.set($event)"
+      [options]="assignableRoles"
+      appendTo="body"
+      [fluid]="true"
+    />
+  </div>
+
+  <div class="wizard-dialog__actions" id="accounts-approve-dialog-actions">
+    <p-button
+      id="accounts-approve-cancel-btn"
+      [pt]="{ root: { id: 'accounts-approve-cancel-btn-root' } }"
+      [label]="'wizard.cancel' | translate"
+      severity="secondary"
+      [text]="true"
+      (click)="closeApproveDialog()"
+    />
+    <p-button
+      id="accounts-approve-submit-btn"
+      [pt]="{ root: { id: 'accounts-approve-submit-btn-root' } }"
+      [label]="'wizard.submit' | translate"
+      icon="pi pi-check"
+      [disabled]="!selectedRole()"
+      [loading]="busyId() === approvingAccount()?.id"
+      (click)="confirmApprove()"
+    />
+  </div>
+</p-dialog>

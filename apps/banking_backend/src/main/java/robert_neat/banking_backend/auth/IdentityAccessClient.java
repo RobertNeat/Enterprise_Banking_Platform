@@ -66,6 +66,34 @@ public class IdentityAccessClient {
                 .body(JsonNode.class));
   }
 
+  public List<JsonNode> listAccounts() {
+    JsonNode[] accounts =
+        exchange(() -> restClient.get().uri("/auth/accounts").retrieve().body(JsonNode[].class));
+    return accounts == null ? List.of() : List.of(accounts);
+  }
+
+  public JsonNode approveAccount(String id, JsonNode approveRequest) {
+    return exchange(
+        () ->
+            restClient
+                .post()
+                .uri("/auth/accounts/{id}/approve", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(approveRequest)
+                .retrieve()
+                .body(JsonNode.class));
+  }
+
+  public JsonNode rejectAccount(String id) {
+    return exchange(
+        () ->
+            restClient
+                .post()
+                .uri("/auth/accounts/{id}/reject", id)
+                .retrieve()
+                .body(JsonNode.class));
+  }
+
   /** purpose: "UNLOCK_ACCESS" | "RESET_DEVICE". */
   public OtpRequestResponse requestOtp(String employeeId, String purpose) {
     Map<String, String> body = Map.of("employeeId", employeeId, "purpose", purpose);

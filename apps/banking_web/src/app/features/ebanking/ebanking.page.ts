@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -11,6 +10,7 @@ import { TranslationService } from '../../core/services/translation.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { NEUTRAL_TAG_SEVERITY } from '../../shared/utils/status-severity';
+import { MoneyPipe } from '../../shared/utils/money.pipe';
 import { EbankingStore } from './ebanking.store';
 import { ACCESS_SEVERITY, EbankingDevice, EbankingUser } from './ebanking.model';
 
@@ -20,7 +20,7 @@ type OtpPurpose = 'unlock' | 'resetDevice';
   selector: 'app-ebanking-page',
   standalone: true,
   imports: [
-    DecimalPipe,
+    MoneyPipe,
     ButtonModule,
     DialogModule,
     SelectModule,

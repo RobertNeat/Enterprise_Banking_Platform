@@ -5,6 +5,7 @@ databaseChangeLog:
   - include: { file: schema/002-auth-session.sql, relativeToChangelogFile: true }
   - include: { file: schema/003-device.sql, relativeToChangelogFile: true }
   - include: { file: schema/004-otp-code.sql, relativeToChangelogFile: true }
+  - include: { file: schema/005-employee-account-rejected-status.sql, relativeToChangelogFile: true }
 
   - include: { file: seed/001-employee-account.sql, relativeToChangelogFile: true }
   - include: { file: seed/002-device.sql, relativeToChangelogFile: true }

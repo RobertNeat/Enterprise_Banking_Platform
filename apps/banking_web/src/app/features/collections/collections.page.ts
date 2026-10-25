@@ -1,25 +1,18 @@
 import { Component, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
+import { MoneyPipe } from '../../shared/utils/money.pipe';
 import { CollectionsStore } from './collections.store';
 import { COLLECTIONS_SEVERITY, CollectionsAction, CollectionsCase } from './collections.model';
 
 @Component({
   selector: 'app-collections-page',
   standalone: true,
-  imports: [
-    DecimalPipe,
-    ButtonModule,
-    DialogModule,
-    TableModule,
-    TranslatePipe,
-    StatusTagComponent,
-  ],
+  imports: [MoneyPipe, ButtonModule, DialogModule, TableModule, TranslatePipe, StatusTagComponent],
   templateUrl: './collections.page.html',
 })
 export class CollectionsPage {

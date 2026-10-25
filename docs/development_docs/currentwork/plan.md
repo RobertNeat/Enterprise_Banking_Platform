@@ -12,4 +12,8 @@
 
    ROI: czystość kodu, mniejsza powtarzalność przy dodawaniu kolejnego klienta w przyszłości — bez zmiany funkcjonalnej, stąd osobno od reszty planu 80/20.
 
+2. **Dokumentacja przepływów danych do testów manualnych** (`docs/system_flows/`) — pliki Markdown opisujące ścieżki klikalne w `banking_web` wraz z konkretnymi danymi wejściowymi (konta demo, ID encji z seeda, wartości formularzy) dla każdego przepływu mutującego (F2 kredyty, maker-checker, F8 sprawy, F4 karty, F5 e-banking, F3 ryzyko/windykacja, F6 zajęcia komornicze, F7 raportowanie) plus ścieżki negatywne (409/403/400/503→incydent ICT).
+
 Poza powyższym, żadne inne obszary nie są dziś zidentyfikowane jako zaległe — poprzednia iteracja (CAS, dashboard live data, audit trail, panele historii, loan rejection/disburse, contact center, enforcement kind, CAS auto-escalation, Liquibase integrity fixes, lint, trwały storage we wszystkich 3 serwisach mockowych: `governance_mock`/`identity_access_mock`/`external_institutions_gateway_mock`) jest zamknięta i zacommitowana.
+
+Zatwierdzanie zarejestrowanych użytkowników przez administratora i polskie formatowanie wartości pieniężnych/liczb zaimplementowane i zweryfikowane (lint/typecheck/testy/build), ale jeszcze NIE zacommitowane — czeka na przegląd.

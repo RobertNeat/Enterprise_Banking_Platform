@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -11,6 +10,8 @@ import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
 import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
 import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
+import { MoneyPipe } from '../../shared/utils/money.pipe';
+import { PercentPipe } from '../../shared/utils/percent.pipe';
 import { buildSchedule } from './loans.data';
 import {
   INSTALLMENT_SEVERITY,
@@ -40,7 +41,8 @@ const EMPTY_LOAN: LoanApplication = {
   selector: 'app-loan-detail-page',
   standalone: true,
   imports: [
-    DecimalPipe,
+    MoneyPipe,
+    PercentPipe,
     ButtonModule,
     StepperModule,
     TableModule,

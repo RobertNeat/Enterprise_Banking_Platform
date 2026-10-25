@@ -36,4 +36,9 @@ public final class RolePermissions {
         }
         return PERMISSIONS_BY_ROLE.getOrDefault(role, List.of());
     }
+
+    /** Used by the admin approval flow to reject an unmapped role before it reaches RoleCode.fromDisplayName. */
+    public static boolean isKnownRole(String role) {
+        return role != null && PERMISSIONS_BY_ROLE.containsKey(role);
+    }
 }

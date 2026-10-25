@@ -13,6 +13,7 @@ export const en: Record<string, string> = {
   'nav.cases': 'Case Management',
   'nav.collections': 'Collections',
   'nav.approvals': 'Approvals',
+  'nav.accounts': 'Users',
 
   'common.search': 'Search',
   'common.filter': 'Filter',
@@ -46,6 +47,7 @@ export const en: Record<string, string> = {
   'common.send': 'Send',
   'common.approve': 'Approve',
   'common.reject': 'Reject',
+  'common.role': 'Role',
 
   'toast.info.title': 'Info',
   'toast.success.title': 'Success',
@@ -80,6 +82,7 @@ export const en: Record<string, string> = {
   'auth.login.demoAccountsHint': 'Click to fill the form with its login details.',
   'auth.login.error.invalidCredentials': 'Invalid employee ID or password.',
   'auth.login.error.pendingApproval': 'Account is pending administrator approval.',
+  'auth.login.error.rejected': 'This account registration was rejected by an administrator.',
   'auth.login.error.unavailable': 'The login service is temporarily unavailable. Try again later.',
   'auth.login.error.generic': 'Login failed. Please try again.',
   'auth.validation.required': 'This field is required.',
@@ -436,6 +439,23 @@ export const en: Record<string, string> = {
   'approvals.error.forbidden':
     'Insufficient seniority to decide this request (or it is your own request).',
   'approvals.error.generic': 'Could not save the decision.',
+
+  'accounts.title': 'User management',
+  'accounts.subtitle': 'Approve or reject registered employee accounts',
+  'accounts.pendingTitle': 'Pending approval',
+  'accounts.decidedTitle': 'Approved and rejected',
+  'accounts.noPending': 'No accounts awaiting approval.',
+  'accounts.employeeId': 'Employee ID',
+  'accounts.name': 'Full name',
+  'accounts.email': 'Email',
+  'accounts.status.ACTIVE': 'Active',
+  'accounts.status.PENDING_APPROVAL': 'Pending',
+  'accounts.status.REJECTED': 'Rejected',
+  'accounts.approveDialog.title': 'Approve account',
+  'accounts.approveDialog.role': 'Role to assign',
+  'accounts.error.forbidden': 'Insufficient permissions to manage users.',
+  'accounts.error.notPending': 'This account is no longer pending approval.',
+  'accounts.error.generic': 'Could not save the decision.',
 
   'collections.title': 'Collections',
   'collections.subtitle': 'Delinquency, reminders, settlements, restructuring',

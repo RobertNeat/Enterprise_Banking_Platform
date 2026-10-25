@@ -32,7 +32,7 @@
           />
         </td>
         <td>{{ card.product }}</td>
-        <td>{{ card.limitDaily | number: '1.0-0' }} PLN</td>
+        <td>{{ card.limitDaily | money }} PLN</td>
         <td>
           <app-status-tag
             [tagId]="'cards-row-' + card.id + '-status'"
@@ -91,7 +91,7 @@
       <tr [id]="'cards-authorizations-row-' + auth.id">
         <td>{{ auth.id }}</td>
         <td>{{ auth.merchant }}</td>
-        <td>{{ auth.amount | number: '1.2-2' }} PLN</td>
+        <td>{{ auth.amount | money }} PLN</td>
         <td>{{ auth.date }}</td>
         <td>
           <app-status-tag

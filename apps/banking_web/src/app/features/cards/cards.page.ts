@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
@@ -14,6 +13,7 @@ import { StatusTagComponent } from '../../shared/components/status-tag.component
 import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
 import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
 import { NEUTRAL_TAG_SEVERITY } from '../../shared/utils/status-severity';
+import { MoneyPipe } from '../../shared/utils/money.pipe';
 import { CardsStore } from './cards.store';
 import {
   CARD_STATUS_SEVERITY,
@@ -27,7 +27,7 @@ import {
   selector: 'app-cards-page',
   standalone: true,
   imports: [
-    DecimalPipe,
+    MoneyPipe,
     ButtonModule,
     DialogModule,
     SelectModule,

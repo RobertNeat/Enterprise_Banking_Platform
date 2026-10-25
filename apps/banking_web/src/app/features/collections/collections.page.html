@@ -26,7 +26,7 @@
         <td [style.color]="item.daysPastDue > 60 ? 'var(--p-red-600)' : 'inherit'">
           {{ item.daysPastDue }}
         </td>
-        <td>{{ item.outstandingAmount | number: '1.0-0' }} PLN</td>
+        <td>{{ item.outstandingAmount | money }} PLN</td>
         <td>
           <app-status-tag
             [tagId]="'collections-row-' + item.id + '-status'"

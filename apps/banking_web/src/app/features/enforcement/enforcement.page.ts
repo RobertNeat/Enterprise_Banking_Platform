@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   AbstractControl,
@@ -23,6 +22,7 @@ import { StatusTagComponent } from '../../shared/components/status-tag.component
 import { WizardDialogComponent, WizardStep } from '../../shared/components/wizard-dialog.component';
 import { AuditHistoryDialogComponent } from '../../shared/audit-history/audit-history-dialog.component';
 import { AuditHistoryStore } from '../../shared/audit-history/audit-history.store';
+import { MoneyPipe } from '../../shared/utils/money.pipe';
 import { EnforcementStore } from './enforcement.store';
 import { ENFORCEMENT_SEVERITY, EnforcementCase, EnforcementKind } from './enforcement.model';
 
@@ -63,7 +63,7 @@ interface CustomerOption {
   selector: 'app-enforcement-page',
   standalone: true,
   imports: [
-    DecimalPipe,
+    MoneyPipe,
     ReactiveFormsModule,
     ButtonModule,
     DialogModule,
@@ -86,6 +86,8 @@ export class EnforcementPage {
   private readonly apiBaseUrl = inject(ApiBaseUrlService);
   private readonly auth = inject(AuthService);
   protected readonly historyStore = inject(AuditHistoryStore);
+  /** Zawsze pl-PL, niezależnie od języka UI — zob. shared/utils/format-number.ts. */
+  protected readonly inputLocale = 'pl-PL';
 
   private readonly wizard = viewChild.required(WizardDialogComponent);
 

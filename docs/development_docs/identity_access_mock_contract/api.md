@@ -38,7 +38,8 @@ kredytowy`, `Analityk ryzyka`, `Windykator`, `Konsultant kanału kontaktu`) nie 
 Hierarchia ról (kto może zatwierdzić czyj wniosek) NIE żyje tutaj — patrz `banking_backend`'s
 `auth/RoleCode.java` (`seniorityLevel`), zwracane też jako claim JWT i pole `LoginResponse`.
 
-Błędy: `401` (niepoprawne dane logowania), `403` (konto `PENDING_APPROVAL`), `400` (brak pól).
+Błędy: `401` (niepoprawne dane logowania), `403` (konto `PENDING_APPROVAL` lub `REJECTED` —
+komunikat `"Account is not active: <status>"`), `400` (brak pól).
 
 ### POST /auth/logout
 
@@ -74,7 +75,8 @@ Response `201`:
 ```
 
 Błędy: `400` (format `employeeId` niezgodny z `PRC-\d{5}`, hasło krótsze niż 8 znaków, hasła niezgodne),
-`409` (employeeId już istnieje). Rola jest `null` do momentu zatwierdzenia (poza zakresem tej iteracji).
+`409` (employeeId już istnieje). Rola jest `null` do momentu zatwierdzenia przez administratora
+(zob. `POST /auth/accounts/{id}/approve`).
 
 ### GET /auth/accounts
 
@@ -83,6 +85,39 @@ Response `200`: lista `AccountView` (bez pola `password`):
 [{ "id": "admin", "employeeId": "PRC-00001", "role": "Administrator systemu", "status": "ACTIVE",
    "firstName": null, "lastName": null, "email": null }]
 ```
+
+`banking_backend` proxuje ten endpoint pod `GET /auth/accounts`, z wymogiem uprawnienia
+`accounts-admin` w JWT (403 jeśli brak) — `identity_access_mock` sam nie sprawdza uprawnień.
+
+### POST /auth/accounts/{id}/approve
+
+`{id}` = `AccountView.id` (nie `employeeId`). Konto musi być w stanie `PENDING_APPROVAL`.
+
+Request:
+```json
+{ "role": "Doradca kredytowy" }
+```
+
+`role` musi być jedną ze znanych wartości `RolePermissions` (`Administrator systemu`,
+`Compliance / AML`, `Doradca kredytowy`, `Analityk ryzyka`, `Windykator`,
+`Konsultant kanału kontaktu`).
+
+Response `200`: `AccountView` ze `status=ACTIVE` i przypisaną rolą.
+
+Błędy: `400` (nieznana rola), `404` (nieznane `id`), `409` (konto nie jest w stanie
+`PENDING_APPROVAL`).
+
+### POST /auth/accounts/{id}/reject
+
+`{id}` = `AccountView.id`. Konto musi być w stanie `PENDING_APPROVAL`.
+
+Response `200`: `AccountView` ze `status=REJECTED`. Rekord zostaje — `employeeId` pozostaje
+zajęte (ponowna rejestracja tym identyfikatorem zwraca `409`).
+
+Błędy: `404` (nieznane `id`), `409` (konto nie jest w stanie `PENDING_APPROVAL`).
+
+Oba powyższe endpointy proxowane przez `banking_backend` pod tymi samymi ścieżkami, z tym samym
+wymogiem uprawnienia `accounts-admin`.
 
 ## OTP / SCA (PSD2)
 

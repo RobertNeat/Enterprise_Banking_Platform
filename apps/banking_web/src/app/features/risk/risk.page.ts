@@ -1,5 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
@@ -10,6 +9,8 @@ import { TableModule } from 'primeng/table';
 import { TranslatePipe } from '../../core/services/translate.pipe';
 import { NotificationService } from '../../core/services/notification.service';
 import { StatusTagComponent } from '../../shared/components/status-tag.component';
+import { MoneyPipe } from '../../shared/utils/money.pipe';
+import { PercentPipe } from '../../shared/utils/percent.pipe';
 import { RiskStore } from './risk.store';
 import { CollateralEntry, IFRS9_SEVERITY } from './risk.model';
 
@@ -17,7 +18,8 @@ import { CollateralEntry, IFRS9_SEVERITY } from './risk.model';
   selector: 'app-risk-page',
   standalone: true,
   imports: [
-    DecimalPipe,
+    MoneyPipe,
+    PercentPipe,
     ReactiveFormsModule,
     ButtonModule,
     DialogModule,

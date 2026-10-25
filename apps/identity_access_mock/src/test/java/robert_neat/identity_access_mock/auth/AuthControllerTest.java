@@ -35,6 +35,9 @@ class AuthControllerTest {
     @Autowired
     private EmployeeAccountRepository accountRepository;
 
+    @Autowired
+    private AuthSessionRepository sessionRepository;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -44,6 +47,11 @@ class AuthControllerTest {
 
     @AfterEach
     void cleanUp() {
+        // approve+login tests create a session row (FK on employee_id) before the account itself
+        // is deleted — must go first or the account delete fails with a referential integrity error.
+        sessionRepository.findAll().stream()
+                .filter(session -> session.getEmployeeId().equals("PRC-99999"))
+                .forEach(sessionRepository::delete);
         accountRepository.findByEmployeeId("PRC-99999").ifPresent(accountRepository::delete);
     }
 
@@ -103,5 +111,85 @@ class AuthControllerTest {
     void logoutIsIdempotentForUnknownToken() throws Exception {
         mockMvc.perform(post("/auth/logout").header("Authorization", "Bearer unknown-token"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void approveActivatesAPendingAccountWithTheGivenRoleAndAllowsLogin() throws Exception {
+        registerPendingAccount();
+        String id = accountRepository.findByEmployeeId("PRC-99999").orElseThrow().getId();
+
+        mockMvc.perform(post("/auth/accounts/" + id + "/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"Doradca kredytowy\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.role").value("Doradca kredytowy"));
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"employeeId\":\"PRC-99999\",\"password\":\"Passw0rd1\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("Doradca kredytowy"));
+    }
+
+    @Test
+    void approveRejectsAnUnknownRole() throws Exception {
+        registerPendingAccount();
+        String id = accountRepository.findByEmployeeId("PRC-99999").orElseThrow().getId();
+
+        mockMvc.perform(post("/auth/accounts/" + id + "/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"Nieznana rola\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectSetsStatusToRejectedAndKeepsLoginBlocked() throws Exception {
+        registerPendingAccount();
+        String id = accountRepository.findByEmployeeId("PRC-99999").orElseThrow().getId();
+
+        mockMvc.perform(post("/auth/accounts/" + id + "/reject"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"));
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"employeeId\":\"PRC-99999\",\"password\":\"Passw0rd1\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Account is not active: REJECTED"));
+    }
+
+    @Test
+    void approveReturnsNotFoundForAnUnknownId() throws Exception {
+        mockMvc.perform(post("/auth/accounts/does-not-exist/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"Doradca kredytowy\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void approveReturnsConflictForAnAlreadyActiveAccount() throws Exception {
+        mockMvc.perform(get("/auth/accounts"))
+                .andExpect(status().isOk());
+        EmployeeAccount admin = accountRepository.findByEmployeeId("PRC-00001").orElseThrow();
+
+        mockMvc.perform(post("/auth/accounts/" + admin.getId() + "/approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"Doradca kredytowy\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    private void registerPendingAccount() throws Exception {
+        String body = "{"
+                + "\"personal\":{\"firstName\":\"Jan\",\"lastName\":\"Kowalski\",\"email\":\"j.k@example.com\",\"phone\":\"123456789\"},"
+                + "\"employment\":{\"employeeId\":\"PRC-99999\",\"department\":\"IT\",\"branch\":\"WAW\",\"position\":\"Dev\",\"supervisor\":\"Boss\",\"startDate\":\"2026-10-14T00:00:00.000Z\"},"
+                + "\"industry\":{\"businessLines\":[\"it\"],\"certifications\":\"\",\"licenseNumber\":\"\"},"
+                + "\"account\":{\"password\":\"Passw0rd1\",\"confirmPassword\":\"Passw0rd1\",\"acceptPolicy\":true}"
+                + "}";
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated());
     }
 }

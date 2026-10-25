@@ -127,9 +127,11 @@ bo jedna pamięciowa baza żyje przez cały czas działania Surefire (`DB_CLOSE_
 Testy, które zależą od danych zasiewanych przez Liquibase (konta w `AuthControllerTest`, urządzenia w
 `DeviceControllerTest`/`UiControllerTest`), NIE czyszczą swoje tabele w `@BeforeEach` — czyszczą tylko
 tabele bez seeda (`otp_code` w `DeviceControllerTest`/`OtpControllerTest`/`EbankingAccessControllerTest`).
-`AuthControllerTest` usuwa w `@AfterEach` konto `PRC-99999` utworzone przez test rejestracji, żeby
-asercja liczby kont (`accountsListsSeededDemoAccountsWithoutPasswords`, oczekuje 6) była niezależna od
-kolejności wykonania testów w tej samej klasie.
+`AuthControllerTest` usuwa w `@AfterEach` konto `PRC-99999` utworzone przez test rejestracji (oraz
+jego sesję w `auth_session`, jeśli test zatwierdzenia+logowania ją utworzył — FK na `employee_id`
+wymaga usunięcia sesji przed kontem), żeby asercja liczby kont
+(`accountsListsSeededDemoAccountsWithoutPasswords`, oczekuje 6) była niezależna od kolejności
+wykonania testów w tej samej klasie.
 
 ## Reset danych
 
@@ -141,14 +143,17 @@ CASCADE;` w `psql`) — usunięcie całego wolumenu `mocks-postgres-data` resetu
 schematy (`governance`, `identity_access`, `gateway`). NIE używać `docker compose down -v` — to
 usuwa też wolumen `postgres-data` (dane `banking_backend`).
 
+## Zatwierdzanie zarejestrowanych kont
+
+Rejestracja (`POST /auth/register`) zostawia konto w stanie `PENDING_APPROVAL` z `role=null`.
+Administrator (uprawnienie `accounts-admin`, patrz `RolePermissions.ADMIN`) zatwierdza lub odrzuca
+konto w `banking_web` pod `/accounts` — `POST /auth/accounts/{id}/approve` (przypisuje rolę,
+`status=ACTIVE`) albo `POST /auth/accounts/{id}/reject` (`status=REJECTED`, rekord zostaje,
+`employeeId` pozostaje zajęte). Zatwierdzanie jest bezpośrednie — NIE przechodzi przez kolejkę
+maker-checker `governance_mock`'s `/approvals` (ten mechanizm obsługuje inny proces biznesowy:
+wnioski transakcyjne/kredytowe pracowników, nie cykl życia konta pracownika).
+
 ## Do uzupełnienia w innych częściach aplikacji
 
-- **banking_backend**: integracja `POST /auth/login` jako źródło tokenu/uprawnień dla sesji pracownika;
-  obecnie frontend nawiguje lokalnie bez wołania żadnego backendu auth.
 - **banking_backend / EbankingUser**: po pozytywnym `POST /ebanking-access/{userId}/unlock` backend
   powinien przestawić `accessStatus` z `locked`/`pendingReset` na `active` we własnej encji.
-- **governance_mock**: rejestracja nowego konta (`PENDING_APPROVAL`) powinna trafiać do kolejki
-  zatwierdzeń (`approval queue`) w `governance_mock`; obecnie to tylko status bez integracji.
-- Ewentualne przejście na Spring Security / Spring Authorization Server zamiast własnego tokenu UUID
-  (zgodnie ze starą specyfikacją techniczną) zostaje poza zakresem — poza tym serwis nie ma dziś
-  znanych zaległości.
