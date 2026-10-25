@@ -58,7 +58,13 @@ class SecurityConfigTest {
   @Test
   void tamperedTokenIsRejected() throws Exception {
     String token = encodeToken(Instant.now().plus(1, ChronoUnit.HOURS));
-    String tampered = token.substring(0, token.length() - 1) + (token.endsWith("a") ? "b" : "a");
+    // Flip a character inside the payload segment (not the signature's last char: the last
+    // base64url char of a signature only carries discarded padding bits ~6% of the time, which
+    // made this test flaky — see CVE-style trap test comment above for context).
+    int payloadStart = token.indexOf('.') + 1;
+    char flipped = token.charAt(payloadStart) == 'a' ? 'b' : 'a';
+    String tampered =
+        token.substring(0, payloadStart) + flipped + token.substring(payloadStart + 1);
 
     mockMvc
         .perform(get("/loans").header("Authorization", "Bearer " + tampered))
