@@ -1,6 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  body-parser: ^2.4.0
+  multer: ^2.5.0
 # Tolerancja na wolne/niestabilne odpowiedzi lokalnego rejestru Verdaccio (pnpm 11
 # ignoruje te ustawienia z .npmrc/ENV, więc muszą być tutaj).
 fetchTimeout: 300000
