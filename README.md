@@ -12,7 +12,7 @@ Enterprise Banking Platform (EBP) is a modular core-banking system that models t
   </a>
   <br>
   <a href="https://github.com/RobertNeat/Enterprise_Banking_Platform/blob/main/docs/readme/README_pl.md">
-    <img src="https://img.shields.io/badge/Angielska_wersja_dokumentu-white?style=for-the-badge" alt="Angielska wersja">
+    <img src="https://img.shields.io/badge/Polska_wersja_dokumentu-white?style=for-the-badge" alt="Polska wersja">
   </a>
 </p>
 
