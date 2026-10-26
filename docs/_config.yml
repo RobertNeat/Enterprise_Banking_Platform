@@ -3,6 +3,7 @@ description: Dokumentacja funkcjonalna modułów banking_web — role, uprawnien
 baseurl: "/Enterprise_Banking_Platform"
 url: "https://robertneat.github.io"
 lang: pl
+permalink: pretty
 
 markdown: kramdown
 kramdown:
