@@ -1,0 +1,7 @@
+sprawa_klienta-krok_0
+sprawa_klienta-krok_1
+sprawa_klienta-krok_2
+rozpoczęcie sprawy klienta
+sprawa klienta w toku
+eskalacja sprawy klienta
+zamknięcie sprawy klienta

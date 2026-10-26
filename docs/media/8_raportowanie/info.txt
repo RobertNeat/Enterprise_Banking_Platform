@@ -1,0 +1,5 @@
+raport_regulacyjny-robocze
+raport_regulacyjny-złożone
+raport_regulacyjny-zaakceptowane
+eksport CSV
+raport_regulacyjny-dashboard

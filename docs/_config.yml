@@ -1,0 +1,22 @@
+title: Enterprise Banking Platform — Wiki
+description: Dokumentacja funkcjonalna modułów banking_web — role, uprawnienia i pola formularzy.
+baseurl: "/Enterprise_Banking_Platform"
+url: "https://robertneat.github.io"
+lang: pl
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+include:
+  - media
+
+exclude:
+  - development_docs
+  - system_flows
+  - readme
+  - currentwork
+  - Gemfile
+  - Gemfile.lock
+  - node_modules

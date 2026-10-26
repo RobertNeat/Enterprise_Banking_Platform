@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.title }} — {{ site.title }}</title>
+  <meta name="description" content="{{ page.summary | default: site.description }}">
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+</head>
+<body>
+  <a href="#content" class="skip-link">Przejdź do treści</a>
+  <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="sidebar">☰ Menu</button>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar">
+      <a class="brand" href="{{ '/' | relative_url }}">Enterprise Banking Platform</a>
+      <p class="brand-sub">Wiki modułów systemu</p>
+      {% for group in site.data.navigation %}
+        <div class="nav-section">
+          <h2>{{ group.section }}</h2>
+          <ul>
+            {% for item in group.pages %}
+              {% assign item_url = item.url | relative_url %}
+              <li>
+                <a href="{{ item_url }}" {% if page.url == item.url %}class="active" aria-current="page"{% endif %}>{{ item.title }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </nav>
+    <main id="content" class="content">
+      <h1>{{ page.title }}</h1>
+      {% if page.summary %}<p class="lead">{{ page.summary }}</p>{% endif %}
+      {{ content }}
+    </main>
+  </div>
+  <script>
+    document.getElementById('nav-toggle').addEventListener('click', function () {
+      var sidebar = document.getElementById('sidebar');
+      var expanded = sidebar.classList.toggle('open');
+      this.setAttribute('aria-expanded', expanded);
+    });
+  </script>
+</body>
+</html>

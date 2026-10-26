@@ -1,0 +1,9 @@
+odblokowanie_dostępu_1
+odblokowanie_dostępu_2
+odblokowanie_dostępu_kod
+odblokowanie_dostępu_4
+reset_urządzenia_1
+reset_urządzenia_2
+reset_urządzenia_kod
+reset_urządzenia_4
+reset_urządzenia_5

@@ -1,0 +1,6 @@
+before
+zaj_komornicze_0
+zaj_komornicze_1
+zaj_komornicze_2
+zaj_komornicze_zarejestrow
+zaj_komornicze_zatwierdzone

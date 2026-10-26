@@ -1,0 +1,5 @@
+początkowe.png
+zablokowanie_karty.png
+zgłoszenie chargeback.png
+zapisanie chargeback.png
+odblokowanie karty.png

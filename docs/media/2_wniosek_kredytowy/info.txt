@@ -1,0 +1,11 @@
+wniosek_kredytowy-krok_0
+wniosek_kredytowy-krok_1
+wniosek_kredytowy-krok_2
+wniosek_kredytowy-krok_3
+wniosek_kredytowy-decyzja
+wniosek_kredytowy-podgląd_decyzji
+compliance_logowanie
+zatwierdzenie_wniosku_kredytowego
+wniosek_kredytowy-krok_4
+wniosek_kredytowy-krok_6
+wniosek_kredytowy-historia

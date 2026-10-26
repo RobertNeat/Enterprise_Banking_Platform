@@ -1,0 +1,40 @@
+- section: Start
+  pages:
+    - title: Strona główna
+      url: /
+- section: Informacje przekrojowe
+  pages:
+    - title: Role i uprawnienia
+      url: /wiki/role-i-uprawnienia/
+    - title: Zasada maker-checker
+      url: /wiki/maker-checker/
+    - title: Ślad audytowy i kreatory
+      url: /wiki/audyt-i-kreatory/
+- section: Ekrany systemu
+  pages:
+    - title: Logowanie i rejestracja
+      url: /wiki/logowanie-i-rejestracja/
+    - title: Pulpit (Dashboard)
+      url: /wiki/pulpit/
+    - title: Kredyty i pożyczki
+      url: /wiki/kredyty/
+    - title: Sprawy klientów
+      url: /wiki/sprawy-klientow/
+    - title: Karty płatnicze
+      url: /wiki/karty/
+    - title: Bankowość elektroniczna
+      url: /wiki/bankowosc-elektroniczna/
+    - title: Ryzyko kredytowe (ECL)
+      url: /wiki/ryzyko-ecl/
+    - title: Kanał kontaktu
+      url: /wiki/kanal-kontaktu/
+    - title: Zajęcia komornicze
+      url: /wiki/zajecia-komornicze/
+    - title: Windykacja
+      url: /wiki/windykacja/
+    - title: Raportowanie regulacyjne
+      url: /wiki/raportowanie/
+    - title: Zatwierdzenia (kolejka)
+      url: /wiki/zatwierdzenia/
+    - title: Administracja kont
+      url: /wiki/administracja-kont/
