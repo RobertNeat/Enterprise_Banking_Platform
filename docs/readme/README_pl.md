@@ -6,9 +6,16 @@
 
 Enterprise Banking Platform (EBP) to modułowy system typu core-banking, modelujący back office banku detalicznego wraz z symulacjami instytucji zewnętrznych, z którymi się integruje. System obejmuje pełen cykl codziennych operacji bankowych — zarządzanie klientem i kontem, udzielanie kredytów, obsługę kart płatniczych, ocenę ryzyka kredytowego, bezpieczeństwo bankowości elektronicznej, egzekucję komorniczą, raportowanie regulacyjne oraz obsługę spraw klientów — wymuszając przy tym zasadę podwójnej kontroli (maker-checker) dla każdej istotnej operacji.
 
-[![Dokumentacja](https://img.shields.io/badge/📖_Dokumentacja-1d5fa8?style=for-the-badge&logoColor=white)](https://robertneat.github.io/Enterprise_Banking_Platform/)
 
-> 🇬🇧 English version of this document: [README.md](../../README.md)
+<p align="center">
+  <a href="https://robertneat.github.io/Enterprise_Banking_Platform/">
+    <img src="https://img.shields.io/badge/Documentation-white?style=for-the-badge&labelColor=white&color=white&logoColor=black" alt="Documentation">
+  </a>
+  <br>
+  <a href="https://github.com/RobertNeat/Enterprise_Banking_Platform/blob/main/docs/readme/../../README.md">
+    <img src="https://img.shields.io/badge/Angielska_wersja_dokumentu-white?style=for-the-badge" alt="Angielska wersja">
+  </a>
+</p>
 
 ## Zastosowane standardy bankowe
 
